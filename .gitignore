@@ -1,3 +1,6 @@
 .idea/*
 .ipynb_checkpoints/*
 *.pyc
+data/*.npy
+data/*idx1-ubyte
+data/*idx3-ubyte
