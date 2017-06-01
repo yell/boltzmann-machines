@@ -1,3 +1,4 @@
 [nosetests]
-with-doctest=True
+all-modules=True
 exe=True
+with-doctest=True

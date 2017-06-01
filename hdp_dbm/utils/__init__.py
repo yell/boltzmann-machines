@@ -1,2 +1,2 @@
-from _random import *
-from _utils import *
+from rng import *
+from utils import *
