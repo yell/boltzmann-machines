@@ -43,4 +43,6 @@ class BaseModel(object):
         for key, value in params.items():
             if is_param_name(key) and hasattr(self, key):
                 setattr(self, key, value)
+            else:
+                raise ValueError("invalid param name '{0}'".format(key))
         return self
