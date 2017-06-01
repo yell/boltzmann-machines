@@ -16,15 +16,27 @@ class RNG(np.random.RandomState):
     Examples
     --------
     >>> rng = RNG(1337)
+    >>> state = rng.get_state()
+    >>> state1 = rng.get_state()
     >>> rng.rand()
     0.2620246750155817
     >>> rng.rand()
     0.1586839721544656
-    >>> rng.reseed()
+    >>> _ = rng.reseed()
     >>> rng.rand()
     0.2620246750155817
     >>> rng.rand()
     0.1586839721544656
+    >>> _ = rng.set_state(state)
+    >>> rng.rand()
+    0.2620246750155817
+    >>> import json
+    >>> with open('random_state.json', 'w') as f:
+    ...     json.dump(state1, f)
+    >>> with open('random_state.json', 'r') as f:
+    ...     loaded_state = json.load(f)
+    >>> rng.set_state(loaded_state).rand()
+    0.2620246750155817
     """
     def __init__(self, seed=None):
         self._seed = seed
@@ -33,6 +45,21 @@ class RNG(np.random.RandomState):
     def reseed(self):
         if self._seed is not None:
             self.seed(self._seed)
+        return self
+
+    def get_state(self):
+        """Get JSON-serializable inner state."""
+        state = super(RNG, self).get_state()
+        state = list(state)
+        state[1] = state[1].tolist()
+        return state
+
+    def set_state(self, state):
+        """Complementary method to `get_state`."""
+        state[1] = np.asarray(state[1], dtype=np.uint32)
+        state = tuple(state)
+        super(RNG, self).set_state(state)
+        return self
 
 
 if __name__ == '__main__':
