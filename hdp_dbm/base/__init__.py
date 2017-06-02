@@ -1,2 +1,2 @@
-from _base import *
-from _tf import *
+from base_model import *
+from tf_model import *

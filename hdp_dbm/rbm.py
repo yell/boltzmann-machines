@@ -2,29 +2,29 @@ import tensorflow as tf
 from matplotlib import pyplot as plt
 
 from base import TensorFlowModel
-from utils import batch_iter, RNG
+from utils import batch_iter
 from utils.dataset import load_mnist
 
 
 class BaseRBM(TensorFlowModel):
     def __init__(self, n_visible=784, n_hidden=256, n_gibbs_steps=1,
                  learning_rate=0.1, momentum=0.9, batch_size=10, max_epoch=10,
-                 verbose=False, shuffle=True, random_seed=None,
-                 model_dirpath='rbm_model/', **tf_model_params):
-        super(BaseRBM, self).__init__(model_dirpath=model_dirpath, **tf_model_params)
+                 verbose=False, shuffle=True,
+                 model_dirpath='rbm_model/', **kwargs):
+        super(BaseRBM, self).__init__(model_dirpath=model_dirpath, **kwargs)
         self.n_visible = n_visible
         self.n_hidden = n_hidden
         self.n_gibbs_steps = n_gibbs_steps
+
         self.learning_rate = learning_rate
         self.momentum = momentum
         self.batch_size = batch_size
         self.max_epoch = max_epoch
+
         self.verbose = verbose
         self.shuffle = shuffle
-        self.random_seed = random_seed
 
         self.epoch = 0
-        self._rng = RNG(seed=self.random_seed)
 
         # placeholders
         self._input_batch = None
@@ -106,7 +106,8 @@ class BaseRBM(TensorFlowModel):
         }
 
     def _train_epoch(self, X, X_val):
-        updates = (self._W_update, self._hb_update, self._vb_update)
+        self.PW_ = tf.Print(self.W_, [self.W_], message="W: ")
+        updates = (self._W_update, self._hb_update, self._vb_update, self.PW_)
         for X_batch in batch_iter(X, batch_size=self.batch_size):
             self._tf_session.run(updates, feed_dict=self._make_tf_feed_dict(X_batch=X_batch))
 
@@ -118,13 +119,15 @@ class BaseRBM(TensorFlowModel):
             if self.verbose:
                 s = "epoch: {0:{1}}/{2} - loss: {3:.4f}"
                 print s.format(self.epoch, len(str(self.max_epoch)), self.max_epoch, loss)
+        else:
+            print "epoch {0}".format(self.epoch)
 
     def _fit(self, X, X_val=None, *args, **kwargs):
         if self.shuffle:
             self._rng.shuffle(X)
         while self.epoch < self.max_epoch:
-            self._train_epoch(X, X_val)
             self.epoch += 1
+            self._train_epoch(X, X_val)
 
 
 
@@ -174,20 +177,35 @@ if __name__ == '__main__':
     #               max_epoch=3,
     #               verbose=True,
     #               random_seed=1337,
-    #               model_dirpath='../models/rbm_3',
-    #               save_model=False)
+    #               model_dirpath='../models/rbm_3')
     # rbm.fit(X, X_val)
-
-    # with tf.Session() as sess:
-    #     W = rbm.W_.eval()
-    # W = rbm.get_weights()['W_']
-
-    rbm = BaseRBM.load_model('../models/rbm_2')
+    #
+    #
+    # rbm = BaseRBM.load_model('../models/rbm_1')
     # rbm.set_params(max_epoch=16)
     # # print rbm.get_weights()
     # rbm.fit(X, X_val)
 
-    weights = rbm.get_weights()
-    W = weights['W_']
-    plot_rbm_filters(W)
-    plt.show()
+    # weights = rbm.get_weights()
+    # W = weights['W_']
+    # plot_rbm_filters(W)
+    # plt.show()
+
+    from utils import RNG
+    X = RNG(seed=1337).rand(32, 256)
+    rbm = BaseRBM(n_visible=256, n_hidden=100, max_epoch=3,
+                  verbose=True, shuffle=False, model_dirpath='test_rbm_1',
+                  random_seed=1337)
+    rbm.fit(X)
+    print rbm.get_weights()['W_'][0][0]
+    rbm2 = BaseRBM.load_model('test_rbm_1')
+    rbm2.set_params(max_epoch=10) # 7 more iterations
+    rbm2.fit(X)
+    rbm2_weights = rbm2.get_weights()
+    rbm3 = BaseRBM(n_visible=256, n_hidden=100, max_epoch=10,
+                   verbose=True, shuffle=False, model_dirpath='test_rbm_2',
+                   random_seed=1337)
+    rbm3.fit(X)
+    rbm3_weights = rbm3.get_weights()
+    import numpy as np
+    np.testing.assert_allclose(rbm2_weights['W_'], rbm3_weights['W_'])

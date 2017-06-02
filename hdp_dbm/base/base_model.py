@@ -1,4 +1,5 @@
 from copy import deepcopy
+import env; from utils import RNG
 
 
 def is_param_name(name):
@@ -6,8 +7,10 @@ def is_param_name(name):
 
 
 class BaseModel(object):
-    def __init__(self):
+    def __init__(self, random_seed=None):
         super(BaseModel, self).__init__()
+        self.random_seed = random_seed
+        self._rng = RNG(seed=self.random_seed)
 
     def get_params(self, deep=True):
         """Get parameters of the model.

@@ -1,7 +1,11 @@
 .idea/*
 .ipynb_checkpoints/*
 *.pyc
+*.json
 data/*.npy
 data/*idx1-ubyte
 data/*idx3-ubyte
 examples/.ipynb_checkpoints/*
+hdp_dbm/test_rbm_1/*
+hdp_dbm/test_rbm_2/*
+models/*
