@@ -10,14 +10,15 @@ def is_weight_name(name):
 
 
 class TensorFlowModel(BaseModel):
-    def __init__(self, model_dirpath='tf_model/', save_model=True, **kwargs):
+    def __init__(self, model_path='', save_model=True, **kwargs):
         super(TensorFlowModel, self).__init__(**kwargs)
         self._model_dirpath = None
         self._model_filepath = None
         self._params_filepath = None
         self._random_state_filepath = None
         self._summary_dirpath = None
-        self._setup_working_dirs(model_dirpath)
+        self._tf_meta_graph_filepath = None
+        self._setup_working_paths(model_path)
 
         self.save_model = save_model
         self.called_fit = False
@@ -27,12 +28,23 @@ class TensorFlowModel(BaseModel):
         self._tf_session = None
         self._tf_summary_writer = None
 
-    def _setup_working_dirs(self, model_dirpath):
-        self._model_dirpath = model_dirpath
-        self._model_filepath = os.path.join(model_dirpath, 'model')
-        self._params_filepath = os.path.join(model_dirpath, 'params.json')
-        self._random_state_filepath = os.path.join(model_dirpath, 'random_state.json')
-        self._summary_dirpath = os.path.join(model_dirpath, 'logs')
+    def _setup_working_paths(self, model_path):
+        """
+        Parameters
+        ----------
+        model_path : str
+            Model dirpath (should contain slash at the end) or filepath
+        """
+        head, tail = os.path.split(model_path)
+        if not head: head = '.'
+        if not tail: tail = 'model'
+        self._model_dirpath = head
+        if not self._model_dirpath.endswith('/'): self._model_dirpath += '/'
+        self._model_filepath = os.path.join(self._model_dirpath, tail)
+        self._params_filepath = os.path.join(self._model_dirpath, 'params.json')
+        self._random_state_filepath = os.path.join(self._model_dirpath, 'random_state.json')
+        self._summary_dirpath = os.path.join(self._model_dirpath, 'logs')
+        self._tf_meta_graph_filepath = self._model_filepath + '.meta'
 
     def _make_tf_model(self):
         raise NotImplementedError
@@ -45,7 +57,7 @@ class TensorFlowModel(BaseModel):
             self._tf_merged_summaries = tf.summary.merge_all()
         if self._tf_saver is None:
             self._tf_saver = tf.train.Saver()
-        if self.save_model:
+        if self._tf_summary_writer is None and self.save_model:
             self._tf_summary_writer = tf.summary.FileWriter(self._summary_dirpath,
                                                             self._tf_session.graph)
 
@@ -79,7 +91,7 @@ class TensorFlowModel(BaseModel):
         model = cls(model_dirpath=model_dirpath)
 
         # update paths
-        model._setup_working_dirs(model_dirpath)
+        model._setup_working_paths(model_dirpath)
 
         # load params
         with open(model._params_filepath, 'r') as params_file:
@@ -93,9 +105,11 @@ class TensorFlowModel(BaseModel):
             model._rng.set_state(random_state)
 
         # load tf model
+        model._tf_saver = tf.train.import_meta_graph(os.path.join(model._model_dirpath, 'model.meta'))
+        model._tf_graph = tf.get_default_graph()
         with model._tf_graph.as_default():
             model._make_tf_model()
-            model._tf_saver = tf.train.Saver()
+            # model._tf_saver = tf.train.Saver()
             with tf.Session() as model._tf_session:
                 init_op = tf.global_variables_initializer()
                 model._tf_session.run(init_op)
@@ -135,9 +149,16 @@ class TensorFlowModel(BaseModel):
         weights = vars(self)
         weights = {key: weights[key] for key in weights if is_weight_name(key)}
         # evaluate the respective variables
-        with self._tf_graph.as_default():
-            with tf.Session() as self._tf_session:
-                self._tf_saver.restore(self._tf_session, self._model_filepath)
-                for key, value in weights.items():
-                    weights[key] = value.eval()
+        # with self._tf_graph.as_default():
+        with tf.Session() as self._tf_session:
+            self._tf_saver = tf.train.import_meta_graph(os.path.join(self._model_dirpath, 'model.meta'))
+            self._tf_saver.restore(self._tf_session, self._model_filepath)
+            for key, value in weights.items():
+                weights[key] = value.eval()
         return weights
+
+if __name__ == '__main__':
+    # run corresponding tests
+    import env; from utils.testing import run_tests
+    from tests import test_tf_model
+    run_tests(__file__, test_tf_model)
