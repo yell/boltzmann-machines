@@ -22,10 +22,13 @@ class TensorFlowModel(BaseModel):
 
         self.save_model = save_model
         self.called_fit = False
+
         self._tf_graph = tf.Graph()
-        self._tf_merged_summaries = None
+
         self._tf_saver = None
         self._tf_session = None
+
+        self._tf_merged_summaries = None
         self._tf_summary_writer = None
 
     def _setup_working_paths(self, model_path):
@@ -145,17 +148,14 @@ class TensorFlowModel(BaseModel):
             raise ValueError('`fit` must be called before calling `get_weights`')
         if not self.save_model:
             raise RuntimeError('model not found, rerun with `save_model`=True')
-        # collect and filter all attributes
-        weights = vars(self)
-        weights = {key: weights[key] for key in weights if is_weight_name(key)}
-        # evaluate the respective variables
-        # with self._tf_graph.as_default():
-        with tf.Session() as self._tf_session:
-            self._tf_saver = tf.train.import_meta_graph(os.path.join(self._model_dirpath, 'model.meta'))
-            self._tf_saver.restore(self._tf_session, self._model_filepath)
-            for key, value in weights.items():
-                weights[key] = value.eval()
-        return weights
+
+        with self._tf_graph.as_default():
+            with tf.Session() as self._tf_session:
+                self._tf_saver.restore(self._tf_session, self._model_filepath)
+                weights = {}
+                for var in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='weights'):
+                    weights[var.name.replace('weights/', '')] = var.eval()
+            return weights
 
 if __name__ == '__main__':
     # run corresponding tests

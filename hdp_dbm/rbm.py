@@ -10,8 +10,8 @@ class BaseRBM(TensorFlowModel):
     def __init__(self, n_visible=784, n_hidden=256, n_gibbs_steps=1,
                  learning_rate=0.1, momentum=0.9, batch_size=10, max_epoch=10,
                  verbose=False, shuffle=True,
-                 model_dirpath='rbm_model/', **kwargs):
-        super(BaseRBM, self).__init__(model_dirpath=model_dirpath, **kwargs)
+                 model_path='rbm_model/', **kwargs):
+        super(BaseRBM, self).__init__(model_path=model_path, **kwargs)
         self.n_visible = n_visible
         self.n_hidden = n_hidden
         self.n_gibbs_steps = n_gibbs_steps
@@ -26,90 +26,93 @@ class BaseRBM(TensorFlowModel):
 
         self.epoch = 0
 
-        # placeholders
-        self._input_batch = None
+        # input data
+        self._X_batch = None
         self._h_samples = None
         self._v_samples = None
 
-        # weights and other variables
-        self.W_ = None
-        self.hb_ = None
-        self.vb_ = None
+        # weights
+        self._W = None
+        self._hb = None
+        self._vb = None
+
+        # grads
         self._dW = None
         self._dhb = None
         self._dvb = None
 
         # operations
-        self._W_update = None
-        self._hb_update = None
-        self._vb_update = None
+        self._train_op = None
         self._loss = None
 
     def _sample_h_given_v(self, v):
         """Sample from P(h|v)."""
-        h_means = tf.nn.sigmoid(tf.matmul(v, self.W_) + self.hb_)
+        h_means = tf.nn.sigmoid(tf.matmul(v, self._W) + self._hb)
         h_samples = tf.to_float(tf.less(self._h_samples, h_means))
         return h_means, h_samples
 
     def _sample_v_given_h(self, h):
         """Sample from P(v|h)."""
-        v_means = tf.nn.sigmoid(tf.matmul(h, tf.transpose(self.W_)) + self.vb_)
+        v_means = tf.nn.sigmoid(tf.matmul(h, tf.transpose(self._W)) + self._vb)
         v_samples = tf.to_float(tf.less(self._v_samples, v_means))
         return v_means, v_samples
 
     def _make_tf_model(self):
         # create placeholders
-        self._input_batch = tf.placeholder('float', [None, self.n_visible], name='input_batch')
-        self._h_samples = tf.placeholder('float', [None, self.n_hidden], name='h_samples')
-        self._v_samples = tf.placeholder('float', [None, self.n_visible], name='v_samples')
+        with tf.name_scope('input_data'):
+            self._X_batch = tf.placeholder('float', [None, self.n_visible], name='input_batch')
+            self._h_samples = tf.placeholder('float', [None, self.n_hidden], name='h_samples')
+            self._v_samples = tf.placeholder('float', [None, self.n_visible], name='v_samples')
 
-        # create variables
-        W_tensor = tf.random_normal((self.n_visible, self.n_hidden),
-                                    mean=0.0, stddev=0.01, seed=self.random_seed)
-        self.W_  = tf.Variable(W_tensor, name='W', dtype=tf.float32)
-        self.hb_  = tf.Variable(tf.zeros((self.n_hidden,)), name='hb', dtype=tf.float32)
-        self.vb_ = tf.Variable(tf.zeros((self.n_visible,)), name='vb', dtype=tf.float32)
+        # create variables (weights and grads)
+        with tf.name_scope('weights'):
+            W_tensor = tf.random_normal((self.n_visible, self.n_hidden),
+                                        mean=0.0, stddev=0.01, seed=self.random_seed)
+            self._W = tf.Variable(W_tensor, name='W', dtype=tf.float32)
+            self._hb = tf.Variable(tf.zeros((self.n_hidden,)), name='hb', dtype=tf.float32)
+            self._vb = tf.Variable(tf.zeros((self.n_visible,)), name='vb', dtype=tf.float32)
 
-        self._dW = tf.Variable(tf.zeros((self.n_visible, self.n_hidden)), name='dW', dtype=tf.float32)
-        self._dhb = tf.Variable(tf.zeros((self.n_hidden,)), name='dhb', dtype=tf.float32)
-        self._dvb = tf.Variable(tf.zeros((self.n_visible,)), name='dvb', dtype=tf.float32)
+        with tf.name_scope('grads'):
+            self._dW  = tf.Variable(tf.zeros((self.n_visible, self.n_hidden)), name='dW', dtype=tf.float32)
+            self._dhb = tf.Variable(tf.zeros((self.n_hidden,)), name='dhb', dtype=tf.float32)
+            self._dvb = tf.Variable(tf.zeros((self.n_visible,)), name='dvb', dtype=tf.float32)
 
         # run Gibbs chain
-        h0_means, h0_samples = self._sample_h_given_v(self._input_batch)
+        h0_means, h0_samples = self._sample_h_given_v(self._X_batch)
         h_means, v_means, v_samples = None, None, None
         h_samples = h0_samples
         for _ in xrange(self.n_gibbs_steps):
             v_means, v_samples = self._sample_v_given_h(h_samples)
             h_means, h_samples = self._sample_h_given_v(v_samples)
 
-        # update parameters
-        dW_positive = tf.matmul(tf.transpose(self._input_batch), h0_means)
+        # update parameters and assemble train_op
+        dW_positive = tf.matmul(tf.transpose(self._X_batch), h0_means)
         dW_negative = tf.matmul(tf.transpose(v_samples), h_means)
         self._dW = self.momentum * self._dW + (dW_positive - dW_negative)
-        self._W_update = self.W_.assign_add(self.learning_rate * self._dW)
-
+        W_update = self._W.assign_add(self.learning_rate * self._dW)
         self._dhb = self.momentum * self._dhb + tf.reduce_mean(h0_means - h_means, axis=0)
-        self._hb_update = self.hb_.assign_add(self.learning_rate * self._dhb)
-
-        self._dvb = self.momentum * self._dvb + tf.reduce_mean(self._input_batch - v_samples, axis=0)
-        self._vb_update = self.vb_.assign_add(self.learning_rate * self._dvb)
+        hb_update = self._hb.assign_add(self.learning_rate * self._dhb)
+        self._dvb = self.momentum * self._dvb + tf.reduce_mean(self._X_batch - v_samples, axis=0)
+        vb_update = self._vb.assign_add(self.learning_rate * self._dvb)
+        self._train_op = tf.group(W_update, hb_update, vb_update)
+        tf.add_to_collection('train_op', self._train_op)
 
         # collect summary
-        self._loss = tf.sqrt(tf.reduce_mean(tf.square(self._input_batch - v_means)))
+        self._loss = tf.sqrt(tf.reduce_mean(tf.square(self._X_batch - v_means)))
         tf.summary.scalar("loss", self._loss)
 
     def _make_tf_feed_dict(self, X_batch):
         return {
-            'input_batch:0': X_batch,
-            'h_samples:0': self._rng.rand(X_batch.shape[0], self.n_hidden),
-            'v_samples:0': self._rng.rand(X_batch.shape[0], self.n_visible)
+            self._X_batch: X_batch,
+            self._h_samples: self._rng.rand(X_batch.shape[0], self.n_hidden),
+            self._v_samples: self._rng.rand(X_batch.shape[0], self.n_visible)
         }
 
     def _train_epoch(self, X, X_val):
-        self.PW_ = tf.Print(self.W_, [self.W_], message="W: ")
-        updates = (self._W_update, self._hb_update, self._vb_update, self.PW_)
+        self._train_op = tf.group(self._train_op, tf.Print(self._W, [self._W], message="W: "))
         for X_batch in batch_iter(X, batch_size=self.batch_size):
-            self._tf_session.run(updates, feed_dict=self._make_tf_feed_dict(X_batch=X_batch))
+            self._tf_session.run(self._train_op,
+                                 feed_dict=self._make_tf_feed_dict(X_batch=X_batch))
 
         if X_val is not None:
             summary_str, loss = self._tf_session.run((self._tf_merged_summaries, self._loss),
@@ -187,25 +190,31 @@ if __name__ == '__main__':
     # rbm.fit(X, X_val)
 
     # weights = rbm.get_weights()
-    # W = weights['W_']
+    # W = weights['_W']
     # plot_rbm_filters(W)
     # plt.show()
+
+    ###########################################################
+    ###########################################################
+    ###########################################################
 
     from utils import RNG
     X = RNG(seed=1337).rand(32, 256)
     rbm = BaseRBM(n_visible=256, n_hidden=100, max_epoch=3,
-                  verbose=True, shuffle=False, model_dirpath='test_rbm_1',
+                  verbose=True, shuffle=False, model_path='test_rbm_1/',
                   random_seed=1337)
     rbm.fit(X)
-    print rbm.get_weights()['W_'][0][0]
-    rbm2 = BaseRBM.load_model('test_rbm_1')
-    rbm2.set_params(max_epoch=10) # 7 more iterations
-    rbm2.fit(X)
-    rbm2_weights = rbm2.get_weights()
-    rbm3 = BaseRBM(n_visible=256, n_hidden=100, max_epoch=10,
-                   verbose=True, shuffle=False, model_dirpath='test_rbm_2',
-                   random_seed=1337)
-    rbm3.fit(X)
-    rbm3_weights = rbm3.get_weights()
-    import numpy as np
-    np.testing.assert_allclose(rbm2_weights['W_'], rbm3_weights['W_'])
+    print rbm.get_weights().keys()
+    # rbm2 = BaseRBM.load_model('test_rbm_1')
+    # print rbm2.get_weights()['_W'][0][0]
+    # rbm2.set_params(max_epoch=10) # 7 more iterations
+    # rbm2.fit(X)
+
+    # rbm2_weights = rbm2.get_weights()
+    # rbm3 = BaseRBM(n_visible=256, n_hidden=100, max_epoch=10,
+    #                verbose=True, shuffle=False, model_dirpath='test_rbm_2',
+    #                random_seed=1337)
+    # rbm3.fit(X)
+    # rbm3_weights = rbm3.get_weights()
+    # import numpy as np
+    # np.testing.assert_allclose(rbm2_weights['_W'], rbm3_weights['_W'])
