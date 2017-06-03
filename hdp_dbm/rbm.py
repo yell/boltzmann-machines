@@ -60,7 +60,7 @@ class BaseRBM(TensorFlowModel):
     def _make_tf_model(self):
         # create placeholders
         with tf.name_scope('input_data'):
-            self._X_batch = tf.placeholder('float', [None, self.n_visible], name='input_batch')
+            self._X_batch = tf.placeholder('float', [None, self.n_visible], name='X_batch')
             self._h_samples = tf.placeholder('float', [None, self.n_hidden], name='h_samples')
             self._v_samples = tf.placeholder('float', [None, self.n_visible], name='v_samples')
 
@@ -88,13 +88,14 @@ class BaseRBM(TensorFlowModel):
         # update parameters and assemble train_op
         dW_positive = tf.matmul(tf.transpose(self._X_batch), h0_means)
         dW_negative = tf.matmul(tf.transpose(v_samples), h_means)
-        self._dW = self.momentum * self._dW + (dW_positive - dW_negative)
-        W_update = self._W.assign_add(self.learning_rate * self._dW)
+        self._dW  = self.momentum * self._dW + (dW_positive - dW_negative)
         self._dhb = self.momentum * self._dhb + tf.reduce_mean(h0_means - h_means, axis=0)
-        hb_update = self._hb.assign_add(self.learning_rate * self._dhb)
         self._dvb = self.momentum * self._dvb + tf.reduce_mean(self._X_batch - v_samples, axis=0)
+        W_update  = self._W.assign_add(self.learning_rate * self._dW)
+        hb_update = self._hb.assign_add(self.learning_rate * self._dhb)
         vb_update = self._vb.assign_add(self.learning_rate * self._dvb)
         self._train_op = tf.group(W_update, hb_update, vb_update)
+        self._train_op = tf.group(self._train_op, tf.Print(self._W, [self._W], message="W: "))
         tf.add_to_collection('train_op', self._train_op)
 
         # collect summary
@@ -103,13 +104,15 @@ class BaseRBM(TensorFlowModel):
 
     def _make_tf_feed_dict(self, X_batch):
         return {
-            self._X_batch: X_batch,
-            self._h_samples: self._rng.rand(X_batch.shape[0], self.n_hidden),
-            self._v_samples: self._rng.rand(X_batch.shape[0], self.n_visible)
+            # self._X_batch: X_batch,
+            # self._h_samples: self._rng.rand(X_batch.shape[0], self.n_hidden),
+            # self._v_samples: self._rng.rand(X_batch.shape[0], self.n_visible)
+            'input_data/X_batch:0': X_batch,
+            'input_data/h_samples:0': self._rng.rand(X_batch.shape[0], self.n_hidden),
+            'input_data/v_samples:0': self._rng.rand(X_batch.shape[0], self.n_visible)
         }
 
     def _train_epoch(self, X, X_val):
-        self._train_op = tf.group(self._train_op, tf.Print(self._W, [self._W], message="W: "))
         for X_batch in batch_iter(X, batch_size=self.batch_size):
             self._tf_session.run(self._train_op,
                                  feed_dict=self._make_tf_feed_dict(X_batch=X_batch))
@@ -202,19 +205,23 @@ if __name__ == '__main__':
     X = RNG(seed=1337).rand(32, 256)
     rbm = BaseRBM(n_visible=256, n_hidden=100, max_epoch=3,
                   verbose=True, shuffle=False, model_path='test_rbm_1/',
-                  random_seed=1337)
+                  random_seed=1337, save_model=False)
+    print rbm.get_weights()['W:0'][0][0]
     rbm.fit(X)
-    print rbm.get_weights().keys()
-    # rbm2 = BaseRBM.load_model('test_rbm_1')
-    # print rbm2.get_weights()['_W'][0][0]
+    print rbm.get_weights()['W:0'][0][0]
+    rbm.set_params(max_epoch=10).fit(X)
+    print rbm.get_weights()['W:0'][0][0]
+
+    # rbm2 = BaseRBM.load_model('test_rbm_1/')
+    # print rbm2.get_weights()['W:0'][0][0]
     # rbm2.set_params(max_epoch=10) # 7 more iterations
     # rbm2.fit(X)
 
     # rbm2_weights = rbm2.get_weights()
     # rbm3 = BaseRBM(n_visible=256, n_hidden=100, max_epoch=10,
-    #                verbose=True, shuffle=False, model_dirpath='test_rbm_2',
+    #                verbose=True, shuffle=False, model_path='test_rbm_2/',
     #                random_seed=1337)
     # rbm3.fit(X)
     # rbm3_weights = rbm3.get_weights()
     # import numpy as np
-    # np.testing.assert_allclose(rbm2_weights['_W'], rbm3_weights['_W'])
+    # np.testing.assert_allclose(rbm2_weights['W:0'], rbm3_weights['W:0'])

@@ -1,12 +1,39 @@
 import os
 import json
 import tensorflow as tf
+from functools import wraps
 
 from base_model import BaseModel
 
 
 def is_weight_name(name):
     return not name.startswith('_') and name.endswith('_')
+
+
+def run_in_tf_session(f):
+    """Decorator function that takes care to load appropriate graph/session,
+    depending on whether model is just created or can be loaded from disk,
+    and to execute `f` inside this session.
+    """
+    @wraps(f)  # preserve bound method properties
+    def wrapped(model, *args, **kwargs):
+        tf.reset_default_graph()
+        model._tf_graph = tf.get_default_graph()
+        if model.called_fit: # model should be loaded from disk
+            model._tf_saver = tf.train.import_meta_graph(model._tf_meta_graph_filepath)
+            with model._tf_graph.as_default():
+                with tf.Session() as model._tf_session:
+                    model._tf_saver.restore(model._tf_session, model._model_filepath)
+                    model._train_op = tf.get_collection('train_op')[0]
+                    res = f(model, *args, **kwargs)
+        else:
+            with model._tf_graph.as_default():
+                with tf.Session() as model._tf_session:
+                    model._make_tf_model()
+                    model._init_tf_ops()
+                    res = f(model, *args, **kwargs)
+        return res
+    return wrapped
 
 
 class TensorFlowModel(BaseModel):
@@ -25,7 +52,6 @@ class TensorFlowModel(BaseModel):
 
         self._tf_graph = tf.Graph()
         self._tf_session = None
-
         self._tf_saver = None
         self._tf_merged_summaries = None
         self._tf_summary_writer = None
@@ -55,17 +81,14 @@ class TensorFlowModel(BaseModel):
         """Initialize all TF variables, operations etc."""
         init_op = tf.global_variables_initializer()
         self._tf_session.run(init_op)
-        if self._tf_saver is None:
-            self._tf_saver = tf.train.Saver()
-        # if self._tf_merged_summaries is None:
-        #     self._tf_merged_summaries = tf.summary.merge_all()
-        # if self._tf_summary_writer is None and self.save_model:
-        #     self._tf_summary_writer = tf.summary.FileWriter(self._summary_dirpath,
-        #                                                     self._tf_session.graph)
+        self._tf_saver = tf.train.Saver()
+        self._tf_merged_summaries = tf.summary.merge_all()
+        if self.save_model:
+            self._tf_summary_writer = tf.summary.FileWriter(self._summary_dirpath,
+                                                            self._tf_graph)
 
-    def _save_model(self, json_params=None, tf_save_params=None):
+    def _save_model(self, json_params=None):
         json_params = json_params or {}
-        tf_save_params = tf_save_params or {}
         json_params.setdefault('sort_keys', True)
         json_params.setdefault('indent', 4)
 
@@ -85,7 +108,7 @@ class TensorFlowModel(BaseModel):
                 json.dump(random_state, random_state_file)
 
         # save tf model
-        self._tf_saver.save(self._tf_session, self._model_filepath, **tf_save_params)
+        self._tf_saver.save(self._tf_session, self._model_filepath)
 
     @classmethod
     def load_model(cls, model_path):
@@ -105,34 +128,23 @@ class TensorFlowModel(BaseModel):
                 random_state = json.load(random_state_file)
             model._rng.set_state(random_state)
 
-        # load tf model
-        # tf.reset_default_graph()
-        model._tf_saver = tf.train.import_meta_graph(model._tf_meta_graph_filepath)
-        model._tf_graph = tf.get_default_graph()
-        with model._tf_graph.as_default():
-            with tf.Session() as model._tf_session:
-                model._tf_saver.restore(model._tf_session, model._model_filepath)
-                model._train_op = tf.get_collection('train_op')[0]
+        # (tf model will be loaded once any computation will be needed)
         return model
 
     def _fit(self, X, *args, **kwargs):
         """Class-specific `fit` routine."""
         raise NotImplementedError()
 
+    @run_in_tf_session
     def fit(self, X, *args, **kwargs):
         """Fit the model according to the given training data."""
-        with self._tf_graph.as_default():
-            if not self.called_fit:
-                self._make_tf_model()
-            with tf.Session() as self._tf_session:
-                if not self.called_fit:
-                    self._init_tf_ops()
-                self._fit(X, *args, **kwargs)
-                self.called_fit = True
-                if self.save_model:
-                    self._save_model()
+        self._fit(X, *args, **kwargs)
+        self.called_fit = True
+        if self.save_model:
+            self._save_model()
         return self
 
+    @run_in_tf_session
     def get_weights(self):
         """Get weights of the model.
 
@@ -141,18 +153,11 @@ class TensorFlowModel(BaseModel):
         weights : dict
             Weights of the model in form on numpy arrays.
         """
-        if not self.called_fit:
-            raise ValueError('`fit` must be called before calling `get_weights`')
-        if not self.save_model:
-            raise RuntimeError('model not found, rerun with `save_model`=True')
+        weights = {}
+        for var in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='weights'):
+            weights[var.name.replace('weights/', '')] = var.eval()
+        return weights
 
-        with self._tf_graph.as_default():
-            with tf.Session() as self._tf_session:
-                self._tf_saver.restore(self._tf_session, self._model_filepath)
-                weights = {}
-                for var in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='weights'):
-                    weights[var.name.replace('weights/', '')] = var.eval()
-            return weights
 
 if __name__ == '__main__':
     # run corresponding tests
