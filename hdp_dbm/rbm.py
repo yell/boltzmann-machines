@@ -120,8 +120,8 @@ class BaseRBM(TensorFlowModel):
         if X_val is not None:
             summary_str, loss = self._tf_session.run((self._tf_merged_summaries, self._loss),
                                                      feed_dict=self._make_tf_feed_dict(X_val))
-            if self.save_model:
-                self._tf_summary_writer.add_summary(summary_str, self.epoch)
+
+            self._tf_summary_writer.add_summary(summary_str, self.epoch)
             if self.verbose:
                 s = "epoch: {0:{1}}/{2} - loss: {3:.4f}"
                 print s.format(self.epoch, len(str(self.max_epoch)), self.max_epoch, loss)
@@ -205,7 +205,7 @@ if __name__ == '__main__':
     X = RNG(seed=1337).rand(32, 256)
     rbm = BaseRBM(n_visible=256, n_hidden=100, max_epoch=3,
                   verbose=True, shuffle=False, model_path='test_rbm_1/',
-                  random_seed=1337, save_model=False)
+                  random_seed=1337)
     print rbm.get_weights()['W:0'][0][0]
     rbm.fit(X)
     print rbm.get_weights()['W:0'][0][0]

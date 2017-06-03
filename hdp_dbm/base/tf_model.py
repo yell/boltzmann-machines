@@ -37,7 +37,7 @@ def run_in_tf_session(f):
 
 
 class TensorFlowModel(BaseModel):
-    def __init__(self, model_path='tf_model/', save_model=True, **kwargs):
+    def __init__(self, model_path='tf_model/', **kwargs):
         super(TensorFlowModel, self).__init__(**kwargs)
         self._model_dirpath = None
         self._model_filepath = None
@@ -47,7 +47,6 @@ class TensorFlowModel(BaseModel):
         self._tf_meta_graph_filepath = None
         self.setup_working_paths(model_path)
 
-        self.save_model = save_model
         self.called_fit = False
 
         self._tf_graph = tf.Graph()
@@ -83,9 +82,8 @@ class TensorFlowModel(BaseModel):
         self._tf_session.run(init_op)
         self._tf_saver = tf.train.Saver()
         self._tf_merged_summaries = tf.summary.merge_all()
-        if self.save_model:
-            self._tf_summary_writer = tf.summary.FileWriter(self._summary_dirpath,
-                                                            self._tf_graph)
+        self._tf_summary_writer = tf.summary.FileWriter(self._summary_dirpath,
+                                                        self._tf_graph)
 
     def _save_model(self, json_params=None):
         json_params = json_params or {}
@@ -140,8 +138,7 @@ class TensorFlowModel(BaseModel):
         """Fit the model according to the given training data."""
         self._fit(X, *args, **kwargs)
         self.called_fit = True
-        if self.save_model:
-            self._save_model()
+        self._save_model()
         return self
 
     @run_in_tf_session
