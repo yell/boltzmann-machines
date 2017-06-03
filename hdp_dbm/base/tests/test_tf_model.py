@@ -56,14 +56,6 @@ class TestWorkingPaths(object):
         assert tf_model._summary_dirpath == './logs'
         assert tf_model._tf_meta_graph_filepath == './model.meta'
 
-        tf_model = TFM()
-        assert tf_model._model_dirpath == './'
-        assert tf_model._model_filepath == './model'
-        assert tf_model._params_filepath == './params.json'
-        assert tf_model._random_state_filepath == './random_state.json'
-        assert tf_model._summary_dirpath == './logs'
-        assert tf_model._tf_meta_graph_filepath == './model.meta'
-
     def test_all(self):
         tf_model = TFM(model_path='a/b')
         assert tf_model._model_dirpath == 'a/'

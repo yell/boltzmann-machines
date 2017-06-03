@@ -10,7 +10,7 @@ def is_weight_name(name):
 
 
 class TensorFlowModel(BaseModel):
-    def __init__(self, model_path='', save_model=True, **kwargs):
+    def __init__(self, model_path='tf_model/', save_model=True, **kwargs):
         super(TensorFlowModel, self).__init__(**kwargs)
         self._model_dirpath = None
         self._model_filepath = None
@@ -18,20 +18,19 @@ class TensorFlowModel(BaseModel):
         self._random_state_filepath = None
         self._summary_dirpath = None
         self._tf_meta_graph_filepath = None
-        self._setup_working_paths(model_path)
+        self.setup_working_paths(model_path)
 
         self.save_model = save_model
         self.called_fit = False
 
         self._tf_graph = tf.Graph()
-
-        self._tf_saver = None
         self._tf_session = None
 
+        self._tf_saver = None
         self._tf_merged_summaries = None
         self._tf_summary_writer = None
 
-    def _setup_working_paths(self, model_path):
+    def setup_working_paths(self, model_path):
         """
         Parameters
         ----------
@@ -56,13 +55,13 @@ class TensorFlowModel(BaseModel):
         """Initialize all TF variables, operations etc."""
         init_op = tf.global_variables_initializer()
         self._tf_session.run(init_op)
-        if self._tf_merged_summaries is None:
-            self._tf_merged_summaries = tf.summary.merge_all()
         if self._tf_saver is None:
             self._tf_saver = tf.train.Saver()
-        if self._tf_summary_writer is None and self.save_model:
-            self._tf_summary_writer = tf.summary.FileWriter(self._summary_dirpath,
-                                                            self._tf_session.graph)
+        # if self._tf_merged_summaries is None:
+        #     self._tf_merged_summaries = tf.summary.merge_all()
+        # if self._tf_summary_writer is None and self.save_model:
+        #     self._tf_summary_writer = tf.summary.FileWriter(self._summary_dirpath,
+        #                                                     self._tf_session.graph)
 
     def _save_model(self, json_params=None, tf_save_params=None):
         json_params = json_params or {}
@@ -86,15 +85,14 @@ class TensorFlowModel(BaseModel):
                 json.dump(random_state, random_state_file)
 
         # save tf model
-        with self._tf_graph.as_default():
-            self._tf_saver.save(self._tf_session, self._model_filepath, **tf_save_params)
+        self._tf_saver.save(self._tf_session, self._model_filepath, **tf_save_params)
 
     @classmethod
-    def load_model(cls, model_dirpath):
-        model = cls(model_dirpath=model_dirpath)
+    def load_model(cls, model_path):
+        model = cls(model_path=model_path)
 
         # update paths
-        model._setup_working_paths(model_dirpath)
+        model.setup_working_paths(model_path)
 
         # load params
         with open(model._params_filepath, 'r') as params_file:
@@ -108,15 +106,13 @@ class TensorFlowModel(BaseModel):
             model._rng.set_state(random_state)
 
         # load tf model
-        model._tf_saver = tf.train.import_meta_graph(os.path.join(model._model_dirpath, 'model.meta'))
+        # tf.reset_default_graph()
+        model._tf_saver = tf.train.import_meta_graph(model._tf_meta_graph_filepath)
         model._tf_graph = tf.get_default_graph()
         with model._tf_graph.as_default():
-            model._make_tf_model()
-            # model._tf_saver = tf.train.Saver()
             with tf.Session() as model._tf_session:
-                init_op = tf.global_variables_initializer()
-                model._tf_session.run(init_op)
                 model._tf_saver.restore(model._tf_session, model._model_filepath)
+                model._train_op = tf.get_collection('train_op')[0]
         return model
 
     def _fit(self, X, *args, **kwargs):
@@ -129,7 +125,8 @@ class TensorFlowModel(BaseModel):
             if not self.called_fit:
                 self._make_tf_model()
             with tf.Session() as self._tf_session:
-                self._init_tf_ops()
+                if not self.called_fit:
+                    self._init_tf_ops()
                 self._fit(X, *args, **kwargs)
                 self.called_fit = True
                 if self.save_model:
