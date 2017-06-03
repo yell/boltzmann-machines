@@ -43,7 +43,7 @@ class BaseRBM(TensorFlowModel):
 
         # operations
         self._train_op = None
-        self._mre = None
+        self._msre = None
 
     def _make_init_op(self):
         # create placeholders (input data)
@@ -126,60 +126,64 @@ class BaseRBM(TensorFlowModel):
             tf.add_to_collection('train_op', self._train_op)
 
         # compute metrics
-        with tf.name_scope('mean_recon_error'):
-            self._mre = tf.sqrt(tf.reduce_mean(tf.square(self._X_batch - v_means)))
+        with tf.name_scope('mean_squared_recon_error'):
+            self._msre = tf.reduce_mean(tf.square(self._X_batch - v_means))
 
         # collect summaries
-        tf.summary.scalar('mre', self._mre)
+        tf.summary.scalar('msre', self._msre)
 
 
     def _make_tf_model(self):
         self._make_init_op()
         self._make_train_op()
 
-    def _make_tf_feed_dict(self, X_batch):
-        return {
-            'input_data/X_batch:0': X_batch,
-            'input_data/h_rand:0': self._rng.rand(X_batch.shape[0], self.n_hidden),
-            'input_data/v_rand:0': self._rng.rand(X_batch.shape[0], self.n_visible),
-            'input_data/learning_rate:0': self.learning_rate,
-            'input_data/momentum:0': self.momentum,
-        }
+    def _make_tf_feed_dict(self, X_batch, is_training=True):
+        feed_dict = {}
+        feed_dict['input_data/X_batch:0'] = X_batch
+        feed_dict['input_data/h_rand:0'] = self._rng.rand(X_batch.shape[0], self.n_hidden)
+        feed_dict['input_data/v_rand:0'] = self._rng.rand(X_batch.shape[0], self.n_visible)
+        if is_training:
+            feed_dict['input_data/learning_rate:0'] = self.learning_rate
+            feed_dict['input_data/momentum:0'] = self.momentum
+        return feed_dict
 
     def _train_epoch(self, X):
-        train_mres = []
+        train_msres = []
         for X_batch in batch_iter(X, batch_size=self.batch_size):
             self.iter += 1
-            _, train_summary_str, train_mre = \
-                self._tf_session.run((self._train_op, self._tf_merged_summaries, self._mre),
-                                     feed_dict=self._make_tf_feed_dict(X_batch))
-            self._tf_train_writer.add_summary(train_summary_str, self.iter)
-            train_mres.append(train_mre)
-        return np.mean(train_mres)
+            _, train_s, train_msre = \
+                self._tf_session.run([self._train_op, self._tf_merged_summaries, self._msre],
+                                     feed_dict=self._make_tf_feed_dict(X_batch, is_training=True))
+            self._tf_train_writer.add_summary(train_s, self.iter)
+            train_msres.append(train_msre)
+        return np.mean(train_msres)
 
     def _run_val_metrics(self, X_val):
-        val_summary_str, val_mre = self._tf_session.run((self._tf_merged_summaries, self._mre),
-                                                         feed_dict=self._make_tf_feed_dict(X_val))
-        self._tf_val_writer.add_summary(val_summary_str, self.iter)
-        return val_mre
+        val_msres = []
+        for X_vb in batch_iter(X_val, batch_size=self.batch_size):
+            val_s, val_msre = self._tf_session.run([self._tf_merged_summaries, self._msre],
+                                                   feed_dict=self._make_tf_feed_dict(X_vb, is_training=False))
+            self._tf_val_writer.add_summary(val_s, self.iter)
+            val_msres.append(val_msre)
+        return np.mean(val_msres)
 
     def _fit(self, X, X_val=None):
-        val_mre = None
+        val_msre = None
         if self.epoch == 0 and X_val is not None:
             self._run_val_metrics(X_val)
 
         while self.epoch < self.max_epoch:
             self.epoch += 1
-            train_mre = self._train_epoch(X)
+            train_msre = self._train_epoch(X)
             if X_val is not None:
-                val_mre = self._run_val_metrics(X_val)
+                val_msre = self._run_val_metrics(X_val)
 
             if self.verbose:
                 s = "epoch: {0:{1}}/{2}".format(self.epoch,
                                                 len(str(self.max_epoch)),
                                                 self.max_epoch)
-                s += " - train.mre: {0:.4f}".format(train_mre)
-                if val_mre: s += " - val.mre: {0:.4f}".format(val_mre)
+                s += " - train.msre: {0:.4f}".format(train_msre)
+                if val_msre: s += " - val.msre: {0:.4f}".format(val_msre)
                 print s
 
 
@@ -224,12 +228,12 @@ if __name__ == '__main__':
     X_val /= 255.
 
     rbm = BaseRBM(n_visible=784,
-                  n_hidden=128,
-                  n_gibbs_steps=1,
+                  n_hidden=256,
+                  n_gibbs_steps=2,
                   learning_rate=0.001,
                   momentum=0.9,
                   batch_size=10,
-                  max_epoch=10,
+                  max_epoch=8,
                   verbose=True,
                   random_seed=1337,
                   model_path='../models/rbm1/')
