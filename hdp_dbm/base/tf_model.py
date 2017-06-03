@@ -12,7 +12,7 @@ def is_weight_name(name):
 
 def run_in_tf_session(f):
     """Decorator function that takes care to load appropriate graph/session,
-    depending on whether model is just created or can be loaded from disk,
+    depending on whether model can be loaded from disk or is just created,
     and to execute `f` inside this session.
     """
     @wraps(f)  # preserve bound method properties
@@ -152,7 +152,7 @@ class TensorFlowModel(BaseModel):
         """
         weights = {}
         for var in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='weights'):
-            weights[var.name.replace('weights/', '')] = var.eval()
+            weights[var.name.split('/')[-1]] = var.eval()
         return weights
 
 
