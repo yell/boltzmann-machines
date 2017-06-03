@@ -8,22 +8,23 @@ from utils.dataset import load_mnist
 
 
 class BaseRBM(TensorFlowModel):
-    def __init__(self, n_visible=784, n_hidden=256, n_gibbs_steps=1, w_std=0.01,
+    def __init__(self, n_visible=784, n_hidden=256, w_std=0.01, n_gibbs_steps=1,
                  learning_rate=0.1, momentum=0.9, batch_size=10, max_epoch=10,
                  verbose=False, model_path='rbm_model/', **kwargs):
         super(BaseRBM, self).__init__(model_path=model_path, **kwargs)
         self.n_visible = n_visible
         self.n_hidden = n_hidden
-        self.n_gibbs_steps = n_gibbs_steps
         self.w_std = w_std
+        self.n_gibbs_steps = n_gibbs_steps
         self.learning_rate = learning_rate
         self.momentum = momentum
         self.batch_size = batch_size
         self.max_epoch = max_epoch
         self.verbose = verbose
 
-        # current epoch
+        # current epoch and iteration
         self.epoch = 0
+        self.iter = 0
 
         # input data
         self._X_batch = None
@@ -42,10 +43,10 @@ class BaseRBM(TensorFlowModel):
 
         # operations
         self._train_op = None
-        self._loss = None
+        self._mre = None
 
     def _make_init_op(self):
-        # create placeholders
+        # create placeholders (input data)
         with tf.name_scope('input_data'):
             self._X_batch = tf.placeholder('float', [None, self.n_visible], name='X_batch')
             self._h_rand = tf.placeholder('float', [None, self.n_hidden], name='h_rand')
@@ -96,7 +97,7 @@ class BaseRBM(TensorFlowModel):
                     v_means, v_samples = self._sample_v_given_h(h_samples)
                     h_means, h_samples = self._sample_h_given_v(v_samples)
 
-        # compute gradients estimates
+        # compute gradients estimates (= positive - negative associations)
         with tf.name_scope('grads_estimates'):
             with tf.name_scope('dW'):
                 dW_positive = tf.matmul(tf.transpose(self._X_batch), h0_means)
@@ -124,10 +125,13 @@ class BaseRBM(TensorFlowModel):
             self._train_op = tf.group(W_update, hb_update, vb_update)
             tf.add_to_collection('train_op', self._train_op)
 
-        # collect summary
-        with tf.name_scope('loss'):
-            self._loss = tf.sqrt(tf.reduce_mean(tf.square(self._X_batch - v_means)))
-            tf.summary.scalar('loss', self._loss)
+        # compute metrics
+        with tf.name_scope('mean_recon_error'):
+            self._mre = tf.sqrt(tf.reduce_mean(tf.square(self._X_batch - v_means)))
+
+        # collect summaries
+        tf.summary.scalar('mre', self._mre)
+
 
     def _make_tf_model(self):
         self._make_init_op()
@@ -142,27 +146,41 @@ class BaseRBM(TensorFlowModel):
             'input_data/momentum:0': self.momentum,
         }
 
-    def _train_epoch(self, X, X_val):
+    def _train_epoch(self, X):
+        train_mres = []
         for X_batch in batch_iter(X, batch_size=self.batch_size):
-            self._tf_session.run(self._train_op,
-                                 feed_dict=self._make_tf_feed_dict(X_batch=X_batch))
+            self.iter += 1
+            _, train_summary_str, train_mre = \
+                self._tf_session.run((self._train_op, self._tf_merged_summaries, self._mre),
+                                     feed_dict=self._make_tf_feed_dict(X_batch))
+            self._tf_train_writer.add_summary(train_summary_str, self.iter)
+            train_mres.append(train_mre)
+        return np.mean(train_mres)
 
-        if X_val is not None:
-            summary_str, loss = self._tf_session.run((self._tf_merged_summaries, self._loss),
-                                                     feed_dict=self._make_tf_feed_dict(X_val))
+    def _run_val_metrics(self, X_val):
+        val_summary_str, val_mre = self._tf_session.run((self._tf_merged_summaries, self._mre),
+                                                         feed_dict=self._make_tf_feed_dict(X_val))
+        self._tf_val_writer.add_summary(val_summary_str, self.iter)
+        return val_mre
 
-            self._tf_summary_writer.add_summary(summary_str, self.epoch)
-            if self.verbose:
-                s = "epoch: {0:{1}}/{2} - loss: {3:.4f}"
-                print s.format(self.epoch, len(str(self.max_epoch)), self.max_epoch, loss)
-        elif self.verbose:
-            print "epoch {0}".format(self.epoch)
+    def _fit(self, X, X_val=None):
+        val_mre = None
+        if self.epoch == 0 and X_val is not None:
+            self._run_val_metrics(X_val)
 
-    def _fit(self, X, X_val=None, *args, **kwargs):
         while self.epoch < self.max_epoch:
             self.epoch += 1
-            self._train_epoch(X, X_val)
+            train_mre = self._train_epoch(X)
+            if X_val is not None:
+                val_mre = self._run_val_metrics(X_val)
 
+            if self.verbose:
+                s = "epoch: {0:{1}}/{2}".format(self.epoch,
+                                                len(str(self.max_epoch)),
+                                                self.max_epoch)
+                s += " - train.mre: {0:.4f}".format(train_mre)
+                if val_mre: s += " - val.mre: {0:.4f}".format(val_mre)
+                print s
 
 
 class BernoulliRBM(BaseRBM):
@@ -207,18 +225,20 @@ if __name__ == '__main__':
 
     rbm = BaseRBM(n_visible=784,
                   n_hidden=128,
-                  n_gibbs_steps=5,
+                  n_gibbs_steps=1,
                   learning_rate=0.001,
                   momentum=0.9,
                   batch_size=10,
-                  max_epoch=3,
+                  max_epoch=10,
                   verbose=True,
                   random_seed=1337,
                   model_path='../models/rbm1/')
-    rbm.fit(X)
+    rbm.fit(X, X_val)
 
+    plot_rbm_filters(rbm.get_weights()['W:0'])
+    plt.show()
 
-    rbm = BaseRBM.load_model('../models/rbm1/')
-    rbm.set_params(max_epoch=5)
-    print rbm.get_weights()['W:0'][0][0]
-    rbm.fit(X)
+    # rbm = BaseRBM.load_model('../models/rbm1/')
+    # rbm.set_params(max_epoch=5)
+    # print rbm.get_weights()['W:0'][0][0]
+    # rbm.fit(X)

@@ -43,7 +43,8 @@ class TensorFlowModel(BaseModel):
         self._model_filepath = None
         self._params_filepath = None
         self._random_state_filepath = None
-        self._summary_dirpath = None
+        self._train_summary_dirpath = None
+        self._val_summary_dirpath = None
         self._tf_meta_graph_filepath = None
         self.setup_working_paths(model_path)
 
@@ -53,7 +54,8 @@ class TensorFlowModel(BaseModel):
         self._tf_session = None
         self._tf_saver = None
         self._tf_merged_summaries = None
-        self._tf_summary_writer = None
+        self._tf_train_writer = None
+        self._tf_val_writer = None
 
     def setup_working_paths(self, model_path):
         """
@@ -70,7 +72,8 @@ class TensorFlowModel(BaseModel):
         self._model_filepath = os.path.join(self._model_dirpath, tail)
         self._params_filepath = os.path.join(self._model_dirpath, 'params.json')
         self._random_state_filepath = os.path.join(self._model_dirpath, 'random_state.json')
-        self._summary_dirpath = os.path.join(self._model_dirpath, 'logs')
+        self._train_summary_dirpath = os.path.join(self._model_dirpath, 'logs/train')
+        self._val_summary_dirpath = os.path.join(self._model_dirpath, 'logs/val')
         self._tf_meta_graph_filepath = self._model_filepath + '.meta'
 
     def _make_tf_model(self):
@@ -82,8 +85,10 @@ class TensorFlowModel(BaseModel):
         self._tf_session.run(init_op)
         self._tf_saver = tf.train.Saver()
         self._tf_merged_summaries = tf.summary.merge_all()
-        self._tf_summary_writer = tf.summary.FileWriter(self._summary_dirpath,
-                                                        self._tf_graph)
+        self._tf_train_writer = tf.summary.FileWriter(self._train_summary_dirpath,
+                                                      self._tf_graph)
+        self._tf_val_writer = tf.summary.FileWriter(self._val_summary_dirpath,
+                                                    self._tf_graph)
 
     def _save_model(self, json_params=None):
         json_params = json_params or {}
@@ -91,8 +96,9 @@ class TensorFlowModel(BaseModel):
         json_params.setdefault('indent', 4)
 
         # (recursively) create all folders needed
-        if not os.path.exists(self._summary_dirpath):
-            os.makedirs(self._summary_dirpath)
+        for dirpath in (self._train_summary_dirpath, self._val_summary_dirpath):
+            if not os.path.exists(dirpath):
+                os.makedirs(dirpath)
 
         # save params
         params = self.get_params(deep=False)
@@ -129,14 +135,14 @@ class TensorFlowModel(BaseModel):
         # (tf model will be loaded once any computation will be needed)
         return model
 
-    def _fit(self, X, *args, **kwargs):
+    def _fit(self, X, X_val=None):
         """Class-specific `fit` routine."""
         raise NotImplementedError()
 
     @run_in_tf_session
-    def fit(self, X, *args, **kwargs):
+    def fit(self, X, X_val=None):
         """Fit the model according to the given training data."""
-        self._fit(X, *args, **kwargs)
+        self._fit(X, X_val=X_val)
         self.called_fit = True
         self._save_model()
         return self
@@ -159,5 +165,5 @@ class TensorFlowModel(BaseModel):
 if __name__ == '__main__':
     # run corresponding tests
     import env; from utils.testing import run_tests
-    from tests import test_tf_model
-    run_tests(__file__, test_tf_model)
+    import tests.test_tf_model as t
+    run_tests(__file__, t)

@@ -23,8 +23,8 @@ def batch_iter(X, batch_size=10):
      [33 34 35]]
     """
     X = np.asarray(X)
-    for i in range(0, X.shape[0], batch_size):
-        yield X[i:(i + batch_size)]
+    for start_index in range(0, X.shape[0], batch_size):
+        yield X[start_index:(start_index + batch_size)]
 
 
 if __name__ == '__main__':
