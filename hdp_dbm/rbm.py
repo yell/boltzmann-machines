@@ -8,27 +8,27 @@ from utils.dataset import load_mnist
 
 
 class BaseRBM(TensorFlowModel):
-    def __init__(self, n_visible=784, n_hidden=256, n_gibbs_steps=1,
+    def __init__(self, n_visible=784, n_hidden=256, n_gibbs_steps=1, w_std=0.01,
                  learning_rate=0.1, momentum=0.9, batch_size=10, max_epoch=10,
                  verbose=False, model_path='rbm_model/', **kwargs):
         super(BaseRBM, self).__init__(model_path=model_path, **kwargs)
         self.n_visible = n_visible
         self.n_hidden = n_hidden
         self.n_gibbs_steps = n_gibbs_steps
-
+        self.w_std = w_std
         self.learning_rate = learning_rate
         self.momentum = momentum
         self.batch_size = batch_size
         self.max_epoch = max_epoch
-
         self.verbose = verbose
 
+        # current epoch
         self.epoch = 0
 
         # input data
         self._X_batch = None
-        self._h_samples = None
-        self._v_samples = None
+        self._h_rand = None
+        self._v_rand = None
 
         # weights
         self._W = None
@@ -48,13 +48,15 @@ class BaseRBM(TensorFlowModel):
         # create placeholders
         with tf.name_scope('input_data'):
             self._X_batch = tf.placeholder('float', [None, self.n_visible], name='X_batch')
-            self._h_samples = tf.placeholder('float', [None, self.n_hidden], name='h_samples')
-            self._v_samples = tf.placeholder('float', [None, self.n_visible], name='v_samples')
+            self._h_rand = tf.placeholder('float', [None, self.n_hidden], name='h_rand')
+            self._v_rand = tf.placeholder('float', [None, self.n_visible], name='v_rand')
+            self._learning_rate = tf.placeholder('float', [], name='learning_rate')
+            self._momentum = tf.placeholder('float', [], name='momentum')
 
         # create variables (weights and grads)
         with tf.name_scope('weights'):
             W_tensor = tf.random_normal((self.n_visible, self.n_hidden),
-                                        mean=0.0, stddev=0.01, seed=self.random_seed)
+                                        mean=0.0, stddev=self.w_std, seed=self.random_seed)
             self._W = tf.Variable(W_tensor, name='W', dtype=tf.float32)
             self._hb = tf.Variable(tf.zeros((self.n_hidden,)), name='hb', dtype=tf.float32)
             self._vb = tf.Variable(tf.zeros((self.n_visible,)), name='vb', dtype=tf.float32)
@@ -66,40 +68,66 @@ class BaseRBM(TensorFlowModel):
 
     def _sample_h_given_v(self, v):
         """Sample from P(h|v)."""
-        h_means = tf.nn.sigmoid(tf.matmul(v, self._W) + self._hb, name='h_means')
-        h_samples = tf.to_float(tf.less(self._h_samples, h_means))
+        with tf.name_scope('sample_h_given_v'):
+            with tf.name_scope('h_means'):
+                h_means = tf.nn.sigmoid(tf.matmul(v, self._W) + self._hb)
+            with tf.name_scope('h_samples'):
+                h_samples = tf.to_float(tf.less(self._h_rand, h_means))
         return h_means, h_samples
 
     def _sample_v_given_h(self, h):
         """Sample from P(v|h)."""
-        v_means = tf.nn.sigmoid(tf.matmul(h, tf.transpose(self._W)) + self._vb)
-        v_samples = tf.to_float(tf.less(self._v_samples, v_means))
+        with tf.name_scope('sample_v_given_h'):
+            with tf.name_scope('v_means'):
+                v_means = tf.nn.sigmoid(tf.matmul(h, tf.transpose(self._W)) + self._vb)
+            with tf.name_scope('v_samples'):
+                v_samples = tf.to_float(tf.less(self._v_rand, v_means))
         return v_means, v_samples
 
     def _make_train_op(self):
         # run Gibbs chain
-        h0_means, h0_samples = self._sample_h_given_v(self._X_batch)
-        h_means, v_means, v_samples = None, None, None
-        h_samples = h0_samples
-        for _ in xrange(self.n_gibbs_steps):
-            v_means, v_samples = self._sample_v_given_h(h_samples)
-            h_means, h_samples = self._sample_h_given_v(v_samples)
+        with tf.name_scope('gibbs_chain'):
+            with tf.name_scope('first_sweep'):
+                h0_means, h0_samples = self._sample_h_given_v(self._X_batch)
+                h_means, v_means, v_samples = None, None, None
+                h_samples = h0_samples
+            for _ in xrange(self.n_gibbs_steps):
+                with tf.name_scope('sweep'):
+                    v_means, v_samples = self._sample_v_given_h(h_samples)
+                    h_means, h_samples = self._sample_h_given_v(v_samples)
 
-        # update parameters and assemble train_op
-        dW_positive = tf.matmul(tf.transpose(self._X_batch), h0_means)
-        dW_negative = tf.matmul(tf.transpose(v_samples), h_means)
-        self._dW  = self.momentum * self._dW + (dW_positive - dW_negative)
-        self._dhb = self.momentum * self._dhb + tf.reduce_mean(h0_means - h_means, axis=0)
-        self._dvb = self.momentum * self._dvb + tf.reduce_mean(self._X_batch - v_samples, axis=0)
-        W_update  = self._W.assign_add(self.learning_rate * self._dW)
-        hb_update = self._hb.assign_add(self.learning_rate * self._dhb)
-        vb_update = self._vb.assign_add(self.learning_rate * self._dvb)
-        self._train_op = tf.group(W_update, hb_update, vb_update)
-        tf.add_to_collection('train_op', self._train_op)
+        # compute gradients estimates
+        with tf.name_scope('grads_estimates'):
+            with tf.name_scope('dW'):
+                dW_positive = tf.matmul(tf.transpose(self._X_batch), h0_means)
+                dW_negative = tf.matmul(tf.transpose(v_samples), h_means)
+                dW = (dW_positive - dW_negative)
+            with tf.name_scope('dhb'):
+                dhb = tf.reduce_mean(h0_means - h_means, axis=0)
+            with tf.name_scope('dvb'):
+                dvb = tf.reduce_mean(self._X_batch - v_samples, axis=0)
+
+        # update parameters
+        with tf.name_scope('momentum_updates'):
+            with tf.name_scope('dW'):
+                self._dW  = self._momentum * self._dW + dW
+                W_update = self._W.assign_add(self._learning_rate * self._dW)
+            with tf.name_scope('dhb'):
+                self._dhb = self._momentum * self._dhb + dhb
+                hb_update = self._hb.assign_add(self._learning_rate * self._dhb)
+            with tf.name_scope('dvb'):
+                self._dvb = self._momentum * self._dvb + dvb
+                vb_update = self._vb.assign_add(self._learning_rate * self._dvb)
+
+        # assemble train_op
+        with tf.name_scope('train_op'):
+            self._train_op = tf.group(W_update, hb_update, vb_update)
+            tf.add_to_collection('train_op', self._train_op)
 
         # collect summary
-        self._loss = tf.sqrt(tf.reduce_mean(tf.square(self._X_batch - v_means)))
-        tf.summary.scalar("loss", self._loss)
+        with tf.name_scope('loss'):
+            self._loss = tf.sqrt(tf.reduce_mean(tf.square(self._X_batch - v_means)))
+            tf.summary.scalar('loss', self._loss)
 
     def _make_tf_model(self):
         self._make_init_op()
@@ -107,12 +135,11 @@ class BaseRBM(TensorFlowModel):
 
     def _make_tf_feed_dict(self, X_batch):
         return {
-            # self._X_batch: X_batch,
-            # self._h_samples: self._rng.rand(X_batch.shape[0], self.n_hidden),
-            # self._v_samples: self._rng.rand(X_batch.shape[0], self.n_visible)
             'input_data/X_batch:0': X_batch,
-            'input_data/h_samples:0': self._rng.rand(X_batch.shape[0], self.n_hidden),
-            'input_data/v_samples:0': self._rng.rand(X_batch.shape[0], self.n_visible)
+            'input_data/h_rand:0': self._rng.rand(X_batch.shape[0], self.n_hidden),
+            'input_data/v_rand:0': self._rng.rand(X_batch.shape[0], self.n_visible),
+            'input_data/learning_rate:0': self.learning_rate,
+            'input_data/momentum:0': self.momentum,
         }
 
     def _train_epoch(self, X, X_val):
@@ -164,48 +191,34 @@ def plot_rbm_filters(W):
     plt.suptitle('First 64 components extracted by RBM', fontsize=24)
 
 
-if __name__ == '__main__':
-    # run corresponding tests
-    from utils.testing import run_tests
-    from tests import test_rbm
-    run_tests(__file__, test_rbm)
-
 # if __name__ == '__main__':
-    # rbm = BaseRBM(model_dirpath='../models/rbm1')
-    # print rbm.get_params()
+#     # run corresponding tests
+#     from utils.testing import run_tests
+#     from tests import test_rbm
+#     run_tests(__file__, test_rbm)
 
-    # X, _ = load_mnist(mode='train', path='../data/')
-    # X_val, _ = load_mnist(mode='test', path='../data/')
-    # X = X[:2000]
-    # X_val = X_val[:100]
-    # X /= 255.
-    # X_val /= 255.
-    #
-    # rbm = BaseRBM(n_visible=784,
-    #               n_hidden=128,
-    #               n_gibbs_steps=1,
-    #               learning_rate=0.001,
-    #               momentum=0.9,
-    #               batch_size=10,
-    #               max_epoch=3,
-    #               verbose=True,
-    #               random_seed=1337,
-    #               model_dirpath='../models/rbm_3')
-    # rbm.fit(X, X_val)
-    #
-    #
-    # rbm = BaseRBM.load_model('../models/rbm_1')
-    # rbm.set_params(max_epoch=16)
-    # # print rbm.get_weights()
-    # rbm.fit(X, X_val)
+if __name__ == '__main__':
+    X, _ = load_mnist(mode='train', path='../data/')
+    X_val, _ = load_mnist(mode='test', path='../data/')
+    X = X[:2000]
+    X_val = X_val[:100]
+    X /= 255.
+    X_val /= 255.
 
-    # weights = rbm.get_weights()
-    # W = weights['_W']
-    # plot_rbm_filters(W)
-    # plt.show()
-
-    ###########################################################
-    ###########################################################
-    ###########################################################
+    rbm = BaseRBM(n_visible=784,
+                  n_hidden=128,
+                  n_gibbs_steps=5,
+                  learning_rate=0.001,
+                  momentum=0.9,
+                  batch_size=10,
+                  max_epoch=3,
+                  verbose=True,
+                  random_seed=1337,
+                  model_path='../models/rbm1/')
+    rbm.fit(X)
 
 
+    rbm = BaseRBM.load_model('../models/rbm1/')
+    rbm.set_params(max_epoch=5)
+    print rbm.get_weights()['W:0'][0][0]
+    rbm.fit(X)
