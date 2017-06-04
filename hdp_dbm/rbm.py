@@ -122,15 +122,22 @@ class BaseRBM(TensorFlowModel):
         return fe
 
     def _make_train_op(self):
-        # run Gibbs chain
+        # run Gibbs chain for specified number of steps.
+        # According to [2], the training goes less noisy and slightly faster, if
+        # sampling used for states of hidden units driven by the data, and probabilities
+        # for ones driven by reconstructions, and if probabilities used for visible units,
+        # both driven by data and by reconstructions.
         with tf.name_scope('gibbs_chain'):
             h0_means, h0_samples = self._sample_h_given_v(self._X_batch)
-            h_means, v_means, v_samples = None, None, None
-            h_samples = h0_samples
+            v_means, v_samples = None, None
+            h_means, h_samples = None, None
+            h_states, v_states = h0_samples, None
             for _ in xrange(self.n_gibbs_steps):
                 with tf.name_scope('sweep'):
-                    v_means, v_samples = self._sample_v_given_h(h_samples)
-                    h_means, h_samples = self._sample_h_given_v(v_samples)
+                    v_means, v_samples = self._sample_v_given_h(h_states)
+                    v_states = v_means
+                    h_means, h_samples = self._sample_h_given_v(v_states)
+                    h_states = h_means
 
         # encoded data, used by the transform method
         with tf.name_scope('transform_op'):
@@ -329,7 +336,7 @@ if __name__ == '__main__':
                   max_epoch=10,
                   verbose=True,
                   random_seed=1337,
-                  model_path='../models/rbm-2-more-sweeps/')
+                  model_path='../models/rbm-3-probs-as-states/')
     rbm.fit(X, X_val)
     # rbm = BaseRBM.load_model('../models/rbm-1-init/')
     # plot_rbm_filters(rbm.get_weights()['W:0'])
