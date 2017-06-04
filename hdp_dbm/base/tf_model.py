@@ -39,7 +39,7 @@ def run_in_tf_session(f):
 
 class TensorFlowModel(BaseModel):
     def __init__(self, model_path='tf_model/',
-                 tf_saver_params=None, tf_session_config=None, json_params=None,
+                 tf_session_config=None, tf_saver_params=None, json_params=None,
                  **kwargs):
         super(TensorFlowModel, self).__init__(**kwargs)
         self._model_dirpath = None
@@ -51,8 +51,8 @@ class TensorFlowModel(BaseModel):
         self._tf_meta_graph_filepath = None
         self.setup_working_paths(model_path)
 
-        self.tf_saver_params = tf_saver_params or {}
         self._tf_session_config = tf_session_config or tf.ConfigProto()
+        self.tf_saver_params = tf_saver_params or {}
         self.json_params = json_params or {}
         self.json_params.setdefault('sort_keys', True)
         self.json_params.setdefault('indent', 4)

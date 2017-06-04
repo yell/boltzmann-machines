@@ -2,10 +2,9 @@ import numpy as np
 import tensorflow as tf
 from matplotlib import pyplot as plt
 from tensorflow.core.framework import summary_pb2
-from tqdm import tqdm
 
 from base import TensorFlowModel, run_in_tf_session
-from utils import batch_iter
+from utils import batch_iter, tbatch_iter
 from utils.dataset import load_mnist
 
 
@@ -29,8 +28,6 @@ class BaseRBM(TensorFlowModel):
         # current epoch and iteration
         self.epoch = 0
         self.iter = 0
-        self.n_train_samples = None
-        self.n_train_batches = None
 
         # input data
         self._X_batch = None
@@ -161,10 +158,7 @@ class BaseRBM(TensorFlowModel):
 
     def _train_epoch(self, X):
         train_msres = []
-        batch_generator = batch_iter(X, batch_size=self.batch_size)
-        if self.verbose:
-            batch_generator = tqdm(batch_generator, total=self.n_train_batches, leave=True, ncols=79)
-        for X_batch in batch_generator:
+        for X_batch in (tbatch_iter if self.verbose else batch_iter)(X, self.batch_size):
             self.iter += 1
             if self.iter % self.compute_metrics_every == 0:
                 _, train_s, train_msre = \
@@ -192,9 +186,6 @@ class BaseRBM(TensorFlowModel):
     def _fit(self, X, X_val=None):
         self._train_op = tf.get_collection('train_op')[0]
         self._msre = tf.get_collection('msre')[0]
-        self.n_train_samples = len(X)
-        self.n_train_batches = self.n_train_samples / self.batch_size + \
-                              (self.n_train_samples % self.batch_size > 0)
         val_msre = None
         while self.epoch < self.max_epoch:
             self.epoch += 1
@@ -270,7 +261,7 @@ if __name__ == '__main__':
                   momentum=0.9,
                   batch_size=10,
                   max_epoch=3,
-                  verbose=True,
+                  verbose=False,
                   random_seed=1337,
                   model_path='../models/rbm1/')
     rbm.fit(X, X_val)

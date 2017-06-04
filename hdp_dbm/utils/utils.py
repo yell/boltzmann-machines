@@ -1,4 +1,5 @@
 import numpy as np
+from tqdm import tqdm
 
 
 def batch_iter(X, batch_size=10):
@@ -25,6 +26,15 @@ def batch_iter(X, batch_size=10):
     X = np.asarray(X)
     for start_index in range(0, X.shape[0], batch_size):
         yield X[start_index:(start_index + batch_size)]
+
+
+def tbatch_iter(X, batch_size=10):
+    """Same as `batch_iter`, but with progress bar."""
+    N = len(X)
+    n_batches = N / batch_size + (N % batch_size > 0)
+    for X_b in tqdm(batch_iter(X, batch_size=batch_size),
+                    total=n_batches, leave=True, ncols=79):
+        yield X_b
 
 
 if __name__ == '__main__':
