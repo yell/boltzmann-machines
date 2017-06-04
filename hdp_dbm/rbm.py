@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 from matplotlib import pyplot as plt
+from tensorflow.core.framework import summary_pb2
 
 from base import TensorFlowModel
 from utils import batch_iter
@@ -9,7 +10,8 @@ from utils.dataset import load_mnist
 
 class BaseRBM(TensorFlowModel):
     def __init__(self, n_visible=784, n_hidden=256, w_std=0.01, n_gibbs_steps=1,
-                 learning_rate=0.1, momentum=0.9, batch_size=10, max_epoch=10,
+                 learning_rate=0.1, momentum=0.9,
+                 batch_size=10, max_epoch=10, compute_metrics_every=10,
                  verbose=False, model_path='rbm_model/', **kwargs):
         super(BaseRBM, self).__init__(model_path=model_path, **kwargs)
         self.n_visible = n_visible
@@ -20,6 +22,7 @@ class BaseRBM(TensorFlowModel):
         self.momentum = momentum
         self.batch_size = batch_size
         self.max_epoch = max_epoch
+        self.compute_metrics_every = compute_metrics_every
         self.verbose = verbose
 
         # current epoch and iteration
@@ -88,10 +91,9 @@ class BaseRBM(TensorFlowModel):
     def _make_train_op(self):
         # run Gibbs chain
         with tf.name_scope('gibbs_chain'):
-            with tf.name_scope('first_sweep'):
-                h0_means, h0_samples = self._sample_h_given_v(self._X_batch)
-                h_means, v_means, v_samples = None, None, None
-                h_samples = h0_samples
+            h0_means, h0_samples = self._sample_h_given_v(self._X_batch)
+            h_means, v_means, v_samples = None, None, None
+            h_samples = h0_samples
             for _ in xrange(self.n_gibbs_steps):
                 with tf.name_scope('sweep'):
                     v_means, v_samples = self._sample_v_given_h(h_samples)
@@ -151,27 +153,30 @@ class BaseRBM(TensorFlowModel):
         train_msres = []
         for X_batch in batch_iter(X, batch_size=self.batch_size):
             self.iter += 1
-            _, train_s, train_msre = \
-                self._tf_session.run([self._train_op, self._tf_merged_summaries, self._msre],
+            if self.iter % self.compute_metrics_every == 0:
+                _, train_s, train_msre = \
+                    self._tf_session.run([self._train_op, self._tf_merged_summaries, self._msre],
+                                         feed_dict=self._make_tf_feed_dict(X_batch, is_training=True))
+                self._tf_train_writer.add_summary(train_s, self.iter)
+                train_msres.append(train_msre)
+            else:
+                self._tf_session.run(self._train_op,
                                      feed_dict=self._make_tf_feed_dict(X_batch, is_training=True))
-            self._tf_train_writer.add_summary(train_s, self.iter)
-            train_msres.append(train_msre)
         return np.mean(train_msres)
 
     def _run_val_metrics(self, X_val):
         val_msres = []
         for X_vb in batch_iter(X_val, batch_size=self.batch_size):
-            val_s, val_msre = self._tf_session.run([self._tf_merged_summaries, self._msre],
-                                                   feed_dict=self._make_tf_feed_dict(X_vb, is_training=False))
-            self._tf_val_writer.add_summary(val_s, self.iter)
+            val_msre = self._tf_session.run(self._msre,
+                                            feed_dict=self._make_tf_feed_dict(X_vb, is_training=False))
             val_msres.append(val_msre)
-        return np.mean(val_msres)
+        mean_msre = np.mean(val_msres)
+        val_s = summary_pb2.Summary(value=[summary_pb2.Summary.Value(tag="msre", simple_value=mean_msre)])
+        self._tf_val_writer.add_summary(val_s, self.iter)
+        return mean_msre
 
     def _fit(self, X, X_val=None):
         val_msre = None
-        if self.epoch == 0 and X_val is not None:
-            self._run_val_metrics(X_val)
-
         while self.epoch < self.max_epoch:
             self.epoch += 1
             train_msre = self._train_epoch(X)
@@ -207,7 +212,7 @@ def plot_rbm_filters(W):
     for i in xrange(64):
         filters = W[:, i].reshape((28, 28))
         plt.subplot(8, 8, i + 1)
-        plt.imshow(filters, cmap=plt.cm.gray_r, interpolation='nearest')
+        plt.imshow(filters, cmap=plt.cm.gray, interpolation='nearest')
         plt.xticks(())
         plt.yticks(())
     plt.suptitle('First 64 components extracted by RBM', fontsize=24)
@@ -229,18 +234,19 @@ if __name__ == '__main__':
 
     rbm = BaseRBM(n_visible=784,
                   n_hidden=256,
-                  n_gibbs_steps=2,
+                  n_gibbs_steps=1,
                   learning_rate=0.001,
                   momentum=0.9,
                   batch_size=10,
-                  max_epoch=8,
+                  max_epoch=5,
                   verbose=True,
                   random_seed=1337,
                   model_path='../models/rbm1/')
     rbm.fit(X, X_val)
 
-    plot_rbm_filters(rbm.get_weights()['W:0'])
-    plt.show()
+    print rbm.get_weights()['W:0'][0][0]
+    # plot_rbm_filters(rbm.get_weights()['W:0'])
+    # plt.show()
 
     # rbm = BaseRBM.load_model('../models/rbm1/')
     # rbm.set_params(max_epoch=5)
