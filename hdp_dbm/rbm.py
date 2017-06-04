@@ -20,7 +20,7 @@ class BaseRBM(TensorFlowModel):
     """
     def __init__(self, n_visible=784, n_hidden=256, w_std=0.01, n_gibbs_steps=1,
                  learning_rate=0.1, momentum=0.9,
-                 batch_size=10, max_epoch=10, compute_metrics_every=10,
+                 batch_size=10, max_epoch=10, compute_metrics_every_iter=10,
                  verbose=False, model_path='rbm_model/', **kwargs):
         super(BaseRBM, self).__init__(model_path=model_path, **kwargs)
         self.n_visible = n_visible
@@ -31,7 +31,7 @@ class BaseRBM(TensorFlowModel):
         self.momentum = momentum
         self.batch_size = batch_size
         self.max_epoch = max_epoch
-        self.compute_metrics_every = compute_metrics_every
+        self.compute_metrics_every_iter = compute_metrics_every_iter
         self.verbose = verbose
 
         # current epoch and iteration
@@ -42,6 +42,9 @@ class BaseRBM(TensorFlowModel):
         self._X_batch = None
         self._h_rand = None
         self._v_rand = None
+        self._pll_rand = None
+        self._learning_rate = None
+        self._momentum = None
 
         # weights
         self._W = None
@@ -57,6 +60,7 @@ class BaseRBM(TensorFlowModel):
         self._train_op = None
         self._transform_op = None
         self._msre = None
+        self._pseudo_loglik = None
 
     def _make_init_op(self):
         # create placeholders (input data)
@@ -64,6 +68,7 @@ class BaseRBM(TensorFlowModel):
             self._X_batch = tf.placeholder('float', [None, self.n_visible], name='X_batch')
             self._h_rand = tf.placeholder('float', [None, self.n_hidden], name='h_rand')
             self._v_rand = tf.placeholder('float', [None, self.n_visible], name='v_rand')
+            self._pll_rand = tf.placeholder(tf.int32, [None], name='pll_rand')
             self._learning_rate = tf.placeholder('float', [], name='learning_rate')
             self._momentum = tf.placeholder('float', [], name='momentum')
 
@@ -107,6 +112,14 @@ class BaseRBM(TensorFlowModel):
             with tf.name_scope('v_samples'):
                 v_samples = tf.to_float(tf.less(self._v_rand, v_means))
         return v_means, v_samples
+
+    def _free_energy(self, v):
+        """Compute free energy of a visible vectors `v`."""
+        with tf.name_scope('free_energy'):
+            fe = -tf.einsum('ij,j->i', v, self._vb)
+            fe -= tf.reduce_sum(tf.nn.softplus(self._propup(v)), axis=1)
+            fe = tf.reduce_mean(fe, axis=0)
+        return fe
 
     def _make_train_op(self):
         # run Gibbs chain
@@ -158,20 +171,29 @@ class BaseRBM(TensorFlowModel):
             msre = tf.reduce_mean(tf.square(self._X_batch - v_means))
             tf.add_to_collection('msre', msre)
 
+        # Since reconstruction error is fairly poor measure of performance,
+        # as this is not what CD-k learning algorithm minimizes [2],
+        # compute (per sample average) pseudo-loglikelihood (proxy to likelihood)
+        # instead, using approximation as in [3].
+        with tf.name_scope('pseudo_loglikelihood'):
+            x = self._X_batch
+            # randomly corrupt one feature in each sample
+            x_ = tf.identity(x)
+            ind = tf.transpose([tf.range(tf.shape(x)[0]), self._pll_rand])
+            m = tf.SparseTensor(indices=tf.cast(ind, tf.int64),
+                                values=tf.cast(tf.ones_like(self._pll_rand), tf.float32),
+                                dense_shape=tf.cast(tf.shape(x_), tf.int64))
+            x_ = tf.multiply(x_, -tf.sparse_tensor_to_dense(m, default_value=-1))
+            x_ = tf.sparse_add(x_, m)
+
+            pseudo_loglik = -tf.constant(self.n_visible, dtype='float') *\
+                             tf.nn.softplus(-(self._free_energy(x_) -
+                                              self._free_energy(x)))
+            tf.add_to_collection('pseudo_loglik', pseudo_loglik)
+
         # collect summaries
         tf.summary.scalar('msre', msre)
-
-    def _free_energy(self, v):
-        """Compute free energy of a visible vectors `v`."""
-        with tf.name_scope('free_energy'):
-            fe = -tf.einsum('ij,j->i', v, self._vb)
-            fe -= tf.reduce_sum(tf.nn.softplus(self._propup(v)), axis=1)
-            fe = tf.reduce_mean(fe, axis=0)
-        return fe
-
-    def _pseudo_loglik(self, v):
-        """Compute average Pseudo-loglikelihood approximation of `v` as in [3]."""
-        pass
+        tf.summary.scalar('pseudo_loglik', pseudo_loglik)
 
     def _make_tf_model(self):
         self._make_init_op()
@@ -182,6 +204,7 @@ class BaseRBM(TensorFlowModel):
         feed_dict['input_data/X_batch:0'] = X_batch
         feed_dict['input_data/h_rand:0'] = self._rng.rand(X_batch.shape[0], self.n_hidden)
         feed_dict['input_data/v_rand:0'] = self._rng.rand(X_batch.shape[0], self.n_visible)
+        feed_dict['input_data/pll_rand:0'] = self._rng.randint(self.n_visible, size=X_batch.shape[0])
         if is_training:
             feed_dict['input_data/learning_rate:0'] = self.learning_rate
             feed_dict['input_data/momentum:0'] = self.momentum
@@ -189,47 +212,59 @@ class BaseRBM(TensorFlowModel):
 
     def _train_epoch(self, X):
         train_msres = []
+        train_plls = []
         for X_batch in (tbatch_iter if self.verbose else batch_iter)(X, self.batch_size):
             self.iter += 1
-            if self.iter % self.compute_metrics_every == 0:
-                _, train_s, train_msre, fe = \
-                    self._tf_session.run([self._train_op, self._tf_merged_summaries, self._msre, self._free_energy(tf.constant(X_batch, dtype='float'))],
+            if self.iter % self.compute_metrics_every_iter == 0:
+                _, train_s, train_msre, pll = \
+                    self._tf_session.run([self._train_op,
+                                          self._tf_merged_summaries,
+                                          self._msre,
+                                          self._pseudo_loglik],
                                          feed_dict=self._make_tf_feed_dict(X_batch, is_training=True))
-                print fe
                 self._tf_train_writer.add_summary(train_s, self.iter)
                 train_msres.append(train_msre)
+                train_plls.append(pll)
             else:
                 self._tf_session.run(self._train_op,
                                      feed_dict=self._make_tf_feed_dict(X_batch, is_training=True))
-        return np.mean(train_msres)
+        return np.mean(train_msres), np.mean(train_plls)
 
     def _run_val_metrics(self, X_val):
         val_msres = []
+        val_plls = []
         for X_vb in batch_iter(X_val, batch_size=self.batch_size):
-            val_msre = self._tf_session.run(self._msre,
-                                            feed_dict=self._make_tf_feed_dict(X_vb))
+            val_msre, val_pll = self._tf_session.run([self._msre, self._pseudo_loglik],
+                                                     feed_dict=self._make_tf_feed_dict(X_vb))
             val_msres.append(val_msre)
+            val_plls.append(val_pll)
         mean_msre = np.mean(val_msres)
-        val_s = summary_pb2.Summary(value=[summary_pb2.Summary.Value(tag="msre",
-                                                                     simple_value=mean_msre)])
+        mean_pll = np.mean(val_plls)
+        val_s = summary_pb2.Summary(value=[summary_pb2.Summary.Value(tag='msre',
+                                                                          simple_value=mean_msre),
+                                           summary_pb2.Summary.Value(tag='pseudo_loglik',
+                                                                     simple_value=mean_pll)])
         self._tf_val_writer.add_summary(val_s, self.iter)
-        return mean_msre
+        return mean_msre, mean_pll
 
     def _fit(self, X, X_val=None):
         self._train_op = tf.get_collection('train_op')[0]
         self._msre = tf.get_collection('msre')[0]
-        val_msre = None
+        self._pseudo_loglik = tf.get_collection('pseudo_loglik')[0]
+        val_msre = val_pll = None
         while self.epoch < self.max_epoch:
             self.epoch += 1
-            train_msre = self._train_epoch(X)
+            train_msre, train_pll = self._train_epoch(X)
             if X_val is not None:
-                val_msre = self._run_val_metrics(X_val)
+                val_msre, val_pll = self._run_val_metrics(X_val)
 
             if self.verbose:
                 s = "epoch: {0:{1}}/{2}"\
                     .format(self.epoch, len(str(self.max_epoch)), self.max_epoch)
-                s += " - train.msre: {0:.4f}".format(train_msre)
+                s += " - msre: {0:.4f}".format(train_msre)
+                s += " - pll: {0:.4f}".format(train_pll)
                 if val_msre: s += " - val.msre: {0:.4f}".format(val_msre)
+                if val_pll: s += " - val.pll: {0:.4f}".format(val_pll)
                 print s
             self._save_model(global_step=self.epoch)
 
@@ -280,26 +315,22 @@ def plot_rbm_filters(W):
 if __name__ == '__main__':
     X, _ = load_mnist(mode='train', path='../data/')
     X_val, _ = load_mnist(mode='test', path='../data/')
-    X = X[:2000]
-    X_val = X_val[:200]
+    X = X[:10000]
+    X_val = X_val[:1000]
     X /= 255.
     X_val /= 255.
 
     rbm = BaseRBM(n_visible=784,
-                  n_hidden=256,
-                  n_gibbs_steps=1,
+                  n_hidden=500,
+                  n_gibbs_steps=5,
                   learning_rate=0.01,
                   momentum=0.9,
                   batch_size=10,
-                  max_epoch=3,
+                  max_epoch=10,
                   verbose=True,
                   random_seed=1337,
-                  model_path='../models/rbm1/')
+                  model_path='../models/rbm-2-more-sweeps/')
     rbm.fit(X, X_val)
-
-    # rbm = BaseRBM.load_model('../models/rbm1/')
-    # H = rbm.transform(X_val)
-    # print H[0][:10]
+    # rbm = BaseRBM.load_model('../models/rbm-1-init/')
     # plot_rbm_filters(rbm.get_weights()['W:0'])
     # plt.show()
-    # rbm.fit(X)

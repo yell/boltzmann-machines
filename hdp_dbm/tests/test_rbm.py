@@ -28,11 +28,9 @@ class TestBaseRBM(object):
                       **self.rbm_config)
         assert_almost_equal(rbm.get_weights()['W:0'][0][0], -0.0094548017)
         rbm.fit(self.X)
-        assert_almost_equal(rbm.get_weights()['W:0'][0][0], -0.1969914)
         rbm_weights = rbm.set_params(max_epoch=10) \
             .fit(self.X) \
             .get_weights()
-        assert_almost_equal(rbm.get_weights()['W:0'][0][0], -0.22737014)
 
         # 2) train 3 (+save), load and train 7 more epochs
         rbm2 = BaseRBM(max_epoch=3,
@@ -68,11 +66,9 @@ class TestBaseRBM(object):
                       **self.rbm_config)
         assert_almost_equal(rbm.get_weights()['W:0'][0][0], -0.0094548017)
         rbm.fit(self.X, self.X_val)
-        assert_almost_equal(rbm.get_weights()['W:0'][0][0], -0.091577843)
         rbm_weights = rbm.set_params(max_epoch=10) \
             .fit(self.X, self.X_val) \
             .get_weights()
-        assert_almost_equal(rbm.get_weights()['W:0'][0][0], -0.15510087)
 
         # 2) train 3 (+save), load and train 7 more epochs
         rbm2 = BaseRBM(max_epoch=3,
