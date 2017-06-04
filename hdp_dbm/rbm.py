@@ -1,3 +1,4 @@
+import collections
 import numpy as np
 import tensorflow as tf
 from matplotlib import pyplot as plt
@@ -18,20 +19,25 @@ class BaseRBM(TensorFlowModel):
     [3] Restricted Boltzmann Machines (RBMs).
         http://deeplearning.net/tutorial/rbm.html
     """
-    def __init__(self, n_visible=784, n_hidden=256, w_std=0.01, n_gibbs_steps=1,
-                 learning_rate=0.1, momentum=0.9,
+    def __init__(self, n_visible=784, n_hidden=256, w_std=0.01,
+                 n_gibbs_steps=1, learning_rate=0.1, momentum=0.9,
                  batch_size=10, max_epoch=10, compute_metrics_every_iter=10,
+                 compute_dfe_every_epoch=2, n_batches_for_dfe=10,
                  verbose=False, model_path='rbm_model/', **kwargs):
         super(BaseRBM, self).__init__(model_path=model_path, **kwargs)
         self.n_visible = n_visible
         self.n_hidden = n_hidden
         self.w_std = w_std
+
         self.n_gibbs_steps = n_gibbs_steps
         self.learning_rate = learning_rate
         self.momentum = momentum
+
         self.batch_size = batch_size
         self.max_epoch = max_epoch
         self.compute_metrics_every_iter = compute_metrics_every_iter
+        self.compute_dfe_every_epoch = compute_dfe_every_epoch
+        self.n_batches_for_dfe = n_batches_for_dfe
         self.verbose = verbose
 
         # current epoch and iteration
@@ -65,12 +71,12 @@ class BaseRBM(TensorFlowModel):
     def _make_init_op(self):
         # create placeholders (input data)
         with tf.name_scope('input_data'):
-            self._X_batch = tf.placeholder('float', [None, self.n_visible], name='X_batch')
-            self._h_rand = tf.placeholder('float', [None, self.n_hidden], name='h_rand')
-            self._v_rand = tf.placeholder('float', [None, self.n_visible], name='v_rand')
+            self._X_batch = tf.placeholder(tf.float32, [None, self.n_visible], name='X_batch')
+            self._h_rand = tf.placeholder(tf.float32, [None, self.n_hidden], name='h_rand')
+            self._v_rand = tf.placeholder(tf.float32, [None, self.n_visible], name='v_rand')
             self._pll_rand = tf.placeholder(tf.int32, [None], name='pll_rand')
-            self._learning_rate = tf.placeholder('float', [], name='learning_rate')
-            self._momentum = tf.placeholder('float', [], name='momentum')
+            self._learning_rate = tf.placeholder(tf.float32, [], name='learning_rate')
+            self._momentum = tf.placeholder(tf.float32, [], name='momentum')
 
         # create variables (weights and grads)
         with tf.name_scope('weights'):
@@ -148,8 +154,8 @@ class BaseRBM(TensorFlowModel):
         with tf.name_scope('grads_estimates'):
             N = tf.constant(self.batch_size, dtype='float')
             with tf.name_scope('dW'):
-                dW_positive = tf.matmul(tf.transpose(self._X_batch), h0_means)
-                dW_negative = tf.matmul(tf.transpose(v_samples), h_means)
+                dW_positive = tf.matmul(self._X_batch, h0_means, transpose_a=True)
+                dW_negative = tf.matmul(v_samples, h_means, transpose_a=True)
                 dW = (dW_positive - dW_negative) / N
             with tf.name_scope('dhb'):
                 dhb = tf.reduce_mean(h0_means - h_means, axis=0) / N
@@ -254,24 +260,48 @@ class BaseRBM(TensorFlowModel):
         self._tf_val_writer.add_summary(val_s, self.iter)
         return mean_msre, mean_pll
 
+    def _run_dfe(self, X, X_val):
+        """Calculate difference between average free energies of subsets
+        of training and validation sets to monitor overfitting,
+        as proposed in [2]. Once this value starts growing, the model is
+        overfitting.
+        """
+        train_fes, val_fes = [], []
+        for _, X_b in zip(xrange(self.n_batches_for_dfe),
+                       batch_iter(X, batch_size=self.batch_size)):
+            train_fes.append(self._free_energy(tf.constant(X_b, dtype='float')).eval())
+        for _, X_vb in zip(xrange(self.n_batches_for_dfe),
+                        batch_iter(X_val, batch_size=self.batch_size)):
+            val_fes.append(self._free_energy(tf.constant(X_vb, dtype='float')).eval())
+        dfe = np.mean(train_fes) - np.mean(val_fes)
+        dfe_s = summary_pb2.Summary(value=[summary_pb2.Summary.Value(tag='dfe',
+                                                                     simple_value=dfe)])
+        self._tf_val_writer.add_summary(dfe_s, self.iter)
+        return dfe
+
     def _fit(self, X, X_val=None):
         self._train_op = tf.get_collection('train_op')[0]
         self._msre = tf.get_collection('msre')[0]
         self._pseudo_loglik = tf.get_collection('pseudo_loglik')[0]
         val_msre = val_pll = None
+        dfe = None
         while self.epoch < self.max_epoch:
             self.epoch += 1
             train_msre, train_pll = self._train_epoch(X)
             if X_val is not None:
                 val_msre, val_pll = self._run_val_metrics(X_val)
-
+            if X_val is not None and self.epoch % self.compute_dfe_every_epoch == 0:
+                dfe = self._run_dfe(X, X_val)
             if self.verbose:
                 s = "epoch: {0:{1}}/{2}"\
                     .format(self.epoch, len(str(self.max_epoch)), self.max_epoch)
-                s += " - msre: {0:.4f}".format(train_msre)
-                s += " - pll: {0:.4f}".format(train_pll)
-                if val_msre: s += " - val.msre: {0:.4f}".format(val_msre)
-                if val_pll: s += " - val.pll: {0:.4f}".format(val_pll)
+                s += " ; msre: {0:.4f}".format(train_msre)
+                s += " ; pll: {0:.4f}".format(train_pll)
+                if val_msre: s += " ; val.msre: {0:.4f}".format(val_msre)
+                if val_pll: s += " ; val.pll: {0:.4f}".format(val_pll)
+                if dfe:
+                    s += " ; dfe: {0:.4f}".format(dfe)
+                    dfe = None
                 print s
             self._save_model(global_step=self.epoch)
 
@@ -328,7 +358,7 @@ if __name__ == '__main__':
     X_val /= 255.
 
     rbm = BaseRBM(n_visible=784,
-                  n_hidden=500,
+                  n_hidden=100,
                   n_gibbs_steps=5,
                   learning_rate=0.01,
                   momentum=0.9,
@@ -336,8 +366,8 @@ if __name__ == '__main__':
                   max_epoch=10,
                   verbose=True,
                   random_seed=1337,
-                  model_path='../models/rbm-3-probs-as-states/')
+                  model_path='../models/rbm-00/')
     rbm.fit(X, X_val)
-    # rbm = BaseRBM.load_model('../models/rbm-1-init/')
+    # rbm = BaseRBM.load_model('../models/rbm-4-neg-hbs/')
     # plot_rbm_filters(rbm.get_weights()['W:0'])
     # plt.show()
