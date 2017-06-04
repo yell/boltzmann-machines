@@ -29,6 +29,8 @@ class BaseRBM(TensorFlowModel):
         # current epoch and iteration
         self.epoch = 0
         self.iter = 0
+        self.n_train_samples = None
+        self.n_train_batches = None
 
         # input data
         self._X_batch = None
@@ -125,15 +127,16 @@ class BaseRBM(TensorFlowModel):
 
         # assemble train_op
         with tf.name_scope('train_op'):
-            self._train_op = tf.group(W_update, hb_update, vb_update)
-            tf.add_to_collection('train_op', self._train_op)
+            train_op = tf.group(W_update, hb_update, vb_update)
+            tf.add_to_collection('train_op', train_op)
 
         # compute metrics
         with tf.name_scope('mean_squared_recon_error'):
-            self._msre = tf.reduce_mean(tf.square(self._X_batch - v_means))
+            msre = tf.reduce_mean(tf.square(self._X_batch - v_means))
+            tf.add_to_collection('msre', msre)
 
         # collect summaries
-        tf.summary.scalar('msre', self._msre)
+        tf.summary.scalar('msre', msre)
 
 
     def _make_tf_model(self):
@@ -152,8 +155,10 @@ class BaseRBM(TensorFlowModel):
 
     def _train_epoch(self, X):
         train_msres = []
-        for X_batch in tqdm(batch_iter(X, batch_size=self.batch_size),
-                            total=self.n_batches, leave=True, ncols=79):
+        batch_generator = batch_iter(X, batch_size=self.batch_size)
+        if self.verbose:
+            batch_generator = tqdm(batch_generator, total=self.n_train_batches, leave=True, ncols=79)
+        for X_batch in batch_generator:
             self.iter += 1
             if self.iter % self.compute_metrics_every == 0:
                 _, train_s, train_msre = \
@@ -179,9 +184,11 @@ class BaseRBM(TensorFlowModel):
         return mean_msre
 
     def _fit(self, X, X_val=None):
+        self._train_op = tf.get_collection('train_op')[0]
+        self._msre = tf.get_collection('msre')[0]
         self.n_train_samples = len(X)
-        self.n_batches = self.n_train_samples / self.batch_size + \
-                         (self.n_train_samples % self.batch_size > 0)
+        self.n_train_batches = self.n_train_samples / self.batch_size + \
+                               (self.n_train_samples % self.batch_size > 0)
         val_msre = None
         while self.epoch < self.max_epoch:
             self.epoch += 1
@@ -190,9 +197,8 @@ class BaseRBM(TensorFlowModel):
                 val_msre = self._run_val_metrics(X_val)
 
             if self.verbose:
-                s = "epoch: {0:{1}}/{2}".format(self.epoch,
-                                                len(str(self.max_epoch)),
-                                                self.max_epoch)
+                s = "epoch: {0:{1}}/{2}"\
+                    .format(self.epoch, len(str(self.max_epoch)), self.max_epoch)
                 s += " - train.msre: {0:.4f}".format(train_msre)
                 if val_msre: s += " - val.msre: {0:.4f}".format(val_msre)
                 print s
@@ -233,7 +239,7 @@ def plot_rbm_filters(W):
 if __name__ == '__main__':
     X, _ = load_mnist(mode='train', path='../data/')
     X_val, _ = load_mnist(mode='test', path='../data/')
-    X = X[:16000]
+    X = X[:2000]
     X_val = X_val[:100]
     X /= 255.
     X_val /= 255.
@@ -244,8 +250,8 @@ if __name__ == '__main__':
                   learning_rate=0.001,
                   momentum=0.9,
                   batch_size=10,
-                  max_epoch=5,
-                  verbose=True,
+                  max_epoch=3,
+                  verbose=False,
                   random_seed=1337,
                   model_path='../models/rbm1/')
     rbm.fit(X, X_val)
@@ -254,7 +260,7 @@ if __name__ == '__main__':
     # plot_rbm_filters(rbm.get_weights()['W:0'])
     # plt.show()
 
-    # rbm = BaseRBM.load_model('../models/rbm1/')
-    # rbm.set_params(max_epoch=5)
-    # print rbm.get_weights()['W:0'][0][0]
-    # rbm.fit(X)
+    rbm = BaseRBM.load_model('../models/rbm1/')
+    rbm.set_params(max_epoch=5)
+    print rbm.get_weights()['W:0'][0][0]
+    rbm.fit(X)

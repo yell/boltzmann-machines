@@ -24,13 +24,14 @@ def run_in_tf_session(f):
             with model._tf_graph.as_default():
                 with tf.Session() as model._tf_session:
                     model._tf_saver.restore(model._tf_session, model._model_filepath)
-                    model._train_op = tf.get_collection('train_op')[0]
+                    model._init_tf_writers()
                     res = f(model, *args, **kwargs)
         else:
             with model._tf_graph.as_default():
                 with tf.Session() as model._tf_session:
                     model._make_tf_model()
                     model._init_tf_ops()
+                    model._init_tf_writers()
                     res = f(model, *args, **kwargs)
         return res
     return wrapped
@@ -80,10 +81,12 @@ class TensorFlowModel(BaseModel):
         raise NotImplementedError
 
     def _init_tf_ops(self):
-        """Initialize all TF variables, operations etc."""
+        """Initialize all TF variables and Saver"""
         init_op = tf.global_variables_initializer()
         self._tf_session.run(init_op)
         self._tf_saver = tf.train.Saver()
+
+    def _init_tf_writers(self):
         self._tf_merged_summaries = tf.summary.merge_all()
         self._tf_train_writer = tf.summary.FileWriter(self._train_summary_dirpath,
                                                       self._tf_graph)
