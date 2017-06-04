@@ -22,13 +22,13 @@ def run_in_tf_session(f):
         if model.called_fit: # model should be loaded from disk
             model._tf_saver = tf.train.import_meta_graph(model._tf_meta_graph_filepath)
             with model._tf_graph.as_default():
-                with tf.Session() as model._tf_session:
+                with tf.Session(config=model._tf_session_config) as model._tf_session:
                     model._tf_saver.restore(model._tf_session, model._model_filepath)
                     model._init_tf_writers()
                     res = f(model, *args, **kwargs)
         else:
             with model._tf_graph.as_default():
-                with tf.Session() as model._tf_session:
+                with tf.Session(config=model._tf_session_config) as model._tf_session:
                     model._make_tf_model()
                     model._init_tf_ops()
                     model._init_tf_writers()
@@ -38,7 +38,9 @@ def run_in_tf_session(f):
 
 
 class TensorFlowModel(BaseModel):
-    def __init__(self, model_path='tf_model/', **kwargs):
+    def __init__(self, model_path='tf_model/',
+                 tf_saver_params=None, tf_session_config=None, json_params=None,
+                 **kwargs):
         super(TensorFlowModel, self).__init__(**kwargs)
         self._model_dirpath = None
         self._model_filepath = None
@@ -49,6 +51,11 @@ class TensorFlowModel(BaseModel):
         self._tf_meta_graph_filepath = None
         self.setup_working_paths(model_path)
 
+        self.tf_saver_params = tf_saver_params or {}
+        self._tf_session_config = tf_session_config or tf.ConfigProto()
+        self.json_params = json_params or {}
+        self.json_params.setdefault('sort_keys', True)
+        self.json_params.setdefault('indent', 4)
         self.called_fit = False
 
         self._tf_graph = tf.Graph()
@@ -84,7 +91,7 @@ class TensorFlowModel(BaseModel):
         """Initialize all TF variables and Saver"""
         init_op = tf.global_variables_initializer()
         self._tf_session.run(init_op)
-        self._tf_saver = tf.train.Saver()
+        self._tf_saver = tf.train.Saver(**self.tf_saver_params)
 
     def _init_tf_writers(self):
         self._tf_merged_summaries = tf.summary.merge_all()
@@ -93,11 +100,7 @@ class TensorFlowModel(BaseModel):
         self._tf_val_writer = tf.summary.FileWriter(self._val_summary_dirpath,
                                                     self._tf_graph)
 
-    def _save_model(self, json_params=None):
-        json_params = json_params or {}
-        json_params.setdefault('sort_keys', True)
-        json_params.setdefault('indent', 4)
-
+    def _save_model(self, global_step=None):
         # (recursively) create all folders needed
         for dirpath in (self._train_summary_dirpath, self._val_summary_dirpath):
             if not os.path.exists(dirpath):
@@ -106,7 +109,7 @@ class TensorFlowModel(BaseModel):
         # save params
         params = self.get_params(deep=False)
         with open(self._params_filepath, 'w') as params_file:
-            json.dump(params, params_file, **json_params)
+            json.dump(params, params_file, **self.json_params)
 
         # dump random state if needed
         if self.random_seed is not None:
@@ -115,7 +118,9 @@ class TensorFlowModel(BaseModel):
                 json.dump(random_state, random_state_file)
 
         # save tf model
-        self._tf_saver.save(self._tf_session, self._model_filepath)
+        self._tf_saver.save(self._tf_session,
+                            self._model_filepath,
+                            global_step=global_step)
 
     @classmethod
     def load_model(cls, model_path):
@@ -168,5 +173,5 @@ class TensorFlowModel(BaseModel):
 if __name__ == '__main__':
     # run corresponding tests
     import env; from utils.testing import run_tests
-    import tests.test_tf_model as t
+    from tests import test_tf_model as t
     run_tests(__file__, t)

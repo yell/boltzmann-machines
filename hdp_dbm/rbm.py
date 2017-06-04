@@ -244,6 +244,8 @@ if __name__ == '__main__':
     X /= 255.
     X_val /= 255.
 
+    config = tf.ConfigProto()
+    # config.gpu_options.allow_growth = True
     rbm = BaseRBM(n_visible=784,
                   n_hidden=256,
                   n_gibbs_steps=1,
@@ -251,16 +253,19 @@ if __name__ == '__main__':
                   momentum=0.9,
                   batch_size=10,
                   max_epoch=3,
-                  verbose=False,
+                  verbose=True,
                   random_seed=1337,
-                  model_path='../models/rbm1/')
+                  model_path='../models/rbm1/',
+                  tf_saver_params=dict(keep_checkpoint_every_n_hours=0.002,
+                                       pad_step_number=False),
+                  tf_session_config=config)
     rbm.fit(X, X_val)
 
-    print rbm.get_weights()['W:0'][0][0]
+    # print rbm.get_weights()['W:0'][0][0]
     # plot_rbm_filters(rbm.get_weights()['W:0'])
     # plt.show()
 
-    rbm = BaseRBM.load_model('../models/rbm1/')
-    rbm.set_params(max_epoch=5)
-    print rbm.get_weights()['W:0'][0][0]
-    rbm.fit(X)
+    # rbm = BaseRBM.load_model('../models/rbm1/model-3')
+    # rbm.set_params(max_epoch=5)
+    # print rbm.get_weights()['W:0'][0][0]
+    # rbm.fit(X)
