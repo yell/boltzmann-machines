@@ -2,6 +2,7 @@ import numpy as np
 import tensorflow as tf
 from matplotlib import pyplot as plt
 from tensorflow.core.framework import summary_pb2
+from tqdm import tqdm
 
 from base import TensorFlowModel
 from utils import batch_iter
@@ -151,7 +152,8 @@ class BaseRBM(TensorFlowModel):
 
     def _train_epoch(self, X):
         train_msres = []
-        for X_batch in batch_iter(X, batch_size=self.batch_size):
+        for X_batch in tqdm(batch_iter(X, batch_size=self.batch_size),
+                            total=self.n_batches, leave=True, ncols=79):
             self.iter += 1
             if self.iter % self.compute_metrics_every == 0:
                 _, train_s, train_msre = \
@@ -171,11 +173,15 @@ class BaseRBM(TensorFlowModel):
                                             feed_dict=self._make_tf_feed_dict(X_vb, is_training=False))
             val_msres.append(val_msre)
         mean_msre = np.mean(val_msres)
-        val_s = summary_pb2.Summary(value=[summary_pb2.Summary.Value(tag="msre", simple_value=mean_msre)])
+        val_s = summary_pb2.Summary(value=[summary_pb2.Summary.Value(tag="msre",
+                                                                     simple_value=mean_msre)])
         self._tf_val_writer.add_summary(val_s, self.iter)
         return mean_msre
 
     def _fit(self, X, X_val=None):
+        self.n_train_samples = len(X)
+        self.n_batches = self.n_train_samples / self.batch_size + \
+                         (self.n_train_samples % self.batch_size > 0)
         val_msre = None
         while self.epoch < self.max_epoch:
             self.epoch += 1
@@ -227,7 +233,7 @@ def plot_rbm_filters(W):
 if __name__ == '__main__':
     X, _ = load_mnist(mode='train', path='../data/')
     X_val, _ = load_mnist(mode='test', path='../data/')
-    X = X[:2000]
+    X = X[:16000]
     X_val = X_val[:100]
     X /= 255.
     X_val /= 255.
