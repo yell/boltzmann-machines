@@ -9,6 +9,15 @@ from utils.dataset import load_mnist
 
 
 class BaseRBM(TensorFlowModel):
+    """
+    References
+    ----------
+    [1] Goodfellow I. et. al. Deep Learning.
+    [2] Hinton, G. A Practical Guide to Training
+        Restricted Boltzmann Machines (ver.1, 2010).
+    [3] Restricted Boltzmann Machines (RBMs).
+        http://deeplearning.net/tutorial/rbm.html
+    """
     def __init__(self, n_visible=784, n_hidden=256, w_std=0.01, n_gibbs_steps=1,
                  learning_rate=0.1, momentum=0.9,
                  batch_size=10, max_epoch=10, compute_metrics_every=10,
@@ -75,7 +84,8 @@ class BaseRBM(TensorFlowModel):
         """Sample from P(h|v)."""
         with tf.name_scope('sample_h_given_v'):
             with tf.name_scope('h_means'):
-                h_means = tf.nn.sigmoid(tf.matmul(v, self._W) + self._hb)
+                self._propup = tf.matmul(v, self._W) + self._hb
+                h_means = tf.nn.sigmoid(self._propup)
             with tf.name_scope('h_samples'):
                 h_samples = tf.to_float(tf.less(self._h_rand, h_means))
         return h_means, h_samples
@@ -84,7 +94,8 @@ class BaseRBM(TensorFlowModel):
         """Sample from P(v|h)."""
         with tf.name_scope('sample_v_given_h'):
             with tf.name_scope('v_means'):
-                v_means = tf.nn.sigmoid(tf.matmul(h, tf.transpose(self._W)) + self._vb)
+                self._propdown = tf.matmul(h, tf.transpose(self._W)) + self._vb
+                v_means = tf.nn.sigmoid(self._propdown)
             with tf.name_scope('v_samples'):
                 v_samples = tf.to_float(tf.less(self._v_rand, v_means))
         return v_means, v_samples
@@ -107,14 +118,15 @@ class BaseRBM(TensorFlowModel):
 
         # compute gradients estimates (= positive - negative associations)
         with tf.name_scope('grads_estimates'):
+            N = tf.constant(self.batch_size, dtype='float')
             with tf.name_scope('dW'):
                 dW_positive = tf.matmul(tf.transpose(self._X_batch), h0_means)
                 dW_negative = tf.matmul(tf.transpose(v_samples), h_means)
-                dW = (dW_positive - dW_negative)
+                dW = (dW_positive - dW_negative) / N
             with tf.name_scope('dhb'):
-                dhb = tf.reduce_mean(h0_means - h_means, axis=0)
+                dhb = tf.reduce_mean(h0_means - h_means, axis=0) / N
             with tf.name_scope('dvb'):
-                dvb = tf.reduce_mean(self._X_batch - v_samples, axis=0)
+                dvb = tf.reduce_mean(self._X_batch - v_samples, axis=0) / N
 
         # update parameters
         with tf.name_scope('momentum_updates'):
@@ -253,15 +265,14 @@ if __name__ == '__main__':
     X /= 255.
     X_val /= 255.
 
-
     rbm = BaseRBM(n_visible=784,
                   n_hidden=256,
                   n_gibbs_steps=1,
-                  learning_rate=0.001,
+                  learning_rate=0.01,
                   momentum=0.9,
                   batch_size=10,
                   max_epoch=3,
-                  verbose=False,
+                  verbose=True,
                   random_seed=1337,
                   model_path='../models/rbm1/')
     rbm.fit(X, X_val)
