@@ -100,5 +100,19 @@ class TestBaseRBM(object):
         # cleanup
         self.cleanup()
 
+    def test_transform(self):
+        rbm = BaseRBM(max_epoch=3,
+                      model_path='test_rbm_1/',
+                      **self.rbm_config)
+        rbm.fit(self.X)
+        H = rbm.transform(self.X_val)
+
+        H_loaded = BaseRBM.load_model('test_rbm_1/').transform(self.X_val)
+        assert H.shape == (len(self.X_val), 16)
+        assert_allclose(H, H_loaded)
+
+        # cleanup
+        self.cleanup()
+
     def tearDown(self):
         self.cleanup()

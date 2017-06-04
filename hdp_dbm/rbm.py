@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 from tensorflow.core.framework import summary_pb2
 from tqdm import tqdm
 
-from base import TensorFlowModel
+from base import TensorFlowModel, run_in_tf_session
 from utils import batch_iter
 from utils.dataset import load_mnist
 
@@ -49,6 +49,7 @@ class BaseRBM(TensorFlowModel):
 
         # operations
         self._train_op = None
+        self._transform_op = None
         self._msre = None
 
     def _make_init_op(self):
@@ -102,6 +103,11 @@ class BaseRBM(TensorFlowModel):
                     v_means, v_samples = self._sample_v_given_h(h_samples)
                     h_means, h_samples = self._sample_h_given_v(v_samples)
 
+        # encoded data, used by the transform method
+        with tf.name_scope('transform_op'):
+            transform_op = tf.identity(h_means)
+            tf.add_to_collection('transform_op', transform_op)
+
         # compute gradients estimates (= positive - negative associations)
         with tf.name_scope('grads_estimates'):
             with tf.name_scope('dW'):
@@ -143,7 +149,7 @@ class BaseRBM(TensorFlowModel):
         self._make_init_op()
         self._make_train_op()
 
-    def _make_tf_feed_dict(self, X_batch, is_training=True):
+    def _make_tf_feed_dict(self, X_batch, is_training=False):
         feed_dict = {}
         feed_dict['input_data/X_batch:0'] = X_batch
         feed_dict['input_data/h_rand:0'] = self._rng.rand(X_batch.shape[0], self.n_hidden)
@@ -175,7 +181,7 @@ class BaseRBM(TensorFlowModel):
         val_msres = []
         for X_vb in batch_iter(X_val, batch_size=self.batch_size):
             val_msre = self._tf_session.run(self._msre,
-                                            feed_dict=self._make_tf_feed_dict(X_vb, is_training=False))
+                                            feed_dict=self._make_tf_feed_dict(X_vb))
             val_msres.append(val_msre)
         mean_msre = np.mean(val_msres)
         val_s = summary_pb2.Summary(value=[summary_pb2.Summary.Value(tag="msre",
@@ -188,7 +194,7 @@ class BaseRBM(TensorFlowModel):
         self._msre = tf.get_collection('msre')[0]
         self.n_train_samples = len(X)
         self.n_train_batches = self.n_train_samples / self.batch_size + \
-                               (self.n_train_samples % self.batch_size > 0)
+                              (self.n_train_samples % self.batch_size > 0)
         val_msre = None
         while self.epoch < self.max_epoch:
             self.epoch += 1
@@ -202,6 +208,18 @@ class BaseRBM(TensorFlowModel):
                 s += " - train.msre: {0:.4f}".format(train_msre)
                 if val_msre: s += " - val.msre: {0:.4f}".format(val_msre)
                 print s
+            self._save_model(global_step=self.epoch)
+
+    @run_in_tf_session
+    def transform(self, X):
+        self._transform_op = tf.get_collection('transform_op')[0]
+        H = np.zeros((len(X), self.n_hidden))
+        start = 0
+        for X_b in batch_iter(X, batch_size=self.batch_size):
+            H_b = self._transform_op.eval(feed_dict=self._make_tf_feed_dict(X_b))
+            H[start:(start + self.batch_size)] = H_b
+            start += self.batch_size
+        return H
 
 
 class BernoulliRBM(BaseRBM):
@@ -221,13 +239,13 @@ class MultinomialRBM(BaseRBM):
 
 def plot_rbm_filters(W):
     plt.figure(figsize=(12, 12))
-    for i in xrange(64):
+    for i in xrange(100):
         filters = W[:, i].reshape((28, 28))
-        plt.subplot(8, 8, i + 1)
-        plt.imshow(filters, cmap=plt.cm.gray, interpolation='nearest')
+        plt.subplot(10, 10, i + 1)
+        plt.imshow(filters, cmap=plt.cm.gray_r, interpolation='nearest')
         plt.xticks(())
         plt.yticks(())
-    plt.suptitle('First 64 components extracted by RBM', fontsize=24)
+    plt.suptitle('First 100 components extracted by RBM', fontsize=24)
 
 
 # if __name__ == '__main__':
@@ -240,12 +258,11 @@ if __name__ == '__main__':
     X, _ = load_mnist(mode='train', path='../data/')
     X_val, _ = load_mnist(mode='test', path='../data/')
     X = X[:2000]
-    X_val = X_val[:100]
+    X_val = X_val[:200]
     X /= 255.
     X_val /= 255.
 
-    config = tf.ConfigProto()
-    # config.gpu_options.allow_growth = True
+
     rbm = BaseRBM(n_visible=784,
                   n_hidden=256,
                   n_gibbs_steps=1,
@@ -255,17 +272,12 @@ if __name__ == '__main__':
                   max_epoch=3,
                   verbose=True,
                   random_seed=1337,
-                  model_path='../models/rbm1/',
-                  tf_saver_params=dict(keep_checkpoint_every_n_hours=0.002,
-                                       pad_step_number=False),
-                  tf_session_config=config)
+                  model_path='../models/rbm1/')
     rbm.fit(X, X_val)
 
-    # print rbm.get_weights()['W:0'][0][0]
+    # rbm = BaseRBM.load_model('../models/rbm1/')
+    # H = rbm.transform(X_val)
+    # print H[0][:10]
     # plot_rbm_filters(rbm.get_weights()['W:0'])
     # plt.show()
-
-    # rbm = BaseRBM.load_model('../models/rbm1/model-3')
-    # rbm.set_params(max_epoch=5)
-    # print rbm.get_weights()['W:0'][0][0]
     # rbm.fit(X)
