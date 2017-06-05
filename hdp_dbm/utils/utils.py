@@ -99,6 +99,52 @@ def make_k_folds(y, n_folds=3, shuffle=True, stratify=True, random_seed=None):
         yield fold
 
 
+def make_inf_generator(x):
+    """Convert to infinite generator.
+
+    Parameters
+    ----------
+    x : scalar or iterable
+        If scalar, always yield that value.
+        If finite iterable (e.g. list), first yield all of its values,
+            and after that always yield last value.
+        If infinite iterable, return generator that yields its values.
+
+    Examples
+    --------
+    >>> g = make_inf_generator(42)
+    >>> for _ in xrange(3): print next(g)
+    42
+    42
+    42
+    >>> g2 = make_inf_generator([4, 3, 2])
+    >>> for _ in xrange(4): print next(g2)
+    4
+    3
+    2
+    2
+    >>> def f():
+    ...     t = 0
+    ...     while True:
+    ...         yield t
+    ...         t += 1
+    >>> g3 = make_inf_generator(f)
+    >>> for _ in xrange(3): print next(g3)
+    0
+    1
+    2
+    """
+    if hasattr(x, '__call__'): # handle generator functions
+        x = x()
+    if not hasattr(x, '__iter__'):
+        x = [x]
+    value = None
+    for value in x:
+        yield value
+    while True:
+        yield value
+
+
 if __name__ == '__main__':
     # run corresponding tests
     from testing import run_tests

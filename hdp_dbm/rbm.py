@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 from tensorflow.core.framework import summary_pb2
 
 from base import TensorFlowModel, run_in_tf_session
-from utils import batch_iter, tbatch_iter
+from utils import batch_iter, tbatch_iter, make_inf_generator
 from utils.dataset import load_mnist
 
 
@@ -18,15 +18,16 @@ class BaseRBM(TensorFlowModel):
     [3] Restricted Boltzmann Machines (RBMs), Deep Learning Tutorial
         url: http://deeplearning.net/tutorial/rbm.html
     """
-    def __init__(self, n_visible=784, n_hidden=256,
+    def __init__(self, n_visible=784, n_hidden=256, n_gibbs_steps=1,
                  w_std=0.01, hb_init=0., vb_init=0.,
-                 n_gibbs_steps=1, learning_rate=0.1, momentum=0.9,
-                 batch_size=10, max_epoch=10, compute_metrics_every_iter=10,
+                 learning_rate=0.1, momentum=0.9, max_epoch=10, batch_size=10,
+                 compute_metrics_every_iter=10,
                  compute_dfe_every_epoch=2, n_batches_for_dfe=10,
                  verbose=False, model_path='rbm_model/', **kwargs):
         super(BaseRBM, self).__init__(model_path=model_path, **kwargs)
         self.n_visible = n_visible
         self.n_hidden = n_hidden
+        self.n_gibbs_steps = n_gibbs_steps
 
         self.w_std = w_std
         self.hb_init = hb_init
@@ -43,12 +44,14 @@ class BaseRBM(TensorFlowModel):
         if isinstance(self.vb_init, np.ndarray):
             self.vb_init = self.vb_init.tolist()  # for serialization
 
-        self.n_gibbs_steps = n_gibbs_steps
-        self.learning_rate = learning_rate
-        self.momentum = momentum
 
-        self.batch_size = batch_size
+        self.learning_rate = learning_rate
+        self._learning_rate_gen = None
+        self.momentum = momentum
+        self._momentum_gen = None
         self.max_epoch = max_epoch
+        self.batch_size = batch_size
+
         self.compute_metrics_every_iter = compute_metrics_every_iter
         self.compute_dfe_every_epoch = compute_dfe_every_epoch
         self.n_batches_for_dfe = n_batches_for_dfe
@@ -241,7 +244,9 @@ class BaseRBM(TensorFlowModel):
         feed_dict['input_data/v_rand:0'] = self._rng.rand(X_batch.shape[0], self.n_visible)
         feed_dict['input_data/pll_rand:0'] = self._rng.randint(self.n_visible, size=X_batch.shape[0])
         if is_training:
+            self.learning_rate = next(self._learning_rate_gen)
             feed_dict['input_data/learning_rate:0'] = self.learning_rate
+            self.momentum = next(self._momentum_gen)
             feed_dict['input_data/momentum:0'] = self.momentum
         return feed_dict
 
@@ -304,6 +309,8 @@ class BaseRBM(TensorFlowModel):
         return dfe
 
     def _fit(self, X, X_val=None):
+        self._learning_rate_gen = make_inf_generator(self.learning_rate)
+        self._momentum_gen = make_inf_generator(self.momentum)
         self._train_op = tf.get_collection('train_op')[0]
         self._msre = tf.get_collection('msre')[0]
         self._pseudo_loglik = tf.get_collection('pseudo_loglik')[0]
@@ -382,7 +389,7 @@ if __name__ == '__main__':
     X, _ = load_mnist(mode='train', path='../data/')
     X_val, _ = load_mnist(mode='test', path='../data/')
     X = X[:1000]
-    X_val = X_val[:2000]
+    X_val = X_val[:100]
     X /= 255.
     X_val /= 255.
 
@@ -391,7 +398,7 @@ if __name__ == '__main__':
                   vb_init=bernoulli_rbm_vb_initializer(X),
                   n_gibbs_steps=1,
                   learning_rate=0.01,
-                  momentum=0.9,
+                  momentum=[0.5, 0.6, 0.7, 0.8, 0.9],
                   batch_size=10,
                   max_epoch=3,
                   verbose=True,
