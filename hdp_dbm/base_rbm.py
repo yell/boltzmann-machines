@@ -178,7 +178,7 @@ class BaseRBM(TensorFlowModel):
 
         # compute gradients estimates (= positive - negative associations)
         with tf.name_scope('grads_estimates'):
-            N = tf.cast(tf.shape(self._X_batch)[0], dtype=tf.float32)
+            N = tf.to_float(tf.shape(self._X_batch)[0])
             with tf.name_scope('dW'):
                 dW_positive = tf.matmul(self._X_batch, h0_means, transpose_a=True)
                 dW_negative = tf.matmul(v_samples, h_probs, transpose_a=True)
@@ -221,9 +221,9 @@ class BaseRBM(TensorFlowModel):
             # randomly corrupt one feature in each sample
             x_ = tf.identity(x)
             ind = tf.transpose([tf.range(tf.shape(x)[0]), self._pll_rand])
-            m = tf.SparseTensor(indices=tf.cast(ind, tf.int64),
-                                values=tf.cast(tf.ones_like(self._pll_rand), tf.float32),
-                                dense_shape=tf.cast(tf.shape(x_), tf.int64))
+            m = tf.SparseTensor(indices=tf.to_int64(ind),
+                                values=tf.to_float(tf.ones_like(self._pll_rand)),
+                                dense_shape=tf.to_int64(tf.shape(x_)))
             x_ = tf.multiply(x_, -tf.sparse_tensor_to_dense(m, default_value=-1))
             x_ = tf.sparse_add(x_, m)
 
