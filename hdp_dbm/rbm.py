@@ -1,4 +1,3 @@
-import collections
 import numpy as np
 import tensorflow as tf
 from matplotlib import pyplot as plt
@@ -19,7 +18,8 @@ class BaseRBM(TensorFlowModel):
     [3] Restricted Boltzmann Machines (RBMs).
         http://deeplearning.net/tutorial/rbm.html
     """
-    def __init__(self, n_visible=784, n_hidden=256, w_std=0.01,
+    def __init__(self, n_visible=784, n_hidden=256,
+                 w_std=0.01, hb_init=0., vb_init=0.,
                  n_gibbs_steps=1, learning_rate=0.1, momentum=0.9,
                  batch_size=10, max_epoch=10, compute_metrics_every_iter=10,
                  compute_dfe_every_epoch=2, n_batches_for_dfe=10,
@@ -27,7 +27,21 @@ class BaseRBM(TensorFlowModel):
         super(BaseRBM, self).__init__(model_path=model_path, **kwargs)
         self.n_visible = n_visible
         self.n_hidden = n_hidden
+
         self.w_std = w_std
+        self.hb_init = hb_init
+
+        # visible biases can be initialized with list of values,
+        # because it is often helpful to initialize i-th visible bias
+        # with value log(p_i / (1 - p_i)), p_i = fraction of training
+        # vectors where i-th unit is on, as proposed in [2]
+        self.vb_init = vb_init
+        if hasattr(self.vb_init, '__iter__'):
+            self.vb_init = list(self.vb_init)
+        else:
+            self.vb_init = [self.vb_init] * self.n_visible
+        if isinstance(self.vb_init, np.ndarray):
+            self.vb_init = self.vb_init.tolist()  # for serialization
 
         self.n_gibbs_steps = n_gibbs_steps
         self.learning_rate = learning_rate
@@ -83,8 +97,8 @@ class BaseRBM(TensorFlowModel):
             W_tensor = tf.random_normal((self.n_visible, self.n_hidden),
                                         mean=0.0, stddev=self.w_std, seed=self.random_seed)
             self._W = tf.Variable(W_tensor, name='W', dtype=tf.float32)
-            self._hb = tf.Variable(tf.zeros((self.n_hidden,)), name='hb', dtype=tf.float32)
-            self._vb = tf.Variable(tf.zeros((self.n_visible,)), name='vb', dtype=tf.float32)
+            self._hb = tf.Variable(self.hb_init * tf.ones((self.n_hidden,)), name='hb', dtype=tf.float32)
+            self._vb = tf.Variable(self.vb_init, name='vb', dtype=tf.float32)
 
         with tf.name_scope('grads'):
             self._dW = tf.Variable(tf.zeros((self.n_visible, self.n_hidden)), name='dW', dtype=tf.float32)
@@ -343,6 +357,11 @@ def plot_rbm_filters(W):
     plt.suptitle('First 100 components extracted by RBM', fontsize=24)
 
 
+def bernoulli_rbm_vb_initializer(X):
+    p = np.mean(X, axis=0)
+    q = np.log(np.maximum(p, 1e-15) / np.maximum(1. - p, 1e-15))
+    return q
+
 # if __name__ == '__main__':
 #     # run corresponding tests
 #     from utils.testing import run_tests
@@ -358,16 +377,18 @@ if __name__ == '__main__':
     X_val /= 255.
 
     rbm = BaseRBM(n_visible=784,
-                  n_hidden=100,
-                  n_gibbs_steps=5,
+                  n_hidden=256,
+                  vb_init=bernoulli_rbm_vb_initializer(X),
+                  n_gibbs_steps=1,
                   learning_rate=0.01,
                   momentum=0.9,
                   batch_size=10,
                   max_epoch=10,
                   verbose=True,
                   random_seed=1337,
-                  model_path='../models/rbm-00/')
+                  model_path='../models/rbm-5-custom-vb/')
     rbm.fit(X, X_val)
+
     # rbm = BaseRBM.load_model('../models/rbm-4-neg-hbs/')
     # plot_rbm_filters(rbm.get_weights()['W:0'])
     # plt.show()
