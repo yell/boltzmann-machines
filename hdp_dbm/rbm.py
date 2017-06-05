@@ -289,10 +289,11 @@ class BaseRBM(TensorFlowModel):
 
     def _run_dfe(self, X, X_val):
         """Calculate difference between average free energies of subsets
-        of training and validation sets to monitor overfitting,
+        of validation and training sets to monitor overfitting,
         as proposed in [2]. If the model is not overfitting at all, this
-        quantity should be close to zero. Once this value (modulo) starts
-        growing, the model is overfitting.
+        quantity should be close to zero. Once this value starts
+        growing, the model is overfitting and the value represent the amount
+        of overfitting.
         """
         self._free_energy_op = tf.get_collection('free_energy_op')[0]
         train_fes, val_fes = [], []
@@ -302,7 +303,7 @@ class BaseRBM(TensorFlowModel):
         for _, X_vb in zip(xrange(self.n_batches_for_dfe),
                            batch_iter(X_val, batch_size=self.batch_size)):
             val_fes.append(self._free_energy_op.eval(feed_dict=self._make_tf_feed_dict(X_vb)))
-        dfe = np.mean(train_fes) - np.mean(val_fes)
+        dfe = np.mean(val_fes) - np.mean(train_fes)
         dfe_s = summary_pb2.Summary(value=[summary_pb2.Summary.Value(tag='dfe',
                                                                      simple_value=dfe)])
         self._tf_val_writer.add_summary(dfe_s, self.iter)
@@ -327,11 +328,11 @@ class BaseRBM(TensorFlowModel):
                 s = "epoch: {0:{1}}/{2}"\
                     .format(self.epoch, len(str(self.max_epoch)), self.max_epoch)
                 s += " ; msre: {0:.4f}".format(train_msre)
-                s += " ; pll: {0:.4f}".format(train_pll)
+                s += " ; pll: {0:.3f}".format(train_pll)
                 if val_msre: s += " ; val.msre: {0:.4f}".format(val_msre)
-                if val_pll: s += " ; val.pll: {0:.4f}".format(val_pll)
+                if val_pll: s += " ; val.pll: {0:.3f}".format(val_pll)
                 if dfe:
-                    s += " ; dfe: {0:.4f}".format(dfe)
+                    s += " ; dfe: {0:.2f}".format(dfe)
                     dfe = None
                 print s
             self._save_model(global_step=self.epoch)
@@ -388,8 +389,8 @@ def bernoulli_rbm_vb_initializer(X):
 if __name__ == '__main__':
     X, _ = load_mnist(mode='train', path='../data/')
     X_val, _ = load_mnist(mode='test', path='../data/')
-    X = X[:1000]
-    X_val = X_val[:100]
+    X = X[:10000]
+    X_val = X_val[:1000]
     X /= 255.
     X_val /= 255.
 
@@ -400,11 +401,11 @@ if __name__ == '__main__':
                   learning_rate=0.01,
                   momentum=[0.5, 0.6, 0.7, 0.8, 0.9],
                   batch_size=10,
-                  max_epoch=3,
+                  max_epoch=20,
                   verbose=True,
                   random_seed=1337,
                   model_path='../models/rbm0/')
-    rbm.fit(X, X_val)
-    rbm = BaseRBM.load_model('../models/rbm0/').set_params(max_epoch=10).fit(X, X_val)
-    # plot_rbm_filters(rbm.get_weights()['W:0'])
-    # plt.show()
+    # rbm.fit(X, X_val)
+    rbm = BaseRBM.load_model('../models/rbm0/')#.set_params(max_epoch=10).fit(X, X_val)
+    plot_rbm_filters(rbm.get_weights()['W:0'])
+    plt.show()
