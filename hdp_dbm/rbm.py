@@ -20,7 +20,7 @@ class BaseRBM(TensorFlowModel):
     """
     def __init__(self, n_visible=784, n_hidden=256, n_gibbs_steps=1,
                  w_std=0.01, hb_init=0., vb_init=0.,
-                 learning_rate=0.1, momentum=0.9, max_epoch=10, batch_size=10,
+                 learning_rate=0.1, momentum=0.9, max_epoch=10, batch_size=10, L2=1e-4,
                  compute_metrics_every_iter=10,
                  compute_dfe_every_epoch=2, n_batches_for_dfe=10,
                  verbose=False, model_path='rbm_model/', **kwargs):
@@ -51,6 +51,7 @@ class BaseRBM(TensorFlowModel):
         self._momentum_gen = None
         self.max_epoch = max_epoch
         self.batch_size = batch_size
+        self.L2 = L2
 
         self.compute_metrics_every_iter = compute_metrics_every_iter
         self.compute_dfe_every_epoch = compute_dfe_every_epoch
@@ -180,7 +181,7 @@ class BaseRBM(TensorFlowModel):
             with tf.name_scope('dW'):
                 dW_positive = tf.matmul(self._X_batch, h0_means, transpose_a=True)
                 dW_negative = tf.matmul(v_samples, h_means, transpose_a=True)
-                dW = (dW_positive - dW_negative) / N
+                dW = (dW_positive - dW_negative) / N - self.L2 * self._W
             with tf.name_scope('dhb'):
                 dhb = tf.reduce_mean(h0_means - h_means, axis=0) # == sum / N
             with tf.name_scope('dvb'):
@@ -288,7 +289,7 @@ class BaseRBM(TensorFlowModel):
         mean_msre = np.mean(val_msres)
         mean_pll = np.mean(val_plls)
         val_s = summary_pb2.Summary(value=[summary_pb2.Summary.Value(tag='msre',
-                                                                          simple_value=mean_msre),
+                                                                     simple_value=mean_msre),
                                            summary_pb2.Summary.Value(tag='pseudo_loglik',
                                                                      simple_value=mean_pll)])
         self._tf_val_writer.add_summary(val_s, self.iter)
@@ -401,18 +402,21 @@ if __name__ == '__main__':
     X /= 255.
     X_val /= 255.
 
-    rbm = BaseRBM(n_visible=784,
-                  n_hidden=256,
-                  vb_init=bernoulli_rbm_vb_initializer(X),
-                  n_gibbs_steps=1,
-                  learning_rate=0.01,
-                  momentum=0.9,#[0.5, 0.6, 0.7, 0.8, 0.9],
-                  batch_size=1000,
-                  max_epoch=50,
-                  verbose=True,
-                  random_seed=1337,
-                  model_path='../models/rbm-1000/')
-    rbm.fit(X, X_val)
+    for L2 in (1e-4, 1e-3, 1e-2, 1e-1):
+        print L2
+        rbm = BaseRBM(n_visible=784,
+                      n_hidden=256,
+                      vb_init=bernoulli_rbm_vb_initializer(X),
+                      n_gibbs_steps=1,
+                      learning_rate=0.01,
+                      momentum=[0.5, 0.6, 0.7, 0.8, 0.9],
+                      max_epoch=10,
+                      batch_size=10,
+                      L2=L2,
+                      verbose=True,
+                      random_seed=1337,
+                      model_path='../models/rbm-7-L2-{0}/'.format(L2))
+        rbm.fit(X, X_val)
     # rbm = BaseRBM.load_model('../models/rbm0/')#.set_params(max_epoch=10).fit(X, X_val)
     # plot_rbm_filters(rbm.get_weights()['W:0'])
     # plt.show()
