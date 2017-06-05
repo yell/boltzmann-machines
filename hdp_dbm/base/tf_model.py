@@ -108,6 +108,7 @@ class TensorFlowModel(BaseModel):
 
         # save params
         params = self.get_params(deep=False)
+        params['__class_name__'] = self.__class__.__name__
         with open(self._params_filepath, 'w') as params_file:
             json.dump(params, params_file, **self.json_params)
 
@@ -132,6 +133,9 @@ class TensorFlowModel(BaseModel):
         # load params
         with open(model._params_filepath, 'r') as params_file:
             params = json.load(params_file)
+        class_name = params.pop('__class_name__')
+        if class_name != cls.__name__:
+            raise RuntimeError("attempt to open {0}'s data with class {1}".format(class_name, cls.__name__))
         model.set_params(**params)
 
         # restore random state if needed

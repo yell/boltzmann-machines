@@ -88,17 +88,19 @@ class BaseRBM(TensorFlowModel):
         self._pseudo_loglik = None
         self._free_energy_op = None
 
-    def _make_init_op(self):
-        # create placeholders (input data)
+    def _make_placeholders_routine(self, h_rand_samples):
         with tf.name_scope('input_data'):
             self._X_batch = tf.placeholder(tf.float32, [None, self.n_visible], name='X_batch')
-            self._h_rand = tf.placeholder(tf.float32, [None, self.n_hidden], name='h_rand')
+            self._h_rand = tf.placeholder(tf.float32, [None, h_rand_samples], name='h_rand')
             self._v_rand = tf.placeholder(tf.float32, [None, self.n_visible], name='v_rand')
             self._pll_rand = tf.placeholder(tf.int32, [None], name='pll_rand')
             self._learning_rate = tf.placeholder(tf.float32, [], name='learning_rate')
             self._momentum = tf.placeholder(tf.float32, [], name='momentum')
 
-        # create variables (weights and grads)
+    def _make_placeholders(self):
+        raise NotImplementedError
+
+    def _make_vars(self):
         with tf.name_scope('weights'):
             W_tensor = tf.random_normal((self.n_visible, self.n_hidden),
                                         mean=0.0, stddev=self.w_std, seed=self.random_seed)
@@ -242,14 +244,15 @@ class BaseRBM(TensorFlowModel):
         tf.summary.scalar('pseudo_loglik', pseudo_loglik)
 
     def _make_tf_model(self):
-        self._make_init_op()
+        self._make_placeholders()
+        self._make_vars()
         self._make_train_op()
 
-    def _make_tf_feed_dict(self, X_batch, vh_rand=False, pll_rand=False, training=False):
+    def _make_tf_feed_dict_routine(self, h_rand_samples, X_batch, vh_rand=False, pll_rand=False, training=False):
         feed_dict = {}
         feed_dict['input_data/X_batch:0'] = X_batch
         if vh_rand:
-            feed_dict['input_data/h_rand:0'] = self._rng.rand(X_batch.shape[0], self.n_hidden)
+            feed_dict['input_data/h_rand:0'] = self._rng.rand(X_batch.shape[0], h_rand_samples)
             feed_dict['input_data/v_rand:0'] = self._rng.rand(X_batch.shape[0], self.n_visible)
         if pll_rand:
             feed_dict['input_data/pll_rand:0'] = self._rng.randint(self.n_visible, size=X_batch.shape[0])
@@ -259,6 +262,9 @@ class BaseRBM(TensorFlowModel):
             self.momentum = next(self._momentum_gen)
             feed_dict['input_data/momentum:0'] = self.momentum
         return feed_dict
+
+    def _make_tf_feed_dict(self, *args, **kwargs):
+        raise NotImplementedError
 
     def _train_epoch(self, X):
         train_msres = []
