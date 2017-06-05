@@ -103,11 +103,17 @@ class BaseRBM(TensorFlowModel):
             self._W = tf.Variable(W_tensor, name='W', dtype=tf.float32)
             self._hb = tf.Variable(self.hb_init * tf.ones((self.n_hidden,)), name='hb', dtype=tf.float32)
             self._vb = tf.Variable(self.vb_init, name='vb', dtype=tf.float32)
+            tf.summary.histogram('W', self._W)
+            tf.summary.histogram('hb', self._hb)
+            tf.summary.histogram('vb', self._vb)
 
         with tf.name_scope('grads'):
             self._dW = tf.Variable(tf.zeros((self.n_visible, self.n_hidden)), name='dW', dtype=tf.float32)
             self._dhb = tf.Variable(tf.zeros((self.n_hidden,)), name='dhb', dtype=tf.float32)
             self._dvb = tf.Variable(tf.zeros((self.n_visible,)), name='dvb', dtype=tf.float32)
+            tf.summary.histogram('dW', self._dW)
+            tf.summary.histogram('dhb', self._dhb)
+            tf.summary.histogram('dvb', self._dvb)
 
     def _propup(self, v):
         with tf.name_scope('prop_up'):
@@ -176,25 +182,26 @@ class BaseRBM(TensorFlowModel):
                 dW_negative = tf.matmul(v_samples, h_means, transpose_a=True)
                 dW = (dW_positive - dW_negative) / N
             with tf.name_scope('dhb'):
-                dhb = tf.reduce_mean(h0_means - h_means, axis=0) / N
+                dhb = tf.reduce_mean(h0_means - h_means, axis=0) # == sum / N
             with tf.name_scope('dvb'):
-                dvb = tf.reduce_mean(self._X_batch - v_samples, axis=0) / N
+                dvb = tf.reduce_mean(self._X_batch - v_samples, axis=0) # == sum / N
 
         # update parameters
         with tf.name_scope('momentum_updates'):
             with tf.name_scope('dW'):
-                self._dW  = self._momentum * self._dW + dW
-                W_update = self._W.assign_add(self._learning_rate * self._dW)
+                dW_update = self._dW.assign(self._learning_rate * (self._momentum * self._dW + dW))
+                W_update = self._W.assign_add(self._dW)
             with tf.name_scope('dhb'):
-                self._dhb = self._momentum * self._dhb + dhb
-                hb_update = self._hb.assign_add(self._learning_rate * self._dhb)
+                dhb_update = self._dhb.assign(self._learning_rate * (self._momentum * self._dhb + dhb))
+                hb_update = self._hb.assign_add(self._dhb)
             with tf.name_scope('dvb'):
-                self._dvb = self._momentum * self._dvb + dvb
-                vb_update = self._vb.assign_add(self._learning_rate * self._dvb)
+                dvb_update = self._dvb.assign(self._learning_rate * (self._momentum * self._dvb + dvb))
+                vb_update = self._vb.assign_add(self._dvb)
 
         # assemble train_op
         with tf.name_scope('train_op'):
-            train_op = tf.group(W_update, hb_update, vb_update)
+            train_op = tf.group(W_update, hb_update, vb_update,
+                                dW_update, dhb_update, dvb_update)
             tf.add_to_collection('train_op', train_op)
 
         # compute metrics
@@ -399,13 +406,13 @@ if __name__ == '__main__':
                   vb_init=bernoulli_rbm_vb_initializer(X),
                   n_gibbs_steps=1,
                   learning_rate=0.01,
-                  momentum=[0.5, 0.6, 0.7, 0.8, 0.9],
-                  batch_size=10,
-                  max_epoch=20,
+                  momentum=0.9,#[0.5, 0.6, 0.7, 0.8, 0.9],
+                  batch_size=1000,
+                  max_epoch=50,
                   verbose=True,
                   random_seed=1337,
-                  model_path='../models/rbm0/')
-    # rbm.fit(X, X_val)
-    rbm = BaseRBM.load_model('../models/rbm0/')#.set_params(max_epoch=10).fit(X, X_val)
-    plot_rbm_filters(rbm.get_weights()['W:0'])
-    plt.show()
+                  model_path='../models/rbm-1000/')
+    rbm.fit(X, X_val)
+    # rbm = BaseRBM.load_model('../models/rbm0/')#.set_params(max_epoch=10).fit(X, X_val)
+    # plot_rbm_filters(rbm.get_weights()['W:0'])
+    # plt.show()
