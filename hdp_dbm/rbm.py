@@ -20,6 +20,13 @@ class BernoulliRBM(BaseRBM):
                                                                     *args,
                                                                     **kwargs)
 
+    def _free_energy(self, v):
+        with tf.name_scope('free_energy'):
+            fe = -tf.einsum('ij,j->i', v, self._vb)
+            fe -= tf.reduce_sum(tf.nn.softplus(self._propup(v)), axis=1)
+            fe = tf.reduce_mean(fe, axis=0)
+        return fe
+
 
 class MultinomialRBM(BaseRBM):
     """RBM with Bernoulli visible and single Multinomial hidden unit.
@@ -55,15 +62,28 @@ class MultinomialRBM(BaseRBM):
                 h_samples = tf.to_float(h_samples)
         return h_probs, h_samples
 
+    def _free_energy(self, v):
+        with tf.name_scope('free_energy'):
+            fe = -tf.einsum('ij,j->i', v, self._vb)
+            fe -= tf.reduce_sum(tf.matmul(v, self._W), axis=1)
+            fe = tf.reduce_mean(fe, axis=0) - tf.reduce_sum(self._hb)
+        return fe
+
 
 class GaussianRBM(BaseRBM):
     """RBM with Gaussian visible and Bernoulli hidden units."""
     pass
 
 
+def bernoulli_vb_initializer(X):
+    p = np.mean(X, axis=0)
+    q = np.log(np.maximum(p, 1e-15) / np.maximum(1. - p, 1e-15))
+    return q
+
+
 def plot_rbm_filters(W):
     plt.figure(figsize=(12, 12))
-    for i in xrange(100):
+    for i in xrange(10):
         filters = W[:, i].reshape((28, 28))
         plt.subplot(10, 10, i + 1)
         plt.imshow(filters, cmap=plt.cm.gray, interpolation='nearest')
@@ -72,10 +92,7 @@ def plot_rbm_filters(W):
     plt.suptitle('First 100 components extracted by RBM', fontsize=24)
 
 
-def bernoulli_vb_initializer(X):
-    p = np.mean(X, axis=0)
-    q = np.log(np.maximum(p, 1e-15) / np.maximum(1. - p, 1e-15))
-    return q
+
 
 
 # if __name__ == '__main__':
@@ -95,7 +112,7 @@ if __name__ == '__main__':
 
     rbm = MultinomialRBM(n_visible=784,
                        n_hidden=10,
-                       vb_init=0.,#bernoulli_vb_initializer(X),
+                       vb_init=bernoulli_vb_initializer(X),
                        n_gibbs_steps=1,
                        learning_rate=0.01,
                        momentum=[0.5, 0.6, 0.7, 0.8, 0.9],
@@ -104,9 +121,8 @@ if __name__ == '__main__':
                        L2=1e-4,
                        verbose=True,
                        random_seed=1337,
-                       model_path='../models/m-rbm/')
+                       model_path='../models/m-rbm2/')
     rbm.fit(X, X_val)
-
 
     # rbm = MultinomialRBM.load_model('../models/m-rbm/')
     plot_rbm_filters(rbm.get_weights()['W:0'])

@@ -148,12 +148,8 @@ class BaseRBM(TensorFlowModel):
         return v_probs, v_samples
 
     def _free_energy(self, v):
-        """Compute free energy of a visible vectors `v`."""
-        with tf.name_scope('free_energy'):
-            fe = -tf.einsum('ij,j->i', v, self._vb)
-            fe -= tf.reduce_sum(tf.nn.softplus(self._propup(v)), axis=1)
-            fe = tf.reduce_mean(fe, axis=0)
-        return fe
+        """Compute (average) free energy of a visible vectors `v`."""
+        raise NotImplementedError
 
     def _make_train_op(self):
         # Run Gibbs chain for specified number of steps.
