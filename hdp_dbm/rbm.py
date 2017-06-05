@@ -213,6 +213,7 @@ class BaseRBM(TensorFlowModel):
             x_ = tf.multiply(x_, -tf.sparse_tensor_to_dense(m, default_value=-1))
             x_ = tf.sparse_add(x_, m)
 
+            # TODO: should change to tf.log_logistic when updated to r1.2
             pseudo_loglik = -tf.constant(self.n_visible, dtype='float') *\
                              tf.nn.softplus(-(self._free_energy(x_) -
                                               self._free_energy(x)))
