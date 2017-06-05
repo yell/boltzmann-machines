@@ -12,11 +12,11 @@ class BaseRBM(TensorFlowModel):
     """
     References
     ----------
-    [1] Goodfellow I. et. al. Deep Learning.
-    [2] Hinton, G. A Practical Guide to Training
-        Restricted Boltzmann Machines (ver.1, 2010).
-    [3] Restricted Boltzmann Machines (RBMs).
-        http://deeplearning.net/tutorial/rbm.html
+    [1] Goodfellow I. et. al. "Deep Learning".
+    [2] Hinton, G. "A Practical Guide to Training Restricted Boltzmann
+        Machines" UTML TR 2010-003
+    [3] Restricted Boltzmann Machines (RBMs), Deep Learning Tutorial
+        url: http://deeplearning.net/tutorial/rbm.html
     """
     def __init__(self, n_visible=784, n_hidden=256,
                  w_std=0.01, hb_init=0., vb_init=0.,
@@ -142,7 +142,7 @@ class BaseRBM(TensorFlowModel):
         return fe
 
     def _make_train_op(self):
-        # run Gibbs chain for specified number of steps.
+        # Run Gibbs chain for specified number of steps.
         # According to [2], the training goes less noisy and slightly faster, if
         # sampling used for states of hidden units driven by the data, and probabilities
         # for ones driven by reconstructions, and if probabilities used for visible units,
@@ -199,9 +199,11 @@ class BaseRBM(TensorFlowModel):
             tf.add_to_collection('msre', msre)
 
         # Since reconstruction error is fairly poor measure of performance,
-        # as this is not what CD-k learning algorithm minimizes [2],
+        # as this is not what CD-k learning algorithm aims to minimize [2],
         # compute (per sample average) pseudo-loglikelihood (proxy to likelihood)
-        # instead, using approximation as in [3].
+        # instead, which not only is much more cheaper to compute, but also is
+        # an asymptotically consistent estimate of the true log-likelihood [1].
+        # More specifically, PLL computed using approximation as in [3].
         with tf.name_scope('pseudo_loglikelihood'):
             x = self._X_batch
             # randomly corrupt one feature in each sample
