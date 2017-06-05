@@ -81,6 +81,7 @@ class BaseRBM(TensorFlowModel):
         self._transform_op = None
         self._msre = None
         self._pseudo_loglik = None
+        self._free_energy_op = None
 
     def _make_init_op(self):
         # create placeholders (input data)
@@ -221,6 +222,10 @@ class BaseRBM(TensorFlowModel):
                                               self._free_energy(x)))
             tf.add_to_collection('pseudo_loglik', pseudo_loglik)
 
+        # add also free energy of input batch to collection (for dfe)
+        free_energy_op = self._free_energy(self._X_batch)
+        tf.add_to_collection('free_energy_op', free_energy_op)
+
         # collect summaries
         tf.summary.scalar('msre', msre)
         tf.summary.scalar('pseudo_loglik', pseudo_loglik)
@@ -280,16 +285,18 @@ class BaseRBM(TensorFlowModel):
     def _run_dfe(self, X, X_val):
         """Calculate difference between average free energies of subsets
         of training and validation sets to monitor overfitting,
-        as proposed in [2]. Once this value starts growing, the model is
-        overfitting.
+        as proposed in [2]. If the model is not overfitting at all, this
+        quantity should be close to zero. Once this value (modulo) starts
+        growing, the model is overfitting.
         """
+        self._free_energy_op = tf.get_collection('free_energy_op')[0]
         train_fes, val_fes = [], []
         for _, X_b in zip(xrange(self.n_batches_for_dfe),
-                       batch_iter(X, batch_size=self.batch_size)):
-            train_fes.append(self._free_energy(tf.constant(X_b, dtype='float')).eval())
+                          batch_iter(X, batch_size=self.batch_size)):
+            train_fes.append(self._free_energy_op.eval(feed_dict=self._make_tf_feed_dict(X_b)))
         for _, X_vb in zip(xrange(self.n_batches_for_dfe),
-                        batch_iter(X_val, batch_size=self.batch_size)):
-            val_fes.append(self._free_energy(tf.constant(X_vb, dtype='float')).eval())
+                           batch_iter(X_val, batch_size=self.batch_size)):
+            val_fes.append(self._free_energy_op.eval(feed_dict=self._make_tf_feed_dict(X_vb)))
         dfe = np.mean(train_fes) - np.mean(val_fes)
         dfe_s = summary_pb2.Summary(value=[summary_pb2.Summary.Value(tag='dfe',
                                                                      simple_value=dfe)])
@@ -354,7 +361,7 @@ def plot_rbm_filters(W):
     for i in xrange(100):
         filters = W[:, i].reshape((28, 28))
         plt.subplot(10, 10, i + 1)
-        plt.imshow(filters, cmap=plt.cm.gray_r, interpolation='nearest')
+        plt.imshow(filters, cmap=plt.cm.gray, interpolation='nearest')
         plt.xticks(())
         plt.yticks(())
     plt.suptitle('First 100 components extracted by RBM', fontsize=24)
@@ -374,8 +381,8 @@ def bernoulli_rbm_vb_initializer(X):
 if __name__ == '__main__':
     X, _ = load_mnist(mode='train', path='../data/')
     X_val, _ = load_mnist(mode='test', path='../data/')
-    X = X[:10000]
-    X_val = X_val[:1000]
+    X = X[:1000]
+    X_val = X_val[:2000]
     X /= 255.
     X_val /= 255.
 
@@ -386,12 +393,11 @@ if __name__ == '__main__':
                   learning_rate=0.01,
                   momentum=0.9,
                   batch_size=10,
-                  max_epoch=10,
+                  max_epoch=3,
                   verbose=True,
                   random_seed=1337,
-                  model_path='../models/rbm-5-custom-vb/')
+                  model_path='../models/rbm0/')
     rbm.fit(X, X_val)
-
-    # rbm = BaseRBM.load_model('../models/rbm-4-neg-hbs/')
+    rbm = BaseRBM.load_model('../models/rbm0/').set_params(max_epoch=10).fit(X, X_val)
     # plot_rbm_filters(rbm.get_weights()['W:0'])
     # plt.show()
