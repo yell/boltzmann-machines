@@ -4,7 +4,7 @@ from numpy.testing import (assert_allclose,
                            assert_almost_equal)
 
 from hdp_dbm.utils import RNG
-from hdp_dbm.rbm import BaseRBM
+from hdp_dbm.base_rbm import BaseRBM
 
 
 class TestBaseRBM(object):
@@ -14,7 +14,9 @@ class TestBaseRBM(object):
         self.rbm_config = dict(n_visible=24,
                                n_hidden=16,
                                verbose=False,
-                               random_seed=1337)
+                               random_seed=1337,
+                               compute_dfe_every_epoch=10000,
+                               L2=0.)
 
     def cleanup(self):
         for d in ('test_rbm_1/', 'test_rbm_2/', 'test_rbm_3/'):
