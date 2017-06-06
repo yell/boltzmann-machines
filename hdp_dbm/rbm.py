@@ -1,6 +1,5 @@
 import numpy as np
 import tensorflow as tf
-from matplotlib import pyplot as plt
 
 from base_rbm import BaseRBM
 
@@ -136,17 +135,6 @@ def bernoulli_vb_initializer(X):
     p = np.mean(X, axis=0)
     q = np.log(np.maximum(p, 1e-15) / np.maximum(1. - p, 1e-15))
     return q
-
-
-def plot_rbm_filters(W):
-    plt.figure(figsize=(12, 12))
-    for i in xrange(100):
-        filters = W[:, i].reshape((28, 28))
-        plt.subplot(10, 10, i + 1)
-        plt.imshow(filters, cmap=plt.cm.gray, interpolation='nearest')
-        plt.xticks(())
-        plt.yticks(())
-    plt.suptitle('First 100 components extracted by RBM', fontsize=24)
 
 
 if __name__ == '__main__':
