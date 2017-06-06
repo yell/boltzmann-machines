@@ -23,7 +23,7 @@ class BaseRBM(TensorFlowModel):
     """
     def __init__(self, n_visible=784, n_hidden=256, n_gibbs_steps=1,
                  w_std=0.01, hb_init=0., vb_init=0.,
-                 learning_rate=0.1, momentum=0.9, max_epoch=10, batch_size=10, L2=1e-4,
+                 learning_rate=0.01, momentum=0.9, max_epoch=10, batch_size=10, L2=1e-4,
                  compute_train_metrics_every_iter=10, compute_val_metrics_every_epoch=1,
                  compute_dfe_every_epoch=2, n_batches_for_dfe=10,
                  verbose=False, model_path='rbm_model/', **kwargs):
@@ -88,10 +88,10 @@ class BaseRBM(TensorFlowModel):
         self._pseudo_loglik = None
         self._free_energy_op = None
 
-    def _make_placeholders_routine(self, h_rand_samples):
+    def _make_placeholders_routine(self, h_rand_shape):
         with tf.name_scope('input_data'):
             self._X_batch = tf.placeholder(tf.float32, [None, self.n_visible], name='X_batch')
-            self._h_rand = tf.placeholder(tf.float32, [None, h_rand_samples], name='h_rand')
+            self._h_rand = tf.placeholder(tf.float32, h_rand_shape, name='h_rand')
             self._v_rand = tf.placeholder(tf.float32, [None, self.n_visible], name='v_rand')
             self._pll_rand = tf.placeholder(tf.int32, [None], name='pll_rand')
             self._learning_rate = tf.placeholder(tf.float32, [], name='learning_rate')
@@ -132,20 +132,20 @@ class BaseRBM(TensorFlowModel):
     def _sample_h_given_v(self, v):
         """Sample from P(h|v)."""
         with tf.name_scope('sample_h_given_v'):
-            with tf.name_scope('h_probs'):
-                h_probs = tf.nn.sigmoid(self._propup(v))
+            with tf.name_scope('h_means'):
+                h_means = tf.nn.sigmoid(self._propup(v))
             with tf.name_scope('h_samples'):
-                h_samples = tf.to_float(tf.less(self._h_rand, h_probs))
-        return h_probs, h_samples
+                h_samples = tf.to_float(tf.less(self._h_rand, h_means))
+        return h_means, h_samples
 
     def _sample_v_given_h(self, h):
         """Sample from P(v|h)."""
         with tf.name_scope('sample_v_given_h'):
-            with tf.name_scope('v_probs'):
-                v_probs = tf.nn.sigmoid(self._propdown(h))
+            with tf.name_scope('v_means'):
+                v_means = tf.nn.sigmoid(self._propdown(h))
             with tf.name_scope('v_samples'):
-                v_samples = tf.to_float(tf.less(self._v_rand, v_probs))
-        return v_probs, v_samples
+                v_samples = tf.to_float(tf.less(self._v_rand, v_means))
+        return v_means, v_samples
 
     def _free_energy(self, v):
         """Compute (average) free energy of a visible vectors `v`."""
@@ -159,19 +159,19 @@ class BaseRBM(TensorFlowModel):
         # both driven by data and by reconstructions.
         with tf.name_scope('gibbs_chain'):
             h0_means, h0_samples = self._sample_h_given_v(self._X_batch)
-            v_probs, v_samples = None, None
-            h_probs, h_samples = None, None
+            v_means, v_samples = None, None
+            h_means, h_samples = None, None
             h_states, v_states = h0_samples, None
             for _ in xrange(self.n_gibbs_steps):
                 with tf.name_scope('sweep'):
-                    v_probs, v_samples = self._sample_v_given_h(h_states)
-                    v_states = v_probs
-                    h_probs, h_samples = self._sample_h_given_v(v_states)
-                    h_states = h_probs
+                    v_means, v_samples = self._sample_v_given_h(h_states)
+                    v_states = v_means
+                    h_means, h_samples = self._sample_h_given_v(v_states)
+                    h_states = h_means
 
         # encoded data, used by the transform method
         with tf.name_scope('transform_op'):
-            transform_op = tf.identity(h_probs)
+            transform_op = tf.identity(h_means)
             tf.add_to_collection('transform_op', transform_op)
 
         # compute gradients estimates (= positive - negative associations)
@@ -179,10 +179,10 @@ class BaseRBM(TensorFlowModel):
             N = tf.to_float(tf.shape(self._X_batch)[0])
             with tf.name_scope('dW'):
                 dW_positive = tf.matmul(self._X_batch, h0_means, transpose_a=True)
-                dW_negative = tf.matmul(v_samples, h_probs, transpose_a=True)
+                dW_negative = tf.matmul(v_samples, h_means, transpose_a=True)
                 dW = (dW_positive - dW_negative) / N - self.L2 * self._W
             with tf.name_scope('dhb'):
-                dhb = tf.reduce_mean(h0_means - h_probs, axis=0) # == sum / N
+                dhb = tf.reduce_mean(h0_means - h_means, axis=0) # == sum / N
             with tf.name_scope('dvb'):
                 dvb = tf.reduce_mean(self._X_batch - v_samples, axis=0) # == sum / N
 
@@ -205,7 +205,7 @@ class BaseRBM(TensorFlowModel):
 
         # compute metrics
         with tf.name_scope('mean_squared_recon_error'):
-            msre = tf.reduce_mean(tf.square(self._X_batch - v_probs))
+            msre = tf.reduce_mean(tf.square(self._X_batch - v_means))
             tf.add_to_collection('msre', msre)
 
         # Since reconstruction error is fairly poor measure of performance,
@@ -244,12 +244,18 @@ class BaseRBM(TensorFlowModel):
         self._make_vars()
         self._make_train_op()
 
-    def _make_tf_feed_dict_routine(self, h_rand_samples, X_batch, vh_rand=False, pll_rand=False, training=False):
+    def _make_h_rand(self, X_batch):
+        raise NotImplementedError
+
+    def _make_v_rand(self, X_batch):
+        raise NotImplementedError
+
+    def _make_tf_feed_dict(self, X_batch, vh_rand=False, pll_rand=False, training=False):
         feed_dict = {}
         feed_dict['input_data/X_batch:0'] = X_batch
         if vh_rand:
-            feed_dict['input_data/h_rand:0'] = self._rng.rand(X_batch.shape[0], h_rand_samples)
-            feed_dict['input_data/v_rand:0'] = self._rng.rand(X_batch.shape[0], self.n_visible)
+            feed_dict['input_data/h_rand:0'] = self._make_h_rand(X_batch)
+            feed_dict['input_data/v_rand:0'] = self._make_v_rand(X_batch)
         if pll_rand:
             feed_dict['input_data/pll_rand:0'] = self._rng.randint(self.n_visible, size=X_batch.shape[0])
         if training:
@@ -258,9 +264,6 @@ class BaseRBM(TensorFlowModel):
             self.momentum = next(self._momentum_gen)
             feed_dict['input_data/momentum:0'] = self.momentum
         return feed_dict
-
-    def _make_tf_feed_dict(self, *args, **kwargs):
-        raise NotImplementedError
 
     def _train_epoch(self, X):
         train_msres = []

@@ -4,7 +4,7 @@ from numpy.testing import (assert_allclose,
                            assert_almost_equal)
 
 from hdp_dbm.utils import RNG
-from hdp_dbm.rbm import BernoulliRBM, MultinomialRBM
+from hdp_dbm.rbm import BernoulliRBM, MultinomialRBM, GaussianRBM
 
 
 class TestRBM(object):
@@ -24,7 +24,7 @@ class TestRBM(object):
                 rmtree(d)
 
     def test_fit_consistency(self):
-        for C in (BernoulliRBM, MultinomialRBM):
+        for C in (BernoulliRBM, MultinomialRBM, GaussianRBM):
 
             # 1) train 2, then 5 more epochs
             rbm = C(max_epoch=2,
@@ -64,7 +64,7 @@ class TestRBM(object):
 
 
     def test_fit_consistency_val(self):
-        for C in (BernoulliRBM, MultinomialRBM):
+        for C in (BernoulliRBM, MultinomialRBM, GaussianRBM):
 
             # 1) train 2, then 5 more epochs
             rbm = C(max_epoch=2,
@@ -103,7 +103,7 @@ class TestRBM(object):
             self.cleanup()
 
     def test_transform(self):
-        for C in (BernoulliRBM, MultinomialRBM):
+        for C in (BernoulliRBM, MultinomialRBM, GaussianRBM):
             rbm = C(max_epoch=2,
                     model_path='test_rbm_1/',
                     **self.rbm_config)

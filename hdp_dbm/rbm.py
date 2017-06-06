@@ -13,18 +13,19 @@ class BernoulliRBM(BaseRBM):
         super(BernoulliRBM, self).__init__(model_path=model_path, **kwargs)
 
     def _make_placeholders(self):
-        super(BernoulliRBM, self)._make_placeholders_routine(h_rand_samples=self.n_hidden)
+        super(BernoulliRBM, self)._make_placeholders_routine(h_rand_shape=[None, self.n_hidden])
 
-    def _make_tf_feed_dict(self, *args, **kwargs):
-        return super(BernoulliRBM, self)._make_tf_feed_dict_routine(self.n_hidden,
-                                                                    *args,
-                                                                    **kwargs)
+    def _make_h_rand(self, X_batch):
+        return self._rng.rand(X_batch.shape[0], self.n_hidden)
+
+    def _make_v_rand(self, X_batch):
+        return self._rng.rand(X_batch.shape[0], self.n_visible)
 
     def _free_energy(self, v):
         with tf.name_scope('free_energy'):
-            fe = -tf.einsum('ij,j->i', v, self._vb)
-            fe -= tf.reduce_sum(tf.nn.softplus(self._propup(v)), axis=1)
-            fe = tf.reduce_mean(fe, axis=0)
+            tv = -tf.einsum('ij,j->i', v, self._vb)
+            th = -tf.reduce_sum(tf.nn.softplus(self._propup(v)), axis=1)
+            fe = tf.reduce_mean(tv + th, axis=0)
         return fe
 
 
@@ -36,43 +37,97 @@ class MultinomialRBM(BaseRBM):
     n_hidden : int
         Number of possible states of a multinomial unit.
     """
-
     def __init__(self, model_path='m_rbm_model/',
                  **kwargs):
         super(MultinomialRBM, self).__init__(model_path=model_path, **kwargs)
 
     def _make_placeholders(self):
-        super(MultinomialRBM, self)._make_placeholders_routine(h_rand_samples=1)
+        super(MultinomialRBM, self)._make_placeholders_routine(h_rand_shape=[None, 1])
 
-    def _make_tf_feed_dict(self, *args, **kwargs):
-        return super(MultinomialRBM, self)._make_tf_feed_dict_routine(1, *args, **kwargs)
+    def _make_h_rand(self, X_batch):
+        return self._rng.rand(X_batch.shape[0], 1)
+
+    def _make_v_rand(self, X_batch):
+        return self._rng.rand(X_batch.shape[0], self.n_visible)
 
     def _sample_h_given_v(self, v):
         with tf.name_scope('sample_h_given_v'):
             with tf.name_scope('h_probs'):
-                h_probs = tf.nn.softmax(self._propup(v))
+                h_means = tf.nn.softmax(self._propup(v))
             with tf.name_scope('h_samples'):
-                h_cumprobs = tf.cumsum(h_probs, axis=-1)
-                m = tf.to_int32(tf.greater_equal(h_cumprobs, self._h_rand))
-                ind = tf.to_int32(tf.argmax(m, axis=-1))
-                z = tf.to_int32(tf.range(tf.shape(ind)[0]))
-                h_samples = tf.scatter_nd(tf.transpose([z, ind]),
-                                          tf.ones_like(z),
+                h_cumprobs = tf.cumsum(h_means, axis=-1)
+                t = tf.to_int32(tf.greater_equal(h_cumprobs, self._h_rand))
+                ind = tf.to_int32(tf.argmax(t, axis=-1))
+                r = tf.to_int32(tf.range(tf.shape(ind)[0]))
+                h_samples = tf.scatter_nd(tf.transpose([r, ind]),
+                                          tf.ones_like(r),
                                           tf.to_int32(tf.shape(h_cumprobs)))
                 h_samples = tf.to_float(h_samples)
-        return h_probs, h_samples
+        return h_means, h_samples
 
     def _free_energy(self, v):
         with tf.name_scope('free_energy'):
-            fe = -tf.einsum('ij,j->i', v, self._vb)
-            fe -= tf.reduce_sum(tf.matmul(v, self._W), axis=1)
-            fe = tf.reduce_mean(fe, axis=0) - tf.reduce_sum(self._hb)
+            tv = -tf.einsum('ij,j->i', v, self._vb)
+            th = -tf.reduce_sum(tf.matmul(v, self._W), axis=1)
+            fe = tf.reduce_mean(tv + th, axis=0) - tf.reduce_sum(self._hb)
         return fe
 
 
 class GaussianRBM(BaseRBM):
-    """RBM with Gaussian visible and Bernoulli hidden units."""
-    pass
+    """RBM with Gaussian visible and Bernoulli hidden units.
+
+    This implementation does not learn variances, but instead uses
+    fixed, predetermined values. Input data should be pre-processed
+    to have zero mean and unit variance, as suggested in [2].
+
+    Parameters
+    ----------
+    sigma : float, or iterable of such
+        Standard deviations of visible units.
+    """
+    def __init__(self,
+                 learning_rate=1e-3,
+                 sigma=1.,
+                 model_path='g_rbm_model/', **kwargs):
+        super(GaussianRBM, self).__init__(learning_rate=learning_rate,
+                                          model_path=model_path, **kwargs)
+        self.sigma = sigma
+        if hasattr(self.sigma, '__iter__'):
+            self._sigma_tmp = self.sigma = list(self.sigma)
+        else:
+            self._sigma_tmp = [self.sigma] * self.n_visible
+
+    def _make_placeholders(self):
+        super(GaussianRBM, self)._make_placeholders_routine(h_rand_shape=[None, self.n_hidden])
+        with tf.name_scope('input_data'):
+            # divide by resp. sigmas before any operation
+            self._sigma = tf.Variable(tf.reshape(self._sigma_tmp, [1, self.n_visible]))
+            self._X_batch = tf.divide(self._X_batch, self._sigma)
+
+    def _make_h_rand(self, X_batch):
+        return self._rng.rand(X_batch.shape[0], self.n_hidden)
+
+    def _make_v_rand(self, X_batch):
+        return self._rng.randn(X_batch.shape[0], self.n_visible)
+
+    def _sample_v_given_h(self, h):
+        with tf.name_scope('sample_v_given_h'):
+            with tf.name_scope('v_means'):
+                v_means = tf.nn.sigmoid(self._propdown(h))
+            with tf.name_scope('v_samples'):
+                v_samples = tf.matmul(a=h, b=self._W, transpose_b=True) * self._sigma
+                v_samples += self._vb
+                v_samples += self._v_rand * self._sigma
+        return v_means, v_samples
+
+    def _free_energy(self, v):
+        with tf.name_scope('free_energy'):
+            t = tf.divide(tf.reshape(self._vb, [1, self.n_visible]), self._sigma)
+            t2 = tf.square(tf.subtract(v, t))
+            tv = 0.5 * tf.reduce_sum(t2, axis=1)
+            th = -tf.reduce_sum(tf.nn.softplus(self._propup(v)), axis=1)
+            fe = tf.reduce_mean(tv + th, axis=0)
+        return fe
 
 
 def bernoulli_vb_initializer(X):
@@ -83,15 +138,13 @@ def bernoulli_vb_initializer(X):
 
 def plot_rbm_filters(W):
     plt.figure(figsize=(12, 12))
-    for i in xrange(10):
+    for i in xrange(100):
         filters = W[:, i].reshape((28, 28))
         plt.subplot(10, 10, i + 1)
         plt.imshow(filters, cmap=plt.cm.gray, interpolation='nearest')
         plt.xticks(())
         plt.yticks(())
     plt.suptitle('First 100 components extracted by RBM', fontsize=24)
-
-
 
 
 
@@ -103,27 +156,52 @@ def plot_rbm_filters(W):
 
 
 if __name__ == '__main__':
-    X, _ = load_mnist(mode='train', path='../data/')
+    X, y = load_mnist(mode='train', path='../data/')
     X_val, _ = load_mnist(mode='test', path='../data/')
-    X = X[:10000]
-    X_val = X_val[:1000]
     X /= 255.
     X_val /= 255.
+    # X_new = np.zeros_like(X)
+    # from utils import make_k_folds
+    # start = 0
+    # for i_b in make_k_folds(y, n_folds=6000, shuffle=True, stratify=True, random_seed=1337):
+    #     X_new[start:(start + len(i_b))] = X[i_b]
+    #     start += len(i_b)
+    # X = X_new
+    #
+    # for lr in (0.01, 0.001):
+    #     for L2 in (0., 1e-5, 1e-4, 1e-3, 1e-2, 1e-1):
+    #         rbm = BernoulliRBM(n_visible=784,
+    #                            n_hidden=1024,
+    #                            vb_init=bernoulli_vb_initializer(X),
+    #                            n_gibbs_steps=1,
+    #                            learning_rate=lr,
+    #                            momentum=[0.5] * 20 + [0.6, 0.7, 0.8, 0.9],
+    #                            max_epoch=40,
+    #                            batch_size=10,
+    #                            L2=L2,
+    #                            verbose=True,
+    #                            random_seed=1337,
+    #                            model_path='../models/L2-{0}-lr-{1}/'.format(L2, lr))
+    #         rbm.fit(X, X_val)
 
-    rbm = MultinomialRBM(n_visible=784,
-                       n_hidden=10,
-                       vb_init=bernoulli_vb_initializer(X),
-                       n_gibbs_steps=1,
-                       learning_rate=0.01,
-                       momentum=[0.5, 0.6, 0.7, 0.8, 0.9],
-                       max_epoch=10,
-                       batch_size=10,
-                       L2=1e-4,
-                       verbose=True,
-                       random_seed=1337,
-                       model_path='../models/m-rbm2/')
+    X = X[:1000]
+    X_val = X_val[:100]
+    rbm = GaussianRBM(n_visible=784,
+                      n_hidden=256,
+                      vb_init=0.,# bernoulli_vb_initializer(X),
+                      n_gibbs_steps=1,
+                      learning_rate=0.0001,
+                      momentum=[0.5] * 5 * 1000 + [0.9],
+                      max_epoch=3,
+                      batch_size=10,
+                      L2=1e-4,
+                      verbose=True,
+                      random_seed=1337,
+                      model_path='../models/g-rbm/')
     rbm.fit(X, X_val)
-
-    # rbm = MultinomialRBM.load_model('../models/m-rbm/')
-    plot_rbm_filters(rbm.get_weights()['W:0'])
-    plt.show()
+    # rbm = GaussianRBM.load_model('../models/g-rbm/')
+    # rbm.set_params(max_epoch=24, batch_size=7)
+    # rbm.fit(X, X_val)
+    # print rbm.get_weights()['W:0'][0][0]
+    # plot_rbm_filters(rbm.get_weights()['W:0'])
+    # plt.show()
