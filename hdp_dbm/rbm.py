@@ -78,7 +78,7 @@ class GaussianRBM(BaseRBM):
 
     This implementation does not learn variances, but instead uses
     fixed, predetermined values. Input data should be pre-processed
-    to have zero mean and unit variance, as suggested in [2].
+    to have zero mean and unit variance, as suggested in [base_rbm.py; 2].
 
     Parameters
     ----------

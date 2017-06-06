@@ -32,7 +32,7 @@ class TestRBM(object):
             rbm = C(max_epoch=2,
                     model_path='test_rbm_1/',
                     **self.rbm_config)
-            assert_almost_equal(rbm.get_weights()['W:0'][0][0], -0.0094548017)
+            assert_almost_equal(rbm.get_weights()['W'][0][0], -0.0094548017)
             rbm.fit(self.X)
             rbm_weights = rbm.set_params(max_epoch=7) \
                 .fit(self.X) \
@@ -47,9 +47,9 @@ class TestRBM(object):
                 .set_params(max_epoch=7) \
                 .fit(self.X) \
                 .get_weights()
-            assert_allclose(rbm_weights['W:0'], rbm2_weights['W:0'])
-            assert_allclose(rbm_weights['hb:0'], rbm2_weights['hb:0'])
-            assert_allclose(rbm_weights['vb:0'], rbm2_weights['vb:0'])
+            assert_allclose(rbm_weights['W'], rbm2_weights['W'])
+            assert_allclose(rbm_weights['hb'], rbm2_weights['hb'])
+            assert_allclose(rbm_weights['vb'], rbm2_weights['vb'])
 
             # train 7 epochs
             rbm3 = C(max_epoch=7,
@@ -57,9 +57,9 @@ class TestRBM(object):
                      **self.rbm_config)
             rbm3_weights = rbm3.fit(self.X) \
                 .get_weights()
-            assert_allclose(rbm2_weights['W:0'], rbm3_weights['W:0'])
-            assert_allclose(rbm2_weights['hb:0'], rbm3_weights['hb:0'])
-            assert_allclose(rbm2_weights['vb:0'], rbm3_weights['vb:0'])
+            assert_allclose(rbm2_weights['W'], rbm3_weights['W'])
+            assert_allclose(rbm2_weights['hb'], rbm3_weights['hb'])
+            assert_allclose(rbm2_weights['vb'], rbm3_weights['vb'])
 
             # cleanup
             self.cleanup()
@@ -72,7 +72,7 @@ class TestRBM(object):
             rbm = C(max_epoch=2,
                     model_path='test_rbm_1/',
                     **self.rbm_config)
-            assert_almost_equal(rbm.get_weights()['W:0'][0][0], -0.0094548017)
+            assert_almost_equal(rbm.get_weights()['W'][0][0], -0.0094548017)
             rbm.fit(self.X, self.X_val)
             rbm_weights = rbm.set_params(max_epoch=7) \
                 .fit(self.X, self.X_val) \
@@ -87,9 +87,9 @@ class TestRBM(object):
                 .set_params(max_epoch=7) \
                 .fit(self.X, self.X_val) \
                 .get_weights()
-            assert_allclose(rbm_weights['W:0'], rbm2_weights['W:0'])
-            assert_allclose(rbm_weights['hb:0'], rbm2_weights['hb:0'])
-            assert_allclose(rbm_weights['vb:0'], rbm2_weights['vb:0'])
+            assert_allclose(rbm_weights['W'], rbm2_weights['W'])
+            assert_allclose(rbm_weights['hb'], rbm2_weights['hb'])
+            assert_allclose(rbm_weights['vb'], rbm2_weights['vb'])
 
             # train 7 epochs
             rbm3 = C(max_epoch=7,
@@ -97,9 +97,9 @@ class TestRBM(object):
                      **self.rbm_config)
             rbm3_weights = rbm3.fit(self.X, self.X_val) \
                 .get_weights()
-            assert_allclose(rbm2_weights['W:0'], rbm3_weights['W:0'])
-            assert_allclose(rbm2_weights['hb:0'], rbm3_weights['hb:0'])
-            assert_allclose(rbm2_weights['vb:0'], rbm3_weights['vb:0'])
+            assert_allclose(rbm2_weights['W'], rbm3_weights['W'])
+            assert_allclose(rbm2_weights['hb'], rbm3_weights['hb'])
+            assert_allclose(rbm2_weights['vb'], rbm3_weights['vb'])
 
             # cleanup
             self.cleanup()

@@ -170,7 +170,10 @@ class TensorFlowModel(BaseModel):
         """
         weights = {}
         for var in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='weights'):
-            weights[var.name.split('/')[-1]] = var.eval()
+            key = var.name
+            key = key.split('/')[-1]
+            if key.endswith(':0'): key = key[:-2]
+            weights[key] = var.eval()
         return weights
 
 
