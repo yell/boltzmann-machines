@@ -192,16 +192,24 @@ if __name__ == '__main__':
                       n_gibbs_steps=1,
                       learning_rate=0.0001,
                       momentum=[0.5] * 5 * 1000 + [0.9],
-                      max_epoch=3,
+                      max_epoch=10,
                       batch_size=10,
-                      L2=1e-4,
+                      L2=1e-5,
+                      metrics_config=dict(
+                          l2_loss=True,
+                          msre=True,
+                          pll=True,
+                          dfe=True,
+                          dfe_fmt='.3f',
+                          train_metrics_every_iter=10,
+                      ),
                       verbose=True,
                       random_seed=1337,
                       model_path='../models/g-rbm/')
     rbm.fit(X, X_val)
-    # rbm = GaussianRBM.load_model('../models/g-rbm/')
-    # rbm.set_params(max_epoch=24, batch_size=7)
-    # rbm.fit(X, X_val)
+    rbm = GaussianRBM.load_model('../models/g-rbm/')
+    rbm.set_params(max_epoch=24, batch_size=7)
+    rbm.fit(X, X_val)
     # print rbm.get_weights()['W:0'][0][0]
     # plot_rbm_filters(rbm.get_weights()['W:0'])
     # plt.show()

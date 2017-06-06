@@ -11,7 +11,29 @@ class BaseRBM(TensorFlowModel):
     Parameters
     ----------
     learning_rate, momentum : float, iterable, or generator
+        Gradient descent parameter
     vb_init : float or iterable
+        Visible bias(es).
+    metrics_config : dict
+        Parameters that controls which metrics and how often they are computed.
+        Possible (optional) commands:
+        * l2_loss : bool, default False
+            Whether to compute weight decay penalty
+        * msre : bool, default False
+            Whether to compute MSRE = mean squared reconstruction error.
+        * pll : bool, default False
+            Whether to compute pseudo-loglikelihood estimation. Only makes sense
+            to compute for binary visible units (BernoulliRBM, MultinomialRBM).
+        * dfe : bool, default False
+            Whether to compute delta free energies (free energy gap)
+        * l2_loss_fmt : str, default '.2e'
+        * msre_fmt : str, default '.4f'
+        * pll_fmt : str, default '.3f'
+        * dfe_fmt : str, default '.2f'
+        * train_metrics_every_iter : int, default 10
+        * val_metrics_every_epoch : int, default 1
+        * dfe_every_epoch : int, default 2
+        * n_batches_for_dfe : int, default 10
 
     References
     ----------
@@ -24,8 +46,7 @@ class BaseRBM(TensorFlowModel):
     def __init__(self, n_visible=784, n_hidden=256, n_gibbs_steps=1,
                  w_std=0.01, hb_init=0., vb_init=0.,
                  learning_rate=0.01, momentum=0.9, max_epoch=10, batch_size=10, L2=1e-4,
-                 compute_train_metrics_every_iter=10, compute_val_metrics_every_epoch=1,
-                 compute_dfe_every_epoch=2, n_batches_for_dfe=10,
+                 metrics_config=None,
                  verbose=False, model_path='rbm_model/', **kwargs):
         super(BaseRBM, self).__init__(model_path=model_path, **kwargs)
         self.n_visible = n_visible
@@ -53,10 +74,23 @@ class BaseRBM(TensorFlowModel):
         self.batch_size = batch_size
         self.L2 = L2
 
-        self.compute_train_metrics_every_iter = compute_train_metrics_every_iter
-        self.compute_val_metrics_every_epoch = compute_val_metrics_every_epoch
-        self.compute_dfe_every_epoch = compute_dfe_every_epoch
-        self.n_batches_for_dfe = n_batches_for_dfe
+        self.metrics_config = metrics_config or {}
+        self.metrics_config.setdefault('l2_loss', False)
+        self.metrics_config.setdefault('msre', False)
+        self.metrics_config.setdefault('pll', False)
+        self.metrics_config.setdefault('dfe', False)
+        self.metrics_config.setdefault('l2_loss_fmt', '.2e')
+        self.metrics_config.setdefault('msre_fmt', '.4f')
+        self.metrics_config.setdefault('pll_fmt', '.3f')
+        self.metrics_config.setdefault('dfe_fmt', '.2f')
+        self.metrics_config.setdefault('train_metrics_every_iter', 10)
+        self.metrics_config.setdefault('val_metrics_every_epoch', 1)
+        self.metrics_config.setdefault('dfe_every_epoch', 2)
+        self.metrics_config.setdefault('n_batches_for_dfe', 10)
+        self._train_metrics_names = ('l2_loss', 'msre', 'pll')
+        self._train_metrics = {}
+        self._val_metrics = {}
+
         self.verbose = verbose
 
         # current epoch and iteration
@@ -85,7 +119,7 @@ class BaseRBM(TensorFlowModel):
         self._train_op = None
         self._transform_op = None
         self._msre = None
-        self._pseudo_loglik = None
+        self._pll = None
         self._free_energy_op = None
 
     def _make_placeholders_routine(self, h_rand_shape):
@@ -204,6 +238,10 @@ class BaseRBM(TensorFlowModel):
             tf.add_to_collection('train_op', train_op)
 
         # compute metrics
+        with tf.name_scope('l2_loss'):
+            l2_loss = self.L2 * tf.nn.l2_loss(self._W)
+            tf.add_to_collection('l2_loss', l2_loss)
+
         with tf.name_scope('mean_squared_recon_error'):
             msre = tf.reduce_mean(tf.square(self._X_batch - v_means))
             tf.add_to_collection('msre', msre)
@@ -226,18 +264,22 @@ class BaseRBM(TensorFlowModel):
             x_ = tf.sparse_add(x_, m)
 
             # TODO: should change to tf.log_sigmoid when updated to r1.2
-            pseudo_loglik = -tf.constant(self.n_visible, dtype='float') *\
+            pll = -tf.constant(self.n_visible, dtype='float') *\
                              tf.nn.softplus(-(self._free_energy(x_) -
                                               self._free_energy(x)))
-            tf.add_to_collection('pseudo_loglik', pseudo_loglik)
+            tf.add_to_collection('pll', pll)
 
         # add also free energy of input batch to collection (for dfe)
         free_energy_op = self._free_energy(self._X_batch)
         tf.add_to_collection('free_energy_op', free_energy_op)
 
         # collect summaries
-        tf.summary.scalar('msre', msre)
-        tf.summary.scalar('pseudo_loglik', pseudo_loglik)
+        if self.metrics_config['msre']:
+            tf.summary.scalar('msre', msre)
+        if self.metrics_config['l2_loss']:
+            tf.summary.scalar('l2_loss', l2_loss)
+        if self.metrics_config['pll']:
+            tf.summary.scalar('pll', pll)
 
     def _make_tf_model(self):
         self._make_placeholders()
@@ -250,11 +292,12 @@ class BaseRBM(TensorFlowModel):
     def _make_v_rand(self, X_batch):
         raise NotImplementedError
 
-    def _make_tf_feed_dict(self, X_batch, vh_rand=False, pll_rand=False, training=False):
+    def _make_tf_feed_dict(self, X_batch, h_rand=False, v_rand=False, pll_rand=False, training=False):
         feed_dict = {}
         feed_dict['input_data/X_batch:0'] = X_batch
-        if vh_rand:
+        if h_rand:
             feed_dict['input_data/h_rand:0'] = self._make_h_rand(X_batch)
+        if v_rand:
             feed_dict['input_data/v_rand:0'] = self._make_v_rand(X_batch)
         if pll_rand:
             feed_dict['input_data/pll_rand:0'] = self._rng.randint(self.n_visible, size=X_batch.shape[0])
@@ -266,50 +309,54 @@ class BaseRBM(TensorFlowModel):
         return feed_dict
 
     def _train_epoch(self, X):
-        train_msres = []
-        train_plls = []
+        results = [[] for _ in xrange(len(self._train_metrics))]
         for X_batch in (tbatch_iter if self.verbose else batch_iter)(X, self.batch_size):
             self.iter += 1
-            if self.iter % self.compute_train_metrics_every_iter == 0:
-                _, train_s, train_msre, pll = \
-                    self._tf_session.run([self._train_op,
-                                          self._tf_merged_summaries,
-                                          self._msre,
-                                          self._pseudo_loglik],
-                                         feed_dict=self._make_tf_feed_dict(X_batch,
-                                                                           vh_rand=True,
-                                                                           pll_rand=True,
-                                                                           training=True))
+            if self.iter % self.metrics_config['train_metrics_every_iter'] == 0:
+                run_ops = [v for _, v in sorted(self._train_metrics.items())]
+                run_ops += [self._train_op, self._tf_merged_summaries]
+                outputs = \
+                self._tf_session.run(run_ops,
+                                     feed_dict=self._make_tf_feed_dict(X_batch,
+                                                                       h_rand=True,
+                                                                       v_rand=True,
+                                                                       pll_rand=('pll' in self._train_metrics),
+                                                                       training=True))
+                values = outputs[:len(self._train_metrics)]
+                for i, v in enumerate(values):
+                    results[i].append(v)
+                train_s = outputs[len(self._train_metrics)]
                 self._tf_train_writer.add_summary(train_s, self.iter)
-                train_msres.append(train_msre)
-                train_plls.append(pll)
             else:
                 self._tf_session.run(self._train_op,
                                      feed_dict=self._make_tf_feed_dict(X_batch,
-                                                                       vh_rand=True,
+                                                                       h_rand=True,
+                                                                       v_rand=True,
                                                                        training=True))
-        if not train_msres:
-            return None, None
-        return np.mean(train_msres), np.mean(train_plls)
+        results = map(lambda r: np.mean(r) if r else None, results)
+        return dict(zip(sorted(self._train_metrics), results))
 
     def _run_val_metrics(self, X_val):
-        val_msres = []
-        val_plls = []
+        results = [[] for _ in xrange(len(self._val_metrics))]
         for X_vb in batch_iter(X_val, batch_size=self.batch_size):
-            val_msre, val_pll = self._tf_session.run([self._msre, self._pseudo_loglik],
-                                                     feed_dict=self._make_tf_feed_dict(X_vb,
-                                                                                       vh_rand=True,
-                                                                                       pll_rand=True))
-            val_msres.append(val_msre)
-            val_plls.append(val_pll)
-        mean_msre = np.mean(val_msres)
-        mean_pll = np.mean(val_plls)
-        val_s = summary_pb2.Summary(value=[summary_pb2.Summary.Value(tag='msre',
-                                                                     simple_value=mean_msre),
-                                           summary_pb2.Summary.Value(tag='pseudo_loglik',
-                                                                     simple_value=mean_pll)])
+            run_ops = [v for _, v in sorted(self._val_metrics.items())]
+            values = \
+            self._tf_session.run(run_ops,
+                                 feed_dict=self._make_tf_feed_dict(X_vb,
+                                                                   h_rand=True,
+                                                                   v_rand=True,
+                                                                   pll_rand=('pll' in self._val_metrics)))
+            for i, v in enumerate(values):
+                results[i].append(v)
+        for i, r in enumerate(results):
+            results[i] = np.mean(r) if r else None
+        summary_value = []
+        for i, m in enumerate(sorted(self._val_metrics)):
+            summary_value.append(summary_pb2.Summary.Value(tag=m,
+                                                           simple_value=results[i]))
+        val_s = summary_pb2.Summary(value=summary_value)
         self._tf_val_writer.add_summary(val_s, self.iter)
-        return mean_msre, mean_pll
+        return dict(zip(sorted(self._val_metrics), results))
 
     def _run_dfe(self, X, X_val):
         """Calculate difference between average free energies of subsets
@@ -321,12 +368,12 @@ class BaseRBM(TensorFlowModel):
         """
         self._free_energy_op = tf.get_collection('free_energy_op')[0]
         train_fes, val_fes = [], []
-        for _, X_b in zip(xrange(self.n_batches_for_dfe),
+        for _, X_b in zip(xrange(self.metrics_config['n_batches_for_dfe']),
                           batch_iter(X, batch_size=self.batch_size)):
             train_fe = self._tf_session.run(self._free_energy_op,
                                             feed_dict=self._make_tf_feed_dict(X_b))
             train_fes.append(train_fe)
-        for _, X_vb in zip(xrange(self.n_batches_for_dfe),
+        for _, X_vb in zip(xrange(self.metrics_config['n_batches_for_dfe']),
                            batch_iter(X_val, batch_size=self.batch_size)):
             val_fe = self._tf_session.run(self._free_energy_op,
                                           feed_dict=self._make_tf_feed_dict(X_vb))
@@ -338,28 +385,41 @@ class BaseRBM(TensorFlowModel):
         return dfe
 
     def _fit(self, X, X_val=None):
+        # update generators
         self._learning_rate_gen = make_inf_generator(self.learning_rate)
         self._momentum_gen = make_inf_generator(self.momentum)
+
+        # load ops if needed
         self._train_op = tf.get_collection('train_op')[0]
-        self._msre = tf.get_collection('msre')[0]
-        self._pseudo_loglik = tf.get_collection('pseudo_loglik')[0]
+        self._train_metrics = {}
+        self._val_metrics = {}
+        for m in self._train_metrics_names:
+            if self.metrics_config[m]:
+                self._train_metrics[m] = tf.get_collection(m)[0]
+                if m != 'l2_loss':
+                    self._val_metrics[m] = self._train_metrics[m]
+
+        # main loop
         while self.epoch < self.max_epoch:
-            val_msre = val_pll = None
+            val_results = {}
             dfe = None
             self.epoch += 1
-            train_msre, train_pll = self._train_epoch(X)
-            if X_val is not None and self.epoch % self.compute_val_metrics_every_epoch == 0:
-                val_msre, val_pll = self._run_val_metrics(X_val)
-            if X_val is not None and self.epoch % self.compute_dfe_every_epoch == 0:
+            train_results = self._train_epoch(X)
+            if X_val is not None and self.epoch % self.metrics_config['val_metrics_every_epoch'] == 0:
+                val_results = self._run_val_metrics(X_val)
+            if X_val is not None and \
+                    self.metrics_config['dfe'] and \
+                    self.epoch % self.metrics_config['dfe_every_epoch'] == 0:
                 dfe = self._run_dfe(X, X_val)
             if self.verbose:
-                s = "epoch: {0:{1}}/{2}"\
-                    .format(self.epoch, len(str(self.max_epoch)), self.max_epoch)
-                if train_msre is not None: s += " ; msre: {0:.4f}".format(train_msre)
-                if train_pll is not None: s += " ; pll: {0:.3f}".format(train_pll)
-                if val_msre is not None: s += " ; val.msre: {0:.4f}".format(val_msre)
-                if val_pll is not None: s += " ; val.pll: {0:.3f}".format(val_pll)
-                if dfe is not None: s += " ; dfe: {0:.2f}".format(dfe)
+                s = "epoch: {0:{1}}/{2}".format(self.epoch, len(str(self.max_epoch)), self.max_epoch)
+                for m, v in sorted(train_results.items()):
+                    if v is not None:
+                        s += "; {0}: {1:{2}}".format(m, v, self.metrics_config['{0}_fmt'.format(m)])
+                for m, v in sorted(val_results.items()):
+                    if v is not None:
+                        s += "; val.{0}: {1:{2}}".format(m, v, self.metrics_config['{0}_fmt'.format(m)])
+                if dfe is not None: s += " ; dfe: {0:{1}}".format(dfe, self.metrics_config['dfe_fmt'])
                 print s
             self._save_model(global_step=self.epoch)
 
@@ -370,7 +430,9 @@ class BaseRBM(TensorFlowModel):
         H = np.zeros((len(X), self.n_hidden))
         start = 0
         for X_b in batch_iter(X, batch_size=self.batch_size):
-            H_b = self._transform_op.eval(feed_dict=self._make_tf_feed_dict(X_b, vh_rand=True))
+            H_b = self._transform_op.eval(feed_dict=self._make_tf_feed_dict(X_b,
+                                                                            h_rand=True,
+                                                                            v_rand=True))
             H[start:(start + self.batch_size)] = H_b
             start += self.batch_size
         return H
