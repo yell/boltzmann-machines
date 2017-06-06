@@ -1,5 +1,5 @@
 import numpy as np
-from tqdm import tqdm
+from tqdm import tqdm, tqdm_notebook
 
 from rng import RNG
 
@@ -30,12 +30,20 @@ def batch_iter(X, batch_size=10):
         yield X[start_index:(start_index + batch_size)]
 
 
+def is_in_ipython():
+    try:
+        __IPYTHON__
+        return True
+    except NameError:
+        return False
+
+
 def tbatch_iter(X, batch_size=10):
     """Same as `batch_iter`, but with progress bar."""
     N = len(X)
     n_batches = N / batch_size + (N % batch_size > 0)
-    for X_b in tqdm(batch_iter(X, batch_size=batch_size),
-                    total=n_batches, leave=True, ncols=79):
+    for X_b in (tqdm_notebook if is_in_ipython() else tqdm)(batch_iter(X, batch_size=batch_size),
+                    total=n_batches, leave=False, ncols=79, desc='epoch'):
         yield X_b
 
 
