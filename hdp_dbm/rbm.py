@@ -3,7 +3,6 @@ import tensorflow as tf
 from matplotlib import pyplot as plt
 
 from base_rbm import BaseRBM
-from utils.dataset import load_mnist
 
 
 class BernoulliRBM(BaseRBM):
@@ -50,20 +49,22 @@ class MultinomialRBM(BaseRBM):
     def _make_v_rand(self, X_batch):
         return self._rng.rand(X_batch.shape[0], self.n_visible)
 
-    def _sample_h_given_v(self, v):
+    def _h_means_given_v(self, v):
+        with tf.name_scope('h_means_given_v'):
+            h_means = tf.nn.softmax(self._propup(v))
+        return h_means
+
+    def _sample_h_given_v(self, h_means):
         with tf.name_scope('sample_h_given_v'):
-            with tf.name_scope('h_probs'):
-                h_means = tf.nn.softmax(self._propup(v))
-            with tf.name_scope('h_samples'):
-                h_cumprobs = tf.cumsum(h_means, axis=-1)
-                t = tf.to_int32(tf.greater_equal(h_cumprobs, self._h_rand))
-                ind = tf.to_int32(tf.argmax(t, axis=-1))
-                r = tf.to_int32(tf.range(tf.shape(ind)[0]))
-                h_samples = tf.scatter_nd(tf.transpose([r, ind]),
-                                          tf.ones_like(r),
-                                          tf.to_int32(tf.shape(h_cumprobs)))
-                h_samples = tf.to_float(h_samples)
-        return h_means, h_samples
+            h_cumprobs = tf.cumsum(h_means, axis=-1)
+            t = tf.to_int32(tf.greater_equal(h_cumprobs, self._h_rand))
+            ind = tf.to_int32(tf.argmax(t, axis=-1))
+            r = tf.to_int32(tf.range(tf.shape(ind)[0]))
+            h_samples = tf.scatter_nd(tf.transpose([r, ind]),
+                                      tf.ones_like(r),
+                                      tf.to_int32(tf.shape(h_cumprobs)))
+            h_samples = tf.to_float(h_samples)
+        return h_samples
 
     def _free_energy(self, v):
         with tf.name_scope('free_energy'):
@@ -110,15 +111,16 @@ class GaussianRBM(BaseRBM):
     def _make_v_rand(self, X_batch):
         return self._rng.randn(X_batch.shape[0], self.n_visible)
 
-    def _sample_v_given_h(self, h):
+    def _v_means_given_h(self, h):
+        with tf.name_scope('v_means_given_h'):
+            v_means = tf.matmul(a=h, b=self._W, transpose_b=True) * self._sigma
+            v_means += self._vb
+        return v_means
+
+    def _sample_v_given_h(self, v_means):
         with tf.name_scope('sample_v_given_h'):
-            with tf.name_scope('v_means'):
-                v_means = tf.nn.sigmoid(self._propdown(h))
-            with tf.name_scope('v_samples'):
-                v_samples = tf.matmul(a=h, b=self._W, transpose_b=True) * self._sigma
-                v_samples += self._vb
-                v_samples += self._v_rand * self._sigma
-        return v_means, v_samples
+            v_samples = v_means + self._v_rand * self._sigma
+        return v_samples
 
     def _free_energy(self, v):
         with tf.name_scope('free_energy'):
@@ -147,69 +149,8 @@ def plot_rbm_filters(W):
     plt.suptitle('First 100 components extracted by RBM', fontsize=24)
 
 
-
-# if __name__ == '__main__':
-#     # run corresponding tests
-#     from utils.testing import run_tests
-#     from tests import test_rbm
-#     run_tests(__file__, test_rbm)
-
-
 if __name__ == '__main__':
-    X, y = load_mnist(mode='train', path='../data/')
-    X_val, _ = load_mnist(mode='test', path='../data/')
-    X /= 255.
-    X_val /= 255.
-    # X_new = np.zeros_like(X)
-    # from utils import make_k_folds
-    # start = 0
-    # for i_b in make_k_folds(y, n_folds=6000, shuffle=True, stratify=True, random_seed=1337):
-    #     X_new[start:(start + len(i_b))] = X[i_b]
-    #     start += len(i_b)
-    # X = X_new
-    #
-    # for lr in (0.01, 0.001):
-    #     for L2 in (0., 1e-5, 1e-4, 1e-3, 1e-2, 1e-1):
-    #         rbm = BernoulliRBM(n_visible=784,
-    #                            n_hidden=1024,
-    #                            vb_init=bernoulli_vb_initializer(X),
-    #                            n_gibbs_steps=1,
-    #                            learning_rate=lr,
-    #                            momentum=[0.5] * 20 + [0.6, 0.7, 0.8, 0.9],
-    #                            max_epoch=40,
-    #                            batch_size=10,
-    #                            L2=L2,
-    #                            verbose=True,
-    #                            random_seed=1337,
-    #                            model_path='../models/L2-{0}-lr-{1}/'.format(L2, lr))
-    #         rbm.fit(X, X_val)
-
-    X = X[:1000]
-    X_val = X_val[:100]
-    rbm = GaussianRBM(n_visible=784,
-                      n_hidden=256,
-                      vb_init=0.,# bernoulli_vb_initializer(X),
-                      n_gibbs_steps=1,
-                      learning_rate=0.0001,
-                      momentum=[0.5] * 5 * 1000 + [0.9],
-                      max_epoch=10,
-                      batch_size=10,
-                      L2=1e-5,
-                      metrics_config=dict(
-                          l2_loss=True,
-                          msre=True,
-                          pll=True,
-                          dfe=True,
-                          dfe_fmt='.3f',
-                          train_metrics_every_iter=10,
-                      ),
-                      verbose=True,
-                      random_seed=1337,
-                      model_path='../models/g-rbm/')
-    rbm.fit(X, X_val)
-    rbm = GaussianRBM.load_model('../models/g-rbm/')
-    rbm.set_params(max_epoch=24, batch_size=7)
-    rbm.fit(X, X_val)
-    # print rbm.get_weights()['W:0'][0][0]
-    # plot_rbm_filters(rbm.get_weights()['W:0'])
-    # plt.show()
+    # run corresponding tests
+    from utils.testing import run_tests
+    from tests import test_rbm
+    run_tests(__file__, test_rbm)

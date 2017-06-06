@@ -46,7 +46,7 @@ class BaseRBM(TensorFlowModel):
     def __init__(self, n_visible=784, n_hidden=256, n_gibbs_steps=1,
                  w_std=0.01, hb_init=0., vb_init=0.,
                  learning_rate=0.01, momentum=0.9, max_epoch=10, batch_size=10, L2=1e-4,
-                 metrics_config=None,
+                 metrics_config=None, sample_h_states=False, sample_v_states=False,
                  verbose=False, model_path='rbm_model/', **kwargs):
         super(BaseRBM, self).__init__(model_path=model_path, **kwargs)
         self.n_visible = n_visible
@@ -56,7 +56,7 @@ class BaseRBM(TensorFlowModel):
         self.w_std = w_std
         self.hb_init = hb_init
 
-        # visible biases can be initialized with list of values,
+        # Visible biases can be initialized with list of values,
         # because it is often helpful to initialize i-th visible bias
         # with value log(p_i / (1 - p_i)), p_i = fraction of training
         # vectors where i-th unit is on, as proposed in [2]
@@ -90,6 +90,16 @@ class BaseRBM(TensorFlowModel):
         self._train_metrics_names = ('l2_loss', 'msre', 'pll')
         self._train_metrics = {}
         self._val_metrics = {}
+
+        # According to [2], the training goes less noisy and slightly faster, if
+        # sampling used for states of hidden units driven by the data, and probabilities
+        # for ones driven by reconstructions, and if probabilities (means) used for visible units,
+        # both driven by data and by reconstructions. It is therefore recommended to set
+        # these parameter to False (default). Note that data driven states for hidden units
+        # will be sampled regardless of the provided parameters. `transform` will also use
+        # probabilities/means of hidden units.
+        self.sample_h_states = sample_h_states
+        self.sample_v_states = sample_v_states
 
         self.verbose = verbose
 
@@ -163,23 +173,29 @@ class BaseRBM(TensorFlowModel):
             v = tf.matmul(a=h, b=self._W, transpose_b=True) + self._vb
         return v
 
-    def _sample_h_given_v(self, v):
+    def _h_means_given_v(self, v):
+        """Compute means E(h|v)."""
+        with tf.name_scope('h_means_given_v'):
+            h_means = tf.nn.sigmoid(self._propup(v))
+        return h_means
+
+    def _sample_h_given_v(self, h_means):
         """Sample from P(h|v)."""
         with tf.name_scope('sample_h_given_v'):
-            with tf.name_scope('h_means'):
-                h_means = tf.nn.sigmoid(self._propup(v))
-            with tf.name_scope('h_samples'):
-                h_samples = tf.to_float(tf.less(self._h_rand, h_means))
-        return h_means, h_samples
+            h_samples = tf.to_float(tf.less(self._h_rand, h_means))
+        return h_samples
 
-    def _sample_v_given_h(self, h):
+    def _v_means_given_h(self, h):
+        """Compute means E(v|h)."""
+        with tf.name_scope('v_means_given_h'):
+            v_means = tf.nn.sigmoid(self._propdown(h))
+        return v_means
+
+    def _sample_v_given_h(self, v_means):
         """Sample from P(v|h)."""
         with tf.name_scope('sample_v_given_h'):
-            with tf.name_scope('v_means'):
-                v_means = tf.nn.sigmoid(self._propdown(h))
-            with tf.name_scope('v_samples'):
-                v_samples = tf.to_float(tf.less(self._v_rand, v_means))
-        return v_means, v_samples
+            v_samples = tf.to_float(tf.less(self._v_rand, v_means))
+        return v_samples
 
     def _free_energy(self, v):
         """Compute (average) free energy of a visible vectors `v`."""
@@ -187,21 +203,21 @@ class BaseRBM(TensorFlowModel):
 
     def _make_train_op(self):
         # Run Gibbs chain for specified number of steps.
-        # According to [2], the training goes less noisy and slightly faster, if
-        # sampling used for states of hidden units driven by the data, and probabilities
-        # for ones driven by reconstructions, and if probabilities used for visible units,
-        # both driven by data and by reconstructions.
         with tf.name_scope('gibbs_chain'):
-            h0_means, h0_samples = self._sample_h_given_v(self._X_batch)
-            v_means, v_samples = None, None
+            h0_means = self._h_means_given_v(self._X_batch)
+            h0_samples = self._sample_h_given_v(h0_means)
             h_means, h_samples = None, None
-            h_states, v_states = h0_samples, None
+            v_means, v_samples = None, None
+            h_states = h0_samples if self.sample_h_states else h0_means
+            v_states = None
             for _ in xrange(self.n_gibbs_steps):
                 with tf.name_scope('sweep'):
-                    v_means, v_samples = self._sample_v_given_h(h_states)
-                    v_states = v_means
-                    h_means, h_samples = self._sample_h_given_v(v_states)
-                    h_states = h_means
+                    v_states = v_means = self._v_means_given_h(h_states)
+                    if self.sample_v_states:
+                        v_states = self._sample_v_given_h(v_means)
+                    h_states = h_means = self._h_means_given_v(v_states)
+                    if self.sample_h_states:
+                        h_states = self._sample_h_given_v(h_means)
 
         # encoded data, used by the transform method
         with tf.name_scope('transform_op'):
@@ -213,12 +229,12 @@ class BaseRBM(TensorFlowModel):
             N = tf.to_float(tf.shape(self._X_batch)[0])
             with tf.name_scope('dW'):
                 dW_positive = tf.matmul(self._X_batch, h0_means, transpose_a=True)
-                dW_negative = tf.matmul(v_samples, h_means, transpose_a=True)
+                dW_negative = tf.matmul(v_states, h_means, transpose_a=True)
                 dW = (dW_positive - dW_negative) / N - self.L2 * self._W
             with tf.name_scope('dhb'):
                 dhb = tf.reduce_mean(h0_means - h_means, axis=0) # == sum / N
             with tf.name_scope('dvb'):
-                dvb = tf.reduce_mean(self._X_batch - v_samples, axis=0) # == sum / N
+                dvb = tf.reduce_mean(self._X_batch - v_states, axis=0) # == sum / N
 
         # update parameters
         with tf.name_scope('momentum_updates'):
@@ -319,7 +335,7 @@ class BaseRBM(TensorFlowModel):
                 self._tf_session.run(run_ops,
                                      feed_dict=self._make_tf_feed_dict(X_batch,
                                                                        h_rand=True,
-                                                                       v_rand=True,
+                                                                       v_rand=self.sample_v_states,
                                                                        pll_rand=('pll' in self._train_metrics),
                                                                        training=True))
                 values = outputs[:len(self._train_metrics)]
@@ -331,7 +347,7 @@ class BaseRBM(TensorFlowModel):
                 self._tf_session.run(self._train_op,
                                      feed_dict=self._make_tf_feed_dict(X_batch,
                                                                        h_rand=True,
-                                                                       v_rand=True,
+                                                                       v_rand=self.sample_v_states,
                                                                        training=True))
         results = map(lambda r: np.mean(r) if r else None, results)
         return dict(zip(sorted(self._train_metrics), results))
@@ -344,7 +360,7 @@ class BaseRBM(TensorFlowModel):
             self._tf_session.run(run_ops,
                                  feed_dict=self._make_tf_feed_dict(X_vb,
                                                                    h_rand=True,
-                                                                   v_rand=True,
+                                                                   v_rand=self.sample_v_states,
                                                                    pll_rand=('pll' in self._val_metrics)))
             for i, v in enumerate(values):
                 results[i].append(v)
@@ -432,7 +448,7 @@ class BaseRBM(TensorFlowModel):
         for X_b in batch_iter(X, batch_size=self.batch_size):
             H_b = self._transform_op.eval(feed_dict=self._make_tf_feed_dict(X_b,
                                                                             h_rand=True,
-                                                                            v_rand=True))
+                                                                            v_rand=self.sample_v_states))
             H[start:(start + self.batch_size)] = H_b
             start += self.batch_size
         return H
