@@ -42,11 +42,14 @@ class BaseRBM(TensorFlowModel):
         Machines" UTML TR 2010-003
     [3] Restricted Boltzmann Machines (RBMs), Deep Learning Tutorial
         url: http://deeplearning.net/tutorial/rbm.html
+    [4] Salakhutdinov, R. and Hinton, G. (2009). Deep Boltzmann machines.
+        In AISTATS 2009
     """
     def __init__(self, n_visible=784, n_hidden=256, n_gibbs_steps=1,
                  w_std=0.01, hb_init=0., vb_init=0.,
                  learning_rate=0.01, momentum=0.9, max_epoch=10, batch_size=10, L2=1e-4,
                  metrics_config=None, sample_h_states=False, sample_v_states=False,
+                 dbm_first=False, dbm_last=False,
                  verbose=False, model_path='rbm_model/', **kwargs):
         super(BaseRBM, self).__init__(model_path=model_path, **kwargs)
         self.n_visible = n_visible
@@ -102,6 +105,11 @@ class BaseRBM(TensorFlowModel):
         self.sample_v_states = sample_v_states
 
         self.verbose = verbose
+
+        # These flags are needed for RBMs which are used for pre-training a DBM
+        # to address "double counting evidence" problem [4].
+        self.dbm_first = dbm_first
+        self.dbm_last = dbm_last
 
         # current epoch and iteration
         self.epoch = 0
@@ -165,13 +173,15 @@ class BaseRBM(TensorFlowModel):
 
     def _propup(self, v):
         with tf.name_scope('prop_up'):
-            h = tf.matmul(v, self._W) + self._hb
-        return h
+            t = tf.matmul(v, self._W) + self._hb
+            if self.dbm_first: t *= 2.
+        return t
 
     def _propdown(self, h):
         with tf.name_scope('prop_down'):
-            v = tf.matmul(a=h, b=self._W, transpose_b=True) + self._vb
-        return v
+            t = tf.matmul(a=h, b=self._W, transpose_b=True) + self._vb
+            if self.dbm_last: t *= 2.
+        return t
 
     def _h_means_given_v(self, v):
         """Compute means E(h|v)."""

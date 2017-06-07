@@ -78,12 +78,17 @@ class GaussianRBM(BaseRBM):
 
     This implementation does not learn variances, but instead uses
     fixed, predetermined values. Input data should be pre-processed
-    to have zero mean and unit variance, as suggested in [base_rbm.py; 2].
+    to have zero mean and unit variance, as suggested in [1].
 
     Parameters
     ----------
     sigma : float, or iterable of such
         Standard deviations of visible units.
+
+    References
+    ----------
+    [1] Hinton, G. "A Practical Guide to Training Restricted Boltzmann
+        Machines" UTML TR 2010-003
     """
     def __init__(self,
                  learning_rate=1e-3,
@@ -114,6 +119,8 @@ class GaussianRBM(BaseRBM):
         with tf.name_scope('v_means_given_h'):
             v_means = tf.matmul(a=h, b=self._W, transpose_b=True) * self._sigma
             v_means += self._vb
+        # Need to multiply by 2 if used for pre-training as last layer of DBM,
+        # but typically it is used as first layer where visible layers represent data
         return v_means
 
     def _sample_v_given_h(self, v_means):
