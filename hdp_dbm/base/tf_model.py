@@ -154,8 +154,8 @@ class TensorFlowModel(BaseModel):
     @run_in_tf_session
     def fit(self, X, X_val=None):
         """Fit the model according to the given training data."""
-        self._fit(X, X_val=X_val)
         self.called_fit = True
+        self._fit(X, X_val=X_val)
         self._save_model()
         return self
 
