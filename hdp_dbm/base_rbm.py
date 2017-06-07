@@ -52,7 +52,8 @@ class BaseRBM(TensorFlowModel):
                  learning_rate=0.01, momentum=0.9, max_epoch=10, batch_size=10, L2=1e-4,
                  sample_h_states=False, sample_v_states=False,
                  dbm_first=False, dbm_last=False,
-                 metrics_config=None, verbose=False, model_path='rbm_model/', **kwargs):
+                 metrics_config=None, verbose=False, save_after_each_epoch=False,
+                 model_path='rbm_model/', **kwargs):
         super(BaseRBM, self).__init__(model_path=model_path, **kwargs)
         self.n_visible = n_visible
         self.n_hidden = n_hidden
@@ -115,6 +116,7 @@ class BaseRBM(TensorFlowModel):
         self._val_metrics_map = {}
 
         self.verbose = verbose
+        self.save_after_each_epoch = save_after_each_epoch
 
         # These flags are needed for RBMs which are used for pre-training a DBM
         # to address "double-counting evidence" problem [4].
@@ -133,7 +135,7 @@ class BaseRBM(TensorFlowModel):
         self._learning_rate = None
         self._momentum = None
 
-        # weights
+        # weights and biases
         self._W = None
         self._hb = None
         self._vb = None
@@ -468,7 +470,9 @@ class BaseRBM(TensorFlowModel):
                 if feg is not None: s += " ; feg: {0:{1}}".format(feg, self.metrics_config['feg_fmt'])
                 print s
 
-            self._save_model(global_step=self.epoch)
+            # save if needed
+            if self.save_after_each_epoch:
+                self._save_model(global_step=self.epoch)
 
     @run_in_tf_session
     def transform(self, X):
