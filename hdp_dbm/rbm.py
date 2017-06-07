@@ -133,7 +133,7 @@ class GaussianRBM(BaseRBM):
 
 def bernoulli_vb_initializer(X):
     p = np.mean(X, axis=0)
-    q = np.log(np.maximum(p, 1e-15) / np.maximum(1. - p, 1e-15))
+    q = np.log(np.maximum(p, 1e-6) / np.maximum(1. - p, 1e-6))
     return q
 
 
