@@ -24,16 +24,16 @@ class BaseRBM(TensorFlowModel):
         * pll : bool, default False
             Whether to compute pseudo-loglikelihood estimation. Only makes sense
             to compute for binary visible units (BernoulliRBM, MultinomialRBM).
-        * dfe : bool, default False
-            Whether to compute delta free energies (free energy gap)
+        * feg : bool, default False
+            Whether to compute free energy gap
         * l2_loss_fmt : str, default '.2e'
         * msre_fmt : str, default '.4f'
         * pll_fmt : str, default '.3f'
-        * dfe_fmt : str, default '.2f'
+        * feg_fmt : str, default '.2f'
         * train_metrics_every_iter : int, default 10
         * val_metrics_every_epoch : int, default 1
-        * dfe_every_epoch : int, default 2
-        * n_batches_for_dfe : int, default 10
+        * feg_every_epoch : int, default 2
+        * n_batches_for_feg : int, default 10
 
     References
     ----------
@@ -48,9 +48,9 @@ class BaseRBM(TensorFlowModel):
     def __init__(self, n_visible=784, n_hidden=256, n_gibbs_steps=1,
                  w_std=0.01, hb_init=0., vb_init=0.,
                  learning_rate=0.01, momentum=0.9, max_epoch=10, batch_size=10, L2=1e-4,
-                 metrics_config=None, sample_h_states=False, sample_v_states=False,
+                 sample_h_states=False, sample_v_states=False,
                  dbm_first=False, dbm_last=False,
-                 verbose=False, model_path='rbm_model/', **kwargs):
+                 metrics_config=None, verbose=False, model_path='rbm_model/', **kwargs):
         super(BaseRBM, self).__init__(model_path=model_path, **kwargs)
         self.n_visible = n_visible
         self.n_hidden = n_hidden
@@ -77,23 +77,6 @@ class BaseRBM(TensorFlowModel):
         self.batch_size = batch_size
         self.L2 = L2
 
-        self.metrics_config = metrics_config or {}
-        self.metrics_config.setdefault('l2_loss', False)
-        self.metrics_config.setdefault('msre', False)
-        self.metrics_config.setdefault('pll', False)
-        self.metrics_config.setdefault('dfe', False)
-        self.metrics_config.setdefault('l2_loss_fmt', '.2e')
-        self.metrics_config.setdefault('msre_fmt', '.4f')
-        self.metrics_config.setdefault('pll_fmt', '.3f')
-        self.metrics_config.setdefault('dfe_fmt', '.2f')
-        self.metrics_config.setdefault('train_metrics_every_iter', 10)
-        self.metrics_config.setdefault('val_metrics_every_epoch', 1)
-        self.metrics_config.setdefault('dfe_every_epoch', 2)
-        self.metrics_config.setdefault('n_batches_for_dfe', 10)
-        self._train_metrics_names = ('l2_loss', 'msre', 'pll')
-        self._train_metrics = {}
-        self._val_metrics = {}
-
         # According to [2], the training goes less noisy and slightly faster, if
         # sampling used for states of hidden units driven by the data, and probabilities
         # for ones driven by reconstructions, and if probabilities (means) used for visible units,
@@ -104,10 +87,27 @@ class BaseRBM(TensorFlowModel):
         self.sample_h_states = sample_h_states
         self.sample_v_states = sample_v_states
 
+        self.metrics_config = metrics_config or {}
+        self.metrics_config.setdefault('l2_loss', False)
+        self.metrics_config.setdefault('msre', False)
+        self.metrics_config.setdefault('pll', False)
+        self.metrics_config.setdefault('feg', False)
+        self.metrics_config.setdefault('l2_loss_fmt', '.2e')
+        self.metrics_config.setdefault('msre_fmt', '.4f')
+        self.metrics_config.setdefault('pll_fmt', '.3f')
+        self.metrics_config.setdefault('feg_fmt', '.2f')
+        self.metrics_config.setdefault('train_metrics_every_iter', 10)
+        self.metrics_config.setdefault('val_metrics_every_epoch', 1)
+        self.metrics_config.setdefault('feg_every_epoch', 2)
+        self.metrics_config.setdefault('n_batches_for_feg', 10)
+        self._train_metrics_names = ('l2_loss', 'msre', 'pll')
+        self._train_metrics = {}
+        self._val_metrics = {}
+
         self.verbose = verbose
 
         # These flags are needed for RBMs which are used for pre-training a DBM
-        # to address "double counting evidence" problem [4].
+        # to address "double-counting evidence" problem [4].
         self.dbm_first = dbm_first
         self.dbm_last = dbm_last
 
@@ -295,7 +295,7 @@ class BaseRBM(TensorFlowModel):
                                               self._free_energy(x)))
             tf.add_to_collection('pll', pll)
 
-        # add also free energy of input batch to collection (for dfe)
+        # add also free energy of input batch to collection (for feg)
         free_energy_op = self._free_energy(self._X_batch)
         tf.add_to_collection('free_energy_op', free_energy_op)
 
@@ -384,31 +384,31 @@ class BaseRBM(TensorFlowModel):
         self._tf_val_writer.add_summary(val_s, self.iter)
         return dict(zip(sorted(self._val_metrics), results))
 
-    def _run_dfe(self, X, X_val):
+    def _run_feg(self, X, X_val):
         """Calculate difference between average free energies of subsets
         of validation and training sets to monitor overfitting,
         as proposed in [2]. If the model is not overfitting at all, this
         quantity should be close to zero. Once this value starts
-        growing, the model is overfitting and the value represent the amount
-        of overfitting.
+        growing, the model is overfitting and the value ("free energy gap")
+        represents the amount of overfitting.
         """
         self._free_energy_op = tf.get_collection('free_energy_op')[0]
         train_fes, val_fes = [], []
-        for _, X_b in zip(xrange(self.metrics_config['n_batches_for_dfe']),
+        for _, X_b in zip(xrange(self.metrics_config['n_batches_for_feg']),
                           batch_iter(X, batch_size=self.batch_size)):
             train_fe = self._tf_session.run(self._free_energy_op,
                                             feed_dict=self._make_tf_feed_dict(X_b))
             train_fes.append(train_fe)
-        for _, X_vb in zip(xrange(self.metrics_config['n_batches_for_dfe']),
+        for _, X_vb in zip(xrange(self.metrics_config['n_batches_for_feg']),
                            batch_iter(X_val, batch_size=self.batch_size)):
             val_fe = self._tf_session.run(self._free_energy_op,
                                           feed_dict=self._make_tf_feed_dict(X_vb))
             val_fes.append(val_fe)
-        dfe = np.mean(val_fes) - np.mean(train_fes)
-        dfe_s = summary_pb2.Summary(value=[summary_pb2.Summary.Value(tag='dfe',
-                                                                     simple_value=dfe)])
-        self._tf_val_writer.add_summary(dfe_s, self.iter)
-        return dfe
+        feg = np.mean(val_fes) - np.mean(train_fes)
+        feg_s = summary_pb2.Summary(value=[summary_pb2.Summary.Value(tag='feg',
+                                                                     simple_value=feg)])
+        self._tf_val_writer.add_summary(feg_s, self.iter)
+        return feg
 
     def _fit(self, X, X_val=None):
         # update generators
@@ -428,15 +428,15 @@ class BaseRBM(TensorFlowModel):
         # main loop
         while self.epoch < self.max_epoch:
             val_results = {}
-            dfe = None
+            feg = None
             self.epoch += 1
             train_results = self._train_epoch(X)
             if X_val is not None and self.epoch % self.metrics_config['val_metrics_every_epoch'] == 0:
                 val_results = self._run_val_metrics(X_val)
             if X_val is not None and \
-                    self.metrics_config['dfe'] and \
-                    self.epoch % self.metrics_config['dfe_every_epoch'] == 0:
-                dfe = self._run_dfe(X, X_val)
+                    self.metrics_config['feg'] and \
+                    self.epoch % self.metrics_config['feg_every_epoch'] == 0:
+                feg = self._run_feg(X, X_val)
             if self.verbose:
                 s = "epoch: {0:{1}}/{2}".format(self.epoch, len(str(self.max_epoch)), self.max_epoch)
                 for m, v in sorted(train_results.items()):
@@ -445,7 +445,7 @@ class BaseRBM(TensorFlowModel):
                 for m, v in sorted(val_results.items()):
                     if v is not None:
                         s += "; val.{0}: {1:{2}}".format(m, v, self.metrics_config['{0}_fmt'.format(m)])
-                if dfe is not None: s += " ; dfe: {0:{1}}".format(dfe, self.metrics_config['dfe_fmt'])
+                if feg is not None: s += " ; feg: {0:{1}}".format(feg, self.metrics_config['feg_fmt'])
                 print s
             self._save_model(global_step=self.epoch)
 
