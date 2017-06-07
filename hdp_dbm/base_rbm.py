@@ -100,9 +100,16 @@ class BaseRBM(TensorFlowModel):
         self.metrics_config.setdefault('val_metrics_every_epoch', 1)
         self.metrics_config.setdefault('feg_every_epoch', 2)
         self.metrics_config.setdefault('n_batches_for_feg', 10)
+        self._metrics_names_map={
+            'feg': 'free_energy_gap',
+            'l2_loss': 'l2_loss',
+            'msre': 'mean_squared_reconstruction_error',
+            'pll': 'pseudo_loglikelihood'
+        }
         self._train_metrics_names = ('l2_loss', 'msre', 'pll')
-        self._train_metrics = {}
-        self._val_metrics = {}
+        self._train_metrics_map = {}
+        self._val_metrics_names = ('msre', 'pll')
+        self._val_metrics_map = {}
 
         self.verbose = verbose
 
@@ -183,9 +190,9 @@ class BaseRBM(TensorFlowModel):
             if self.dbm_last: t *= 2.
         return t
 
-    def _h_means_given_v(self, v):
+    def _means_h_given_v(self, v):
         """Compute means E(h|v)."""
-        with tf.name_scope('h_means_given_v'):
+        with tf.name_scope('means_h_given_v'):
             h_means = tf.nn.sigmoid(self._propup(v))
         return h_means
 
@@ -195,9 +202,9 @@ class BaseRBM(TensorFlowModel):
             h_samples = tf.to_float(tf.less(self._h_rand, h_means))
         return h_samples
 
-    def _v_means_given_h(self, h):
+    def _means_v_given_h(self, h):
         """Compute means E(v|h)."""
-        with tf.name_scope('v_means_given_h'):
+        with tf.name_scope('means_v_given_h'):
             v_means = tf.nn.sigmoid(self._propdown(h))
         return v_means
 
@@ -214,7 +221,7 @@ class BaseRBM(TensorFlowModel):
     def _make_train_op(self):
         # Run Gibbs chain for specified number of steps.
         with tf.name_scope('gibbs_chain'):
-            h0_means = self._h_means_given_v(self._X_batch)
+            h0_means = self._means_h_given_v(self._X_batch)
             h0_samples = self._sample_h_given_v(h0_means)
             h_means, h_samples = None, None
             v_means, v_samples = None, None
@@ -222,10 +229,10 @@ class BaseRBM(TensorFlowModel):
             v_states = None
             for _ in xrange(self.n_gibbs_steps):
                 with tf.name_scope('sweep'):
-                    v_states = v_means = self._v_means_given_h(h_states)
+                    v_states = v_means = self._means_v_given_h(h_states)
                     if self.sample_v_states:
                         v_states = self._sample_v_given_h(v_means)
-                    h_states = h_means = self._h_means_given_v(v_states)
+                    h_states = h_means = self._means_h_given_v(v_states)
                     if self.sample_h_states:
                         h_states = self._sample_h_given_v(h_means)
 
@@ -264,11 +271,11 @@ class BaseRBM(TensorFlowModel):
             tf.add_to_collection('train_op', train_op)
 
         # compute metrics
-        with tf.name_scope('l2_loss'):
+        with tf.name_scope(self._metrics_names_map['l2_loss']):
             l2_loss = self.L2 * tf.nn.l2_loss(self._W)
             tf.add_to_collection('l2_loss', l2_loss)
 
-        with tf.name_scope('mean_squared_recon_error'):
+        with tf.name_scope(self._metrics_names_map['msre']):
             msre = tf.reduce_mean(tf.square(self._X_batch - v_means))
             tf.add_to_collection('msre', msre)
 
@@ -278,7 +285,7 @@ class BaseRBM(TensorFlowModel):
         # instead, which not only is much more cheaper to compute, but also is
         # an asymptotically consistent estimate of the true log-likelihood [1].
         # More specifically, PLL computed using approximation as in [3].
-        with tf.name_scope('pseudo_loglikelihood'):
+        with tf.name_scope(self._metrics_names_map['pll']):
             x = self._X_batch
             # randomly corrupt one feature in each sample
             x_ = tf.identity(x)
@@ -289,7 +296,7 @@ class BaseRBM(TensorFlowModel):
             x_ = tf.multiply(x_, -tf.sparse_tensor_to_dense(m, default_value=-1))
             x_ = tf.sparse_add(x_, m)
 
-            # TODO: should change to tf.log_sigmoid when updated to r1.2
+            # TODO: change -tf.nn.softplus(..) to tf.log_sigmoid(..) when updated to r1.2
             pll = -tf.constant(self.n_visible, dtype='float') *\
                              tf.nn.softplus(-(self._free_energy(x_) -
                                               self._free_energy(x)))
@@ -301,11 +308,11 @@ class BaseRBM(TensorFlowModel):
 
         # collect summaries
         if self.metrics_config['msre']:
-            tf.summary.scalar('msre', msre)
+            tf.summary.scalar(self._metrics_names_map['msre'], msre)
         if self.metrics_config['l2_loss']:
-            tf.summary.scalar('l2_loss', l2_loss)
+            tf.summary.scalar(self._metrics_names_map['l2_loss'], l2_loss)
         if self.metrics_config['pll']:
-            tf.summary.scalar('pll', pll)
+            tf.summary.scalar(self._metrics_names_map['pll'], pll)
 
     def _make_tf_model(self):
         self._make_placeholders()
@@ -335,23 +342,23 @@ class BaseRBM(TensorFlowModel):
         return feed_dict
 
     def _train_epoch(self, X):
-        results = [[] for _ in xrange(len(self._train_metrics))]
+        results = [[] for _ in xrange(len(self._train_metrics_map))]
         for X_batch in (tbatch_iter if self.verbose else batch_iter)(X, self.batch_size):
             self.iter += 1
             if self.iter % self.metrics_config['train_metrics_every_iter'] == 0:
-                run_ops = [v for _, v in sorted(self._train_metrics.items())]
+                run_ops = [v for _, v in sorted(self._train_metrics_map.items())]
                 run_ops += [self._train_op, self._tf_merged_summaries]
                 outputs = \
                 self._tf_session.run(run_ops,
                                      feed_dict=self._make_tf_feed_dict(X_batch,
                                                                        h_rand=True,
                                                                        v_rand=self.sample_v_states,
-                                                                       pll_rand=('pll' in self._train_metrics),
+                                                                       pll_rand=('pll' in self._train_metrics_map),
                                                                        training=True))
-                values = outputs[:len(self._train_metrics)]
+                values = outputs[:len(self._train_metrics_map)]
                 for i, v in enumerate(values):
                     results[i].append(v)
-                train_s = outputs[len(self._train_metrics)]
+                train_s = outputs[len(self._train_metrics_map)]
                 self._tf_train_writer.add_summary(train_s, self.iter)
             else:
                 self._tf_session.run(self._train_op,
@@ -360,29 +367,29 @@ class BaseRBM(TensorFlowModel):
                                                                        v_rand=self.sample_v_states,
                                                                        training=True))
         results = map(lambda r: np.mean(r) if r else None, results)
-        return dict(zip(sorted(self._train_metrics), results))
+        return dict(zip(sorted(self._train_metrics_map), results))
 
     def _run_val_metrics(self, X_val):
-        results = [[] for _ in xrange(len(self._val_metrics))]
+        results = [[] for _ in xrange(len(self._val_metrics_map))]
         for X_vb in batch_iter(X_val, batch_size=self.batch_size):
-            run_ops = [v for _, v in sorted(self._val_metrics.items())]
+            run_ops = [v for _, v in sorted(self._val_metrics_map.items())]
             values = \
             self._tf_session.run(run_ops,
                                  feed_dict=self._make_tf_feed_dict(X_vb,
                                                                    h_rand=True,
                                                                    v_rand=self.sample_v_states,
-                                                                   pll_rand=('pll' in self._val_metrics)))
+                                                                   pll_rand=('pll' in self._val_metrics_map)))
             for i, v in enumerate(values):
                 results[i].append(v)
         for i, r in enumerate(results):
             results[i] = np.mean(r) if r else None
         summary_value = []
-        for i, m in enumerate(sorted(self._val_metrics)):
-            summary_value.append(summary_pb2.Summary.Value(tag=m,
+        for i, m in enumerate(sorted(self._val_metrics_map)):
+            summary_value.append(summary_pb2.Summary.Value(tag=self._metrics_names_map[m],
                                                            simple_value=results[i]))
         val_s = summary_pb2.Summary(value=summary_value)
         self._tf_val_writer.add_summary(val_s, self.iter)
-        return dict(zip(sorted(self._val_metrics), results))
+        return dict(zip(sorted(self._val_metrics_map), results))
 
     def _run_feg(self, X, X_val):
         """Calculate difference between average free energies of subsets
@@ -405,25 +412,27 @@ class BaseRBM(TensorFlowModel):
                                           feed_dict=self._make_tf_feed_dict(X_vb))
             val_fes.append(val_fe)
         feg = np.mean(val_fes) - np.mean(train_fes)
-        feg_s = summary_pb2.Summary(value=[summary_pb2.Summary.Value(tag='feg',
-                                                                     simple_value=feg)])
+        summary_value = [summary_pb2.Summary.Value(tag=self._metrics_names_map['feg'],
+                                                   simple_value=feg)]
+        feg_s = summary_pb2.Summary(value=summary_value)
         self._tf_val_writer.add_summary(feg_s, self.iter)
         return feg
 
     def _fit(self, X, X_val=None):
-        # update generators
+        # init generators
         self._learning_rate_gen = make_inf_generator(self.learning_rate)
         self._momentum_gen = make_inf_generator(self.momentum)
 
-        # load ops if needed
+        # load ops requested
         self._train_op = tf.get_collection('train_op')[0]
-        self._train_metrics = {}
-        self._val_metrics = {}
+        self._train_metrics_map = {}
+        self._val_metrics_map = {}
         for m in self._train_metrics_names:
             if self.metrics_config[m]:
-                self._train_metrics[m] = tf.get_collection(m)[0]
-                if m != 'l2_loss':
-                    self._val_metrics[m] = self._train_metrics[m]
+                self._train_metrics_map[m] = tf.get_collection(m)[0]
+        for m in self._val_metrics_names:
+            if self.metrics_config[m]:
+                self._val_metrics_map[m] = tf.get_collection(m)[0]
 
         # main loop
         while self.epoch < self.max_epoch:
@@ -431,12 +440,15 @@ class BaseRBM(TensorFlowModel):
             feg = None
             self.epoch += 1
             train_results = self._train_epoch(X)
+
+            # run validation metrics if needed
             if X_val is not None and self.epoch % self.metrics_config['val_metrics_every_epoch'] == 0:
                 val_results = self._run_val_metrics(X_val)
-            if X_val is not None and \
-                    self.metrics_config['feg'] and \
+            if X_val is not None and self.metrics_config['feg'] and \
                     self.epoch % self.metrics_config['feg_every_epoch'] == 0:
                 feg = self._run_feg(X, X_val)
+
+            # print progress
             if self.verbose:
                 s = "epoch: {0:{1}}/{2}".format(self.epoch, len(str(self.max_epoch)), self.max_epoch)
                 for m, v in sorted(train_results.items()):
@@ -447,6 +459,7 @@ class BaseRBM(TensorFlowModel):
                         s += "; val.{0}: {1:{2}}".format(m, v, self.metrics_config['{0}_fmt'.format(m)])
                 if feg is not None: s += " ; feg: {0:{1}}".format(feg, self.metrics_config['feg_fmt'])
                 print s
+
             self._save_model(global_step=self.epoch)
 
     @run_in_tf_session

@@ -48,8 +48,8 @@ class MultinomialRBM(BaseRBM):
     def _make_v_rand(self, X_batch):
         return self._rng.rand(X_batch.shape[0], self.n_visible)
 
-    def _h_means_given_v(self, v):
-        with tf.name_scope('h_means_given_v'):
+    def _means_h_given_v(self, v):
+        with tf.name_scope('means_h_given_v'):
             h_means = tf.nn.softmax(self._propup(v))
         return h_means
 
@@ -115,8 +115,8 @@ class GaussianRBM(BaseRBM):
     def _make_v_rand(self, X_batch):
         return self._rng.randn(X_batch.shape[0], self.n_visible)
 
-    def _v_means_given_h(self, h):
-        with tf.name_scope('v_means_given_h'):
+    def _means_v_given_h(self, h):
+        with tf.name_scope('means_v_given_h'):
             v_means = tf.matmul(a=h, b=self._W, transpose_b=True) * self._sigma
             v_means += self._vb
         # Need to multiply by 2 if used for pre-training as last layer of DBM,
