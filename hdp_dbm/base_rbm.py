@@ -10,8 +10,10 @@ class BaseRBM(TensorFlowModel):
     """
     Parameters
     ----------
+    n_gibbs_steps : int, iterable, or generator
+        Number of Gibbs sweeps per iteration. Value is updated after each epoch.
     learning_rate, momentum : float, iterable, or generator
-        Gradient descent parameter
+        Gradient descent parameters. Values are updated after each epoch.
     vb_init : float or iterable
         Visible bias(es).
     metrics_config : dict
@@ -55,6 +57,7 @@ class BaseRBM(TensorFlowModel):
         self.n_visible = n_visible
         self.n_hidden = n_hidden
         self.n_gibbs_steps = n_gibbs_steps
+        self._n_gibbs_steps_gen = None
 
         self.w_std = w_std
         self.hb_init = hb_init
@@ -296,7 +299,7 @@ class BaseRBM(TensorFlowModel):
             x_ = tf.multiply(x_, -tf.sparse_tensor_to_dense(m, default_value=-1))
             x_ = tf.sparse_add(x_, m)
 
-            # TODO: change -tf.nn.softplus(..) to tf.log_sigmoid(..) when updated to r1.2
+            # TODO: change -tf.nn.softplus(-z) to tf.log_sigmoid(z) when updated to r1.2
             pll = -tf.constant(self.n_visible, dtype='float') *\
                              tf.nn.softplus(-(self._free_energy(x_) -
                                               self._free_energy(x)))
@@ -335,13 +338,16 @@ class BaseRBM(TensorFlowModel):
         if pll_rand:
             feed_dict['input_data/pll_rand:0'] = self._rng.randint(self.n_visible, size=X_batch.shape[0])
         if training:
-            self.learning_rate = next(self._learning_rate_gen)
             feed_dict['input_data/learning_rate:0'] = self.learning_rate
-            self.momentum = next(self._momentum_gen)
             feed_dict['input_data/momentum:0'] = self.momentum
         return feed_dict
 
     def _train_epoch(self, X):
+        # updates hyper-parameters if needed
+        self.n_gibbs_steps = next(self._n_gibbs_steps_gen)
+        self.learning_rate = next(self._learning_rate_gen)
+        self.momentum = next(self._momentum_gen)
+
         results = [[] for _ in xrange(len(self._train_metrics_map))]
         for X_batch in (tbatch_iter if self.verbose else batch_iter)(X, self.batch_size):
             self.iter += 1
@@ -366,6 +372,7 @@ class BaseRBM(TensorFlowModel):
                                                                        h_rand=True,
                                                                        v_rand=self.sample_v_states,
                                                                        training=True))
+        # aggregate and return metrics values
         results = map(lambda r: np.mean(r) if r else None, results)
         return dict(zip(sorted(self._train_metrics_map), results))
 
@@ -420,6 +427,7 @@ class BaseRBM(TensorFlowModel):
 
     def _fit(self, X, X_val=None):
         # init generators
+        self._n_gibbs_steps_gen = make_inf_generator(self.n_gibbs_steps)
         self._learning_rate_gen = make_inf_generator(self.learning_rate)
         self._momentum_gen = make_inf_generator(self.momentum)
 
