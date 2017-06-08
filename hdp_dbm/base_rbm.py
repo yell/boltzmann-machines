@@ -119,7 +119,7 @@ class BaseRBM(TensorFlowModel):
         self.save_after_each_epoch = save_after_each_epoch
 
         # These flags are needed for RBMs which are used for pre-training a DBM
-        # to address "double-counting evidence" problem [4].
+        # to address double-counting evidence problem [4].
         self.dbm_first = dbm_first
         self.dbm_last = dbm_last
 

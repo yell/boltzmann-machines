@@ -162,18 +162,19 @@ class TensorFlowModel(BaseModel):
         return self
 
     @run_in_tf_session
-    def get_weights(self):
-        """Get weights of the model.
+    def get_tf_params(self, scope=None):
+        """Get tf params of the model.
 
         Returns
         -------
-        weights : dict
-            Weights of the model in form on numpy arrays.
+        params : dict[str] = np.ndarray
+            Evaluated parameters of the model.
         """
         weights = {}
-        for var in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='weights'):
+        for var in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=scope):
             key = var.name
-            key = key.split('/')[-1]
+            if scope and scope in key: key = key.replace(scope, '')
+            if key.startswith('/'): key = key[1:]
             if key.endswith(':0'): key = key[:-2]
             weights[key] = var.eval()
         return weights
