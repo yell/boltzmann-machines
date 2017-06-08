@@ -1,4 +1,5 @@
 import sys
+import time
 import numpy as np
 
 from tqdm import tqdm, tqdm_notebook
@@ -6,6 +7,57 @@ def _is_in_ipython():
     try: __IPYTHON__; return True
     except NameError: return False
 _t = tqdm_notebook if _is_in_ipython() else tqdm
+
+
+class Stopwatch(object):
+    """
+    Simple class encapsulating stopwatch.
+
+    Examples
+    --------
+    >>> import time
+    >>> with Stopwatch(verbose=True) as s:
+    ...     time.sleep(0.1) # doctest: +ELLIPSIS
+    Elapsed time: 0.100... sec
+    >>> with Stopwatch(verbose=False) as s:
+    ...     time.sleep(0.1)
+    >>> np.abs(s.elapsed() - 0.1) < 0.01
+    True
+    """
+
+    def __init__(self, verbose=False):
+        self.verbose = verbose
+        if sys.platform == "win32":
+            # on Windows, the best timer is time.clock()
+            self.timerfunc = time.clock
+        else:
+            # on most other platforms, the best timer is time.time()
+            self.timerfunc = time.time
+        self.start_ = None
+        self.elapsed_ = None
+
+    def __enter__(self, verbose=False):
+        return self.start()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        elapsed = self.stop().elapsed()
+        if self.verbose:
+            print "Elapsed time: {0:.3f} sec".format(elapsed)
+
+    def start(self):
+        self.start_ = self.timerfunc()
+        self.elapsed_ = None
+        return self
+
+    def stop(self):
+        self.elapsed_ = self.timerfunc() - self.start_
+        self.start_ = None
+        return self
+
+    def elapsed(self):
+        if self.start_ is None:
+            return self.elapsed_
+        return self.timerfunc() - self.start_
 
 
 def print_inline(s):
