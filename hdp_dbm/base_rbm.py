@@ -3,7 +3,8 @@ import tensorflow as tf
 from tensorflow.core.framework import summary_pb2
 
 from base import TensorFlowModel, run_in_tf_session
-from utils import batch_iter, tbatch_iter, make_inf_generator
+from utils import (batch_iter, epoch_iter,
+                   make_inf_generator, print_inline)
 
 
 class BaseRBM(TensorFlowModel):
@@ -52,7 +53,7 @@ class BaseRBM(TensorFlowModel):
                  learning_rate=0.01, momentum=0.9, max_epoch=10, batch_size=10, L2=1e-4,
                  sample_h_states=False, sample_v_states=False,
                  dbm_first=False, dbm_last=False,
-                 metrics_config=None, verbose=False, save_after_each_epoch=False,
+                 metrics_config=None, verbose=False, save_after_each_epoch=True,
                  model_path='rbm_model/', **kwargs):
         super(BaseRBM, self).__init__(model_path=model_path, **kwargs)
         self.n_visible = n_visible
@@ -186,14 +187,12 @@ class BaseRBM(TensorFlowModel):
     def _propup(self, v):
         with tf.name_scope('prop_up'):
             t = tf.matmul(v, self._W) + self._hb
-            if self.dbm_first: t *= 2.
-        return t
+        return (self.dbm_first + 1.) * t
 
     def _propdown(self, h):
         with tf.name_scope('prop_down'):
             t = tf.matmul(a=h, b=self._W, transpose_b=True) + self._vb
-            if self.dbm_last: t *= 2.
-        return t
+        return (self.dbm_last + 1.) * t
 
     def _means_h_given_v(self, v):
         """Compute means E(h|v)."""
@@ -351,7 +350,7 @@ class BaseRBM(TensorFlowModel):
         self.momentum = next(self._momentum_gen)
 
         results = [[] for _ in xrange(len(self._train_metrics_map))]
-        for X_batch in (tbatch_iter if self.verbose else batch_iter)(X, self.batch_size):
+        for X_batch in batch_iter(X, self.batch_size, verbose=self.verbose):
             self.iter += 1
             if self.iter % self.metrics_config['train_metrics_every_iter'] == 0:
                 run_ops = [v for _, v in sorted(self._train_metrics_map.items())]
@@ -445,10 +444,10 @@ class BaseRBM(TensorFlowModel):
                 self._val_metrics_map[m] = tf.get_collection(m)[0]
 
         # main loop
-        while self.epoch < self.max_epoch:
+        for self.epoch in epoch_iter(start_epoch=self.epoch, max_epoch=self.max_epoch,
+                                     verbose=self.verbose):
             val_results = {}
             feg = None
-            self.epoch += 1
             train_results = self._train_epoch(X)
 
             # run validation metrics if needed
@@ -468,7 +467,7 @@ class BaseRBM(TensorFlowModel):
                     if v is not None:
                         s += "; val.{0}: {1:{2}}".format(m, v, self.metrics_config['{0}_fmt'.format(m)])
                 if feg is not None: s += " ; feg: {0:{1}}".format(feg, self.metrics_config['feg_fmt'])
-                print s
+                print_inline(s + '\n')
 
             # save if needed
             if self.save_after_each_epoch:
