@@ -155,12 +155,12 @@ class BaseRBM(TensorFlowModel):
 
     def _make_placeholders_routine(self, h_rand_shape):
         with tf.name_scope('input_data'):
-            self._X_batch = tf.placeholder(tf.float32, [None, self.n_visible], name='X_batch')
-            self._h_rand = tf.placeholder(tf.float32, h_rand_shape, name='h_rand')
-            self._v_rand = tf.placeholder(tf.float32, [None, self.n_visible], name='v_rand')
+            self._X_batch = tf.placeholder(self._tf_dtype, [None, self.n_visible], name='X_batch')
+            self._h_rand = tf.placeholder(self._tf_dtype, h_rand_shape, name='h_rand')
+            self._v_rand = tf.placeholder(self._tf_dtype, [None, self.n_visible], name='v_rand')
             self._pll_rand = tf.placeholder(tf.int32, [None], name='pll_rand')
-            self._learning_rate = tf.placeholder(tf.float32, [], name='learning_rate')
-            self._momentum = tf.placeholder(tf.float32, [], name='momentum')
+            self._learning_rate = tf.placeholder(self._tf_dtype, [], name='learning_rate')
+            self._momentum = tf.placeholder(self._tf_dtype, [], name='momentum')
 
     def _make_placeholders(self):
         raise NotImplementedError
@@ -168,29 +168,29 @@ class BaseRBM(TensorFlowModel):
     def _make_vars(self):
         with tf.name_scope('weights'):
             W_tensor = tf.random_normal((self.n_visible, self.n_hidden),
-                                        mean=0.0, stddev=self.w_std, seed=self.random_seed)
-            self._W = tf.Variable(W_tensor, name='W', dtype=tf.float32)
-            self._hb = tf.Variable(self.hb_init * tf.ones((self.n_hidden,)), name='hb', dtype=tf.float32)
-            self._vb = tf.Variable(self._vb_init, name='vb', dtype=tf.float32)
+                                        mean=0.0, stddev=self.w_std, seed=self.random_seed, dtype=self._tf_dtype)
+            self._W = tf.Variable(W_tensor, name='W', dtype=self._tf_dtype)
+            self._hb = tf.Variable(self.hb_init * tf.ones((self.n_hidden,), dtype=self._tf_dtype), name='hb')
+            self._vb = tf.Variable(self._vb_init, name='vb', dtype=self._tf_dtype)
             tf.summary.histogram('W', self._W)
             tf.summary.histogram('hb', self._hb)
             tf.summary.histogram('vb', self._vb)
 
         with tf.name_scope('grads'):
-            self._dW = tf.Variable(tf.zeros((self.n_visible, self.n_hidden)), name='dW', dtype=tf.float32)
-            self._dhb = tf.Variable(tf.zeros((self.n_hidden,)), name='dhb', dtype=tf.float32)
-            self._dvb = tf.Variable(tf.zeros((self.n_visible,)), name='dvb', dtype=tf.float32)
+            self._dW = tf.Variable(tf.zeros((self.n_visible, self.n_hidden), dtype=self._tf_dtype), name='dW')
+            self._dhb = tf.Variable(tf.zeros((self.n_hidden,), dtype=self._tf_dtype), name='dhb')
+            self._dvb = tf.Variable(tf.zeros((self.n_visible,), dtype=self._tf_dtype), name='dvb')
             tf.summary.histogram('dW', self._dW)
             tf.summary.histogram('dhb', self._dhb)
             tf.summary.histogram('dvb', self._dvb)
 
     def _make_constants(self):
         with tf.name_scope('const'):
-            self._L2 = tf.constant(self.L2, dtype=tf.float32, name='L2_coef')
+            self._L2 = tf.constant(self.L2, dtype=self._tf_dtype, name='L2_coef')
             self._dbm_first = tf.constant(self.dbm_first, dtype=tf.bool, name='is_dbm_first')
             self._dbm_last = tf.constant(self.dbm_last, dtype=tf.bool, name='is_dbm_last')
-            self._propup_multiplier = tf.identity(tf.to_float(self._dbm_first) + 1., name='propup_multiplier')
-            self._propdown_multiplier = tf.identity(tf.to_float(self._dbm_last) + 1., name='propdown_multiplier')
+            self._propup_multiplier = tf.cast(self._dbm_first, dtype=self._tf_dtype, name='propup_multiplier') + 1.
+            self._propdown_multiplier = tf.cast(self._dbm_last, dtype=self._tf_dtype, name='propdown_multiplier') + 1.
 
     def _propup(self, v):
         with tf.name_scope('prop_up'):
@@ -211,7 +211,7 @@ class BaseRBM(TensorFlowModel):
     def _sample_h_given_v(self, h_means):
         """Sample from P(h|v)."""
         with tf.name_scope('sample_h_given_v'):
-            h_samples = tf.to_float(tf.less(self._h_rand, h_means))
+            h_samples = tf.cast(tf.less(self._h_rand, h_means), dtype=self._tf_dtype)
         return h_samples
 
     def _means_v_given_h(self, h):
@@ -223,7 +223,7 @@ class BaseRBM(TensorFlowModel):
     def _sample_v_given_h(self, v_means):
         """Sample from P(v|h)."""
         with tf.name_scope('sample_v_given_h'):
-            v_samples = tf.to_float(tf.less(self._v_rand, v_means))
+            v_samples = tf.cast(tf.less(self._v_rand, v_means), dtype=self._tf_dtype)
         return v_samples
 
     def _free_energy(self, v):
@@ -255,7 +255,7 @@ class BaseRBM(TensorFlowModel):
 
         # compute gradients estimates (= positive - negative associations)
         with tf.name_scope('grads_estimates'):
-            N = tf.to_float(tf.shape(self._X_batch)[0])
+            N = tf.cast(tf.shape(self._X_batch)[0], dtype=self._tf_dtype)
             with tf.name_scope('dW'):
                 dW_positive = tf.matmul(self._X_batch, h0_means, transpose_a=True)
                 dW_negative = tf.matmul(v_states, h_means, transpose_a=True)
@@ -303,13 +303,13 @@ class BaseRBM(TensorFlowModel):
             x_ = tf.identity(x)
             ind = tf.transpose([tf.range(tf.shape(x)[0]), self._pll_rand])
             m = tf.SparseTensor(indices=tf.to_int64(ind),
-                                values=tf.to_float(tf.ones_like(self._pll_rand)),
+                                values=tf.ones_like(self._pll_rand, dtype=self._tf_dtype),
                                 dense_shape=tf.to_int64(tf.shape(x_)))
             x_ = tf.multiply(x_, -tf.sparse_tensor_to_dense(m, default_value=-1))
             x_ = tf.sparse_add(x_, m)
 
             # TODO: change -tf.nn.softplus(-z) to tf.log_sigmoid(z) when updated to r1.2
-            pll = -tf.constant(self.n_visible, dtype='float') *\
+            pll = -tf.constant(self.n_visible, dtype=self._tf_dtype) *\
                              tf.nn.softplus(-(self._free_energy(x_) -
                                               self._free_energy(x)))
             tf.add_to_collection('pll', pll)

@@ -62,7 +62,7 @@ class MultinomialRBM(BaseRBM):
             h_samples = tf.scatter_nd(tf.transpose([r, ind]),
                                       tf.ones_like(r),
                                       tf.to_int32(tf.shape(h_cumprobs)))
-            h_samples = tf.to_float(h_samples)
+            h_samples = tf.cast(h_samples, dtype=self._tf_dtype)
         return h_samples
 
     def _free_energy(self, v):
@@ -106,7 +106,8 @@ class GaussianRBM(BaseRBM):
         super(GaussianRBM, self)._make_placeholders_routine(h_rand_shape=[None, self.n_hidden])
         with tf.name_scope('input_data'):
             # divide by resp. sigmas before any operation
-            self._sigma = tf.Variable(tf.reshape(self._sigma_tmp, [1, self.n_visible]))
+            self._sigma = tf.Variable(self._sigma_tmp, dtype=self._tf_dtype)
+            self._sigma = tf.reshape(self._sigma, [1, self.n_visible])
             self._X_batch = tf.divide(self._X_batch, self._sigma)
 
     def _make_h_rand(self, X_batch):

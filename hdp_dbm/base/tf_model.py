@@ -38,7 +38,7 @@ def run_in_tf_session(f):
 
 
 class TensorFlowModel(BaseModel):
-    def __init__(self, model_path='tf_model/',
+    def __init__(self, model_path='tf_model/', tf_dtype='float32',
                  tf_session_config=None, tf_saver_params=None, json_params=None,
                  **kwargs):
         super(TensorFlowModel, self).__init__(**kwargs)
@@ -51,6 +51,8 @@ class TensorFlowModel(BaseModel):
         self._tf_meta_graph_filepath = None
         self.setup_working_paths(model_path)
 
+        self._tf_dtype = dict(float32=tf.float32,
+                              float64=tf.float64)[tf_dtype]
         self._tf_session_config = tf_session_config or tf.ConfigProto()
         self.tf_saver_params = tf_saver_params or {}
         self.json_params = json_params or {}
