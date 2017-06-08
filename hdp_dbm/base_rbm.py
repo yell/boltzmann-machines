@@ -159,43 +159,44 @@ class BaseRBM(TensorFlowModel):
         self._free_energy_op = None
 
     def _make_constants(self):
-        with tf.name_scope('const'):
-            self._L2 = tf.constant(self.L2, dtype=self._tf_dtype, name='L2_coef')
-            self._dbm_first = tf.constant(self.dbm_first, dtype=tf.bool, name='is_dbm_first')
-            self._dbm_last = tf.constant(self.dbm_last, dtype=tf.bool, name='is_dbm_last')
-            self._propup_multiplier = tf.cast(self._dbm_first, dtype=self._tf_dtype, name='propup_multiplier') + 1.
-            self._propdown_multiplier = tf.cast(self._dbm_last, dtype=self._tf_dtype, name='propdown_multiplier') + 1.
+        self._L2 = tf.constant(self.L2, dtype=self._tf_dtype, name='L2_coef')
+        self._dbm_first = tf.constant(self.dbm_first, dtype=tf.bool, name='is_dbm_first')
+        self._dbm_last = tf.constant(self.dbm_last, dtype=tf.bool, name='is_dbm_last')
+        t = tf.constant(1., dtype=self._tf_dtype, name="1")
+        t1 = tf.cast(self._dbm_first, dtype=self._tf_dtype)
+        self._propup_multiplier = tf.identity(tf.add(t1, t), name='propup_multiplier')
+        t2 = tf.cast(self._dbm_last, dtype=self._tf_dtype)
+        self._propdown_multiplier = tf.identity(tf.add(t2, t), name='propdown_multiplier')
 
     def _make_placeholders_routine(self, h_rand_shape):
-        with tf.name_scope('input_data'):
-            self._X_batch = tf.placeholder(self._tf_dtype, [None, self.n_visible], name='X_batch')
-            self._h_rand = tf.placeholder(self._tf_dtype, h_rand_shape, name='h_rand')
-            self._v_rand = tf.placeholder(self._tf_dtype, [None, self.n_visible], name='v_rand')
-            self._pll_rand = tf.placeholder(tf.int32, [None], name='pll_rand')
-            self._learning_rate = tf.placeholder(self._tf_dtype, [], name='learning_rate')
-            self._momentum = tf.placeholder(self._tf_dtype, [], name='momentum')
+        self._X_batch = tf.placeholder(self._tf_dtype, [None, self.n_visible], name='X_batch')
+        self._h_rand = tf.placeholder(self._tf_dtype, h_rand_shape, name='h_rand')
+        self._v_rand = tf.placeholder(self._tf_dtype, [None, self.n_visible], name='v_rand')
+        self._pll_rand = tf.placeholder(tf.int32, [None], name='pll_rand')
+        self._learning_rate = tf.placeholder(self._tf_dtype, [], name='learning_rate')
+        self._momentum = tf.placeholder(self._tf_dtype, [], name='momentum')
 
     def _make_placeholders(self):
         raise NotImplementedError
 
     def _make_vars(self):
-        with tf.name_scope('weights'):
-            W_tensor = tf.random_normal((self.n_visible, self.n_hidden),
-                                        mean=0.0, stddev=self.w_std, seed=self.random_seed, dtype=self._tf_dtype)
-            self._W = tf.Variable(W_tensor, name='W', dtype=self._tf_dtype)
-            self._hb = tf.Variable(self.hb_init * tf.ones((self.n_hidden,), dtype=self._tf_dtype), name='hb')
-            self._vb = tf.Variable(self._vb_init, name='vb', dtype=self._tf_dtype)
-            tf.summary.histogram('W', self._W)
-            tf.summary.histogram('hb', self._hb)
-            tf.summary.histogram('vb', self._vb)
+        # weights and biases
+        W_tensor = tf.random_normal((self.n_visible, self.n_hidden),
+                                    mean=0.0, stddev=self.w_std, seed=self.random_seed, dtype=self._tf_dtype)
+        self._W = tf.Variable(W_tensor, name='W', dtype=self._tf_dtype)
+        self._hb = tf.Variable(self.hb_init * tf.ones((self.n_hidden,), dtype=self._tf_dtype), name='hb')
+        self._vb = tf.Variable(self._vb_init, name='vb', dtype=self._tf_dtype)
+        tf.summary.histogram('W', self._W)
+        tf.summary.histogram('hb', self._hb)
+        tf.summary.histogram('vb', self._vb)
 
-        with tf.name_scope('grads'):
-            self._dW = tf.Variable(tf.zeros((self.n_visible, self.n_hidden), dtype=self._tf_dtype), name='dW')
-            self._dhb = tf.Variable(tf.zeros((self.n_hidden,), dtype=self._tf_dtype), name='dhb')
-            self._dvb = tf.Variable(tf.zeros((self.n_visible,), dtype=self._tf_dtype), name='dvb')
-            tf.summary.histogram('dW', self._dW)
-            tf.summary.histogram('dhb', self._dhb)
-            tf.summary.histogram('dvb', self._dvb)
+        # grads
+        self._dW = tf.Variable(tf.zeros((self.n_visible, self.n_hidden), dtype=self._tf_dtype), name='dW')
+        self._dhb = tf.Variable(tf.zeros((self.n_hidden,), dtype=self._tf_dtype), name='dhb')
+        self._dvb = tf.Variable(tf.zeros((self.n_visible,), dtype=self._tf_dtype), name='dvb')
+        tf.summary.histogram('dW', self._dW)
+        tf.summary.histogram('dhb', self._dhb)
+        tf.summary.histogram('dvb', self._dvb)
 
     def _propup(self, v):
         with tf.name_scope('prop_up'):
@@ -255,7 +256,7 @@ class BaseRBM(TensorFlowModel):
                         h_states = self._sample_h_given_v(h_means)
 
         # encoded data, used by the transform method
-        with tf.name_scope('transform_op'):
+        with tf.name_scope('transform'):
             transform_op = tf.identity(h_means)
             tf.add_to_collection('transform_op', transform_op)
 
@@ -284,7 +285,7 @@ class BaseRBM(TensorFlowModel):
                 vb_update = self._vb.assign_add(dvb_update)
 
         # assemble train_op
-        with tf.name_scope('train_op'):
+        with tf.name_scope('training_step'):
             train_op = tf.group(W_update, hb_update, vb_update)
             tf.add_to_collection('train_op', train_op)
 
@@ -346,15 +347,15 @@ class BaseRBM(TensorFlowModel):
 
     def _make_tf_feed_dict(self, X_batch, v_rand=False, pll_rand=False, training=False):
         feed_dict = {}
-        feed_dict['input_data/X_batch:0'] = X_batch
-        feed_dict['input_data/h_rand:0'] = self._make_h_rand(X_batch)
+        feed_dict['X_batch:0'] = X_batch
+        feed_dict['h_rand:0'] = self._make_h_rand(X_batch)
         if v_rand:
-            feed_dict['input_data/v_rand:0'] = self._make_v_rand(X_batch)
+            feed_dict['v_rand:0'] = self._make_v_rand(X_batch)
         if pll_rand:
-            feed_dict['input_data/pll_rand:0'] = self._rng.randint(self.n_visible, size=X_batch.shape[0])
+            feed_dict['pll_rand:0'] = self._rng.randint(self.n_visible, size=X_batch.shape[0])
         if training:
-            feed_dict['input_data/learning_rate:0'] = self.learning_rate
-            feed_dict['input_data/momentum:0'] = self.momentum
+            feed_dict['learning_rate:0'] = self.learning_rate
+            feed_dict['momentum:0'] = self.momentum
         return feed_dict
 
     def _train_epoch(self, X):
