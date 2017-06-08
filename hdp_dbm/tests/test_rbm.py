@@ -16,7 +16,7 @@ class TestRBM(object):
                                verbose=False,
                                random_seed=1337,
                                metrics_config=dict(
-                                   dfe_every_epoch=10000,
+                                   feg_every_epoch=10000,
                                ),
                                L2=0.)
 

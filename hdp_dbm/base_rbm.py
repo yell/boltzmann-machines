@@ -51,7 +51,7 @@ class BaseRBM(TensorFlowModel):
     def __init__(self, n_visible=784, n_hidden=256, n_gibbs_steps=1,
                  w_std=0.01, hb_init=0., vb_init=0.,
                  learning_rate=0.01, momentum=0.9, max_epoch=10, batch_size=10, L2=1e-4,
-                 sample_h_states=False, sample_v_states=False,
+                 sample_h_states=True, sample_v_states=False,
                  dbm_first=False, dbm_last=False,
                  metrics_config=None, verbose=False, save_after_each_epoch=True,
                  model_path='rbm_model/', **kwargs):
@@ -184,15 +184,23 @@ class BaseRBM(TensorFlowModel):
             tf.summary.histogram('dhb', self._dhb)
             tf.summary.histogram('dvb', self._dvb)
 
+    def _make_constants(self):
+        with tf.name_scope('const'):
+            self._L2 = tf.constant(self.L2, dtype=tf.float32, name='L2_coef')
+            self._dbm_first = tf.constant(self.dbm_first, dtype=tf.bool, name='is_dbm_first')
+            self._dbm_last = tf.constant(self.dbm_last, dtype=tf.bool, name='is_dbm_last')
+            self._propup_multiplier = tf.identity(tf.to_float(self._dbm_first) + 1., name='propup_multiplier')
+            self._propdown_multiplier = tf.identity(tf.to_float(self._dbm_last) + 1., name='propdown_multiplier')
+
     def _propup(self, v):
         with tf.name_scope('prop_up'):
             t = tf.matmul(v, self._W) + self._hb
-        return (self.dbm_first + 1.) * t
+        return self._propup_multiplier * t
 
     def _propdown(self, h):
         with tf.name_scope('prop_down'):
             t = tf.matmul(a=h, b=self._W, transpose_b=True) + self._vb
-        return (self.dbm_last + 1.) * t
+        return self._propdown_multiplier * t
 
     def _means_h_given_v(self, v):
         """Compute means E(h|v)."""
@@ -251,7 +259,7 @@ class BaseRBM(TensorFlowModel):
             with tf.name_scope('dW'):
                 dW_positive = tf.matmul(self._X_batch, h0_means, transpose_a=True)
                 dW_negative = tf.matmul(v_states, h_means, transpose_a=True)
-                dW = (dW_positive - dW_negative) / N - self.L2 * self._W
+                dW = (dW_positive - dW_negative) / N - self._L2 * self._W
             with tf.name_scope('dhb'):
                 dhb = tf.reduce_mean(h0_means - h_means, axis=0) # == sum / N
             with tf.name_scope('dvb'):
@@ -276,7 +284,7 @@ class BaseRBM(TensorFlowModel):
 
         # compute metrics
         with tf.name_scope(self._metrics_names_map['l2_loss']):
-            l2_loss = self.L2 * tf.nn.l2_loss(self._W)
+            l2_loss = self._L2 * tf.nn.l2_loss(self._W)
             tf.add_to_collection('l2_loss', l2_loss)
 
         with tf.name_scope(self._metrics_names_map['msre']):
@@ -319,6 +327,7 @@ class BaseRBM(TensorFlowModel):
             tf.summary.scalar(self._metrics_names_map['pll'], pll)
 
     def _make_tf_model(self):
+        self._make_constants()
         self._make_placeholders()
         self._make_vars()
         self._make_train_op()
@@ -329,11 +338,10 @@ class BaseRBM(TensorFlowModel):
     def _make_v_rand(self, X_batch):
         raise NotImplementedError
 
-    def _make_tf_feed_dict(self, X_batch, h_rand=False, v_rand=False, pll_rand=False, training=False):
+    def _make_tf_feed_dict(self, X_batch, v_rand=False, pll_rand=False, training=False):
         feed_dict = {}
         feed_dict['input_data/X_batch:0'] = X_batch
-        if h_rand:
-            feed_dict['input_data/h_rand:0'] = self._make_h_rand(X_batch)
+        feed_dict['input_data/h_rand:0'] = self._make_h_rand(X_batch)
         if v_rand:
             feed_dict['input_data/v_rand:0'] = self._make_v_rand(X_batch)
         if pll_rand:
@@ -358,7 +366,6 @@ class BaseRBM(TensorFlowModel):
                 outputs = \
                 self._tf_session.run(run_ops,
                                      feed_dict=self._make_tf_feed_dict(X_batch,
-                                                                       h_rand=True,
                                                                        v_rand=self.sample_v_states,
                                                                        pll_rand=('pll' in self._train_metrics_map),
                                                                        training=True))
@@ -370,7 +377,6 @@ class BaseRBM(TensorFlowModel):
             else:
                 self._tf_session.run(self._train_op,
                                      feed_dict=self._make_tf_feed_dict(X_batch,
-                                                                       h_rand=True,
                                                                        v_rand=self.sample_v_states,
                                                                        training=True))
         # aggregate and return metrics values
@@ -384,7 +390,6 @@ class BaseRBM(TensorFlowModel):
             values = \
             self._tf_session.run(run_ops,
                                  feed_dict=self._make_tf_feed_dict(X_vb,
-                                                                   h_rand=True,
                                                                    v_rand=self.sample_v_states,
                                                                    pll_rand=('pll' in self._val_metrics_map)))
             for i, v in enumerate(values):
@@ -481,7 +486,6 @@ class BaseRBM(TensorFlowModel):
         start = 0
         for X_b in batch_iter(X, batch_size=self.batch_size):
             H_b = self._transform_op.eval(feed_dict=self._make_tf_feed_dict(X_b,
-                                                                            h_rand=True,
                                                                             v_rand=self.sample_v_states))
             H[start:(start + self.batch_size)] = H_b
             start += self.batch_size
