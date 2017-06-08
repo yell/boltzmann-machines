@@ -1,10 +1,10 @@
 from matplotlib import pyplot as plt
 
 
-def plot_filters(W, n_width=10, n_height=10, shape=None, title=None):
+def plot_matrices(W, n_width=10, n_height=10, shape=None, title=None):
     plt.figure(figsize=(12, 12))
     for i in xrange(n_height * n_width):
-        filters = W[:, i]
+        filters = W[i]
         if shape is not None:
             filters = filters.reshape(shape)
         plt.subplot(n_height, n_width, i + 1)
