@@ -11,8 +11,8 @@ class BaseRBM(TensorFlowModel):
     """
     Parameters
     ----------
-    n_gibbs_steps : int, iterable, or generator
-        Number of Gibbs sweeps per iteration. Value is updated after each epoch.
+    n_gibbs_steps : int
+        Number of Gibbs sweeps per iteration.
     learning_rate, momentum : float, iterable, or generator
         Gradient descent parameters. Values are updated after each epoch.
     vb_init : float or iterable
@@ -59,7 +59,6 @@ class BaseRBM(TensorFlowModel):
         self.n_visible = n_visible
         self.n_hidden = n_hidden
         self.n_gibbs_steps = n_gibbs_steps
-        self._n_gibbs_steps_gen = None
 
         self.w_std = w_std
         self.hb_init = hb_init
@@ -128,7 +127,14 @@ class BaseRBM(TensorFlowModel):
         self.epoch = 0
         self.iter = 0
 
-        # input data
+        # tf constants
+        self._L2 = None
+        self._dbm_first = None
+        self._dbm_last = None
+        self._propup_multiplier = None
+        self._propdown_multiplier = None
+
+        # tf input data
         self._X_batch = None
         self._h_rand = None
         self._v_rand = None
@@ -136,22 +142,29 @@ class BaseRBM(TensorFlowModel):
         self._learning_rate = None
         self._momentum = None
 
-        # weights and biases
+        # tf vars
         self._W = None
         self._hb = None
         self._vb = None
 
-        # grads
         self._dW = None
         self._dhb = None
         self._dvb = None
 
-        # operations
+        # tf operations
         self._train_op = None
         self._transform_op = None
         self._msre = None
         self._pll = None
         self._free_energy_op = None
+
+    def _make_constants(self):
+        with tf.name_scope('const'):
+            self._L2 = tf.constant(self.L2, dtype=self._tf_dtype, name='L2_coef')
+            self._dbm_first = tf.constant(self.dbm_first, dtype=tf.bool, name='is_dbm_first')
+            self._dbm_last = tf.constant(self.dbm_last, dtype=tf.bool, name='is_dbm_last')
+            self._propup_multiplier = tf.cast(self._dbm_first, dtype=self._tf_dtype, name='propup_multiplier') + 1.
+            self._propdown_multiplier = tf.cast(self._dbm_last, dtype=self._tf_dtype, name='propdown_multiplier') + 1.
 
     def _make_placeholders_routine(self, h_rand_shape):
         with tf.name_scope('input_data'):
@@ -183,14 +196,6 @@ class BaseRBM(TensorFlowModel):
             tf.summary.histogram('dW', self._dW)
             tf.summary.histogram('dhb', self._dhb)
             tf.summary.histogram('dvb', self._dvb)
-
-    def _make_constants(self):
-        with tf.name_scope('const'):
-            self._L2 = tf.constant(self.L2, dtype=self._tf_dtype, name='L2_coef')
-            self._dbm_first = tf.constant(self.dbm_first, dtype=tf.bool, name='is_dbm_first')
-            self._dbm_last = tf.constant(self.dbm_last, dtype=tf.bool, name='is_dbm_last')
-            self._propup_multiplier = tf.cast(self._dbm_first, dtype=self._tf_dtype, name='propup_multiplier') + 1.
-            self._propdown_multiplier = tf.cast(self._dbm_last, dtype=self._tf_dtype, name='propdown_multiplier') + 1.
 
     def _propup(self, v):
         with tf.name_scope('prop_up'):
@@ -239,6 +244,7 @@ class BaseRBM(TensorFlowModel):
             v_means, v_samples = None, None
             h_states = h0_samples if self.sample_h_states else h0_means
             v_states = None
+
             for _ in xrange(self.n_gibbs_steps):
                 with tf.name_scope('sweep'):
                     v_states = v_means = self._means_v_given_h(h_states)
@@ -353,7 +359,6 @@ class BaseRBM(TensorFlowModel):
 
     def _train_epoch(self, X):
         # updates hyper-parameters if needed
-        self.n_gibbs_steps = next(self._n_gibbs_steps_gen)
         self.learning_rate = next(self._learning_rate_gen)
         self.momentum = next(self._momentum_gen)
 
@@ -433,7 +438,6 @@ class BaseRBM(TensorFlowModel):
 
     def _fit(self, X, X_val=None):
         # init generators
-        self._n_gibbs_steps_gen = make_inf_generator(self.n_gibbs_steps)
         self._learning_rate_gen = make_inf_generator(self.learning_rate)
         self._momentum_gen = make_inf_generator(self.momentum)
 
