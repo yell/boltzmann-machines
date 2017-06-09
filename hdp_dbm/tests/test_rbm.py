@@ -35,12 +35,12 @@ class TestRBM(object):
                         tf_dtype=dtype,
                         **self.rbm_config)
 
-                if dtype == 'float32': assert_almost_equal(rbm.get_tf_params()['W'][0][0], -0.0094548017)
-                if dtype == 'float64': assert_almost_equal(rbm.get_tf_params()['W'][0][0], -0.0077341544416)
+                if dtype == 'float32': assert_almost_equal(rbm.get_tf_params(scope='weights')['W'][0][0], -0.0094548017)
+                if dtype == 'float64': assert_almost_equal(rbm.get_tf_params(scope='weights')['W'][0][0], -0.0077341544416)
                 rbm.fit(self.X)
                 rbm_weights = rbm.set_params(max_epoch=7) \
                     .fit(self.X) \
-                    .get_tf_params()
+                    .get_tf_params(scope='weights')
 
                 # 2) train 2 (+save), load and train 5 more epochs
                 rbm2 = C(max_epoch=2,
@@ -51,7 +51,7 @@ class TestRBM(object):
                 rbm2_weights = C.load_model('test_rbm_2/') \
                     .set_params(max_epoch=7) \
                     .fit(self.X) \
-                    .get_tf_params()
+                    .get_tf_params(scope='weights')
                 assert_allclose(rbm_weights['W'], rbm2_weights['W'])
                 assert_allclose(rbm_weights['hb'], rbm2_weights['hb'])
                 assert_allclose(rbm_weights['vb'], rbm2_weights['vb'])
@@ -62,7 +62,7 @@ class TestRBM(object):
                          tf_dtype=dtype,
                          **self.rbm_config)
                 rbm3_weights = rbm3.fit(self.X) \
-                    .get_tf_params()
+                    .get_tf_params(scope='weights')
                 assert_allclose(rbm2_weights['W'], rbm3_weights['W'])
                 assert_allclose(rbm2_weights['hb'], rbm3_weights['hb'])
                 assert_allclose(rbm2_weights['vb'], rbm3_weights['vb'])
@@ -82,7 +82,7 @@ class TestRBM(object):
             rbm.fit(self.X, self.X_val)
             rbm_weights = rbm.set_params(max_epoch=7) \
                 .fit(self.X, self.X_val) \
-                .get_tf_params()
+                .get_tf_params(scope='weights')
 
             # 2) train 2 (+save), load and train 5 more epochs
             rbm2 = C(max_epoch=2,
@@ -92,7 +92,7 @@ class TestRBM(object):
             rbm2_weights = C.load_model('test_rbm_2/') \
                 .set_params(max_epoch=7) \
                 .fit(self.X, self.X_val) \
-                .get_tf_params()
+                .get_tf_params(scope='weights')
             assert_allclose(rbm_weights['W'], rbm2_weights['W'])
             assert_allclose(rbm_weights['hb'], rbm2_weights['hb'])
             assert_allclose(rbm_weights['vb'], rbm2_weights['vb'])
@@ -102,7 +102,7 @@ class TestRBM(object):
                      model_path='test_rbm_3/',
                      **self.rbm_config)
             rbm3_weights = rbm3.fit(self.X, self.X_val) \
-                .get_tf_params()
+                .get_tf_params(scope='weights')
             assert_allclose(rbm2_weights['W'], rbm3_weights['W'])
             assert_allclose(rbm2_weights['hb'], rbm3_weights['hb'])
             assert_allclose(rbm2_weights['vb'], rbm3_weights['vb'])

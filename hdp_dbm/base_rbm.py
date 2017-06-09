@@ -152,39 +152,41 @@ class BaseRBM(TensorFlowModel):
         self._free_energy_op = None
 
     def _make_constants(self):
-        self._L2 = tf.constant(self.L2, dtype=self._tf_dtype, name='L2_coef')
-        self._hb_init = tf.constant(self.hb_init, dtype=self._tf_dtype, name='hb_init')
-        self._vb_init = tf.constant(self._vb_init_tmp, dtype=self._tf_dtype, name='vb_init')
+        with tf.name_scope('constants'):
+            self._L2 = tf.constant(self.L2, dtype=self._tf_dtype, name='L2_coef')
+            self._hb_init = tf.constant(self.hb_init, dtype=self._tf_dtype, name='hb_init')
+            self._vb_init = tf.constant(self._vb_init_tmp, dtype=self._tf_dtype, name='vb_init')
 
     def _make_placeholders_routine(self, h_rand_shape):
-        self._X_batch = tf.placeholder(self._tf_dtype, [None, self.n_visible], name='X_batch')
-        self._h_rand = tf.placeholder(self._tf_dtype, h_rand_shape, name='h_rand')
-        self._v_rand = tf.placeholder(self._tf_dtype, [None, self.n_visible], name='v_rand')
-        self._pll_rand = tf.placeholder(tf.int32, [None], name='pll_rand')
-        self._learning_rate = tf.placeholder(self._tf_dtype, [], name='learning_rate')
-        self._momentum = tf.placeholder(self._tf_dtype, [], name='momentum')
+        with tf.name_scope('input_data'):
+            self._X_batch = tf.placeholder(self._tf_dtype, [None, self.n_visible], name='X_batch')
+            self._h_rand = tf.placeholder(self._tf_dtype, h_rand_shape, name='h_rand')
+            self._v_rand = tf.placeholder(self._tf_dtype, [None, self.n_visible], name='v_rand')
+            self._pll_rand = tf.placeholder(tf.int32, [None], name='pll_rand')
+            self._learning_rate = tf.placeholder(self._tf_dtype, [], name='learning_rate')
+            self._momentum = tf.placeholder(self._tf_dtype, [], name='momentum')
 
     def _make_placeholders(self):
         raise NotImplementedError
 
     def _make_vars(self):
-        # weights and biases
-        W_tensor = tf.random_normal((self.n_visible, self.n_hidden),
-                                    mean=0.0, stddev=self.w_std, seed=self.random_seed, dtype=self._tf_dtype)
-        self._W = tf.Variable(W_tensor, name='W', dtype=self._tf_dtype)
-        self._hb = tf.Variable(self._hb_init * tf.ones((self.n_hidden,), dtype=self._tf_dtype), name='hb')
-        self._vb = tf.Variable(self._vb_init, dtype=self._tf_dtype, name='vb')
-        tf.summary.histogram('W', self._W)
-        tf.summary.histogram('hb', self._hb)
-        tf.summary.histogram('vb', self._vb)
+        with tf.name_scope('weights'):
+            W_tensor = tf.random_normal((self.n_visible, self.n_hidden),
+                                        mean=0.0, stddev=self.w_std, seed=self.random_seed, dtype=self._tf_dtype)
+            self._W = tf.Variable(W_tensor, name='W', dtype=self._tf_dtype)
+            self._hb = tf.Variable(self._hb_init * tf.ones((self.n_hidden,), dtype=self._tf_dtype), name='hb')
+            self._vb = tf.Variable(self._vb_init, dtype=self._tf_dtype, name='vb')
+            tf.summary.histogram('W', self._W)
+            tf.summary.histogram('hb', self._hb)
+            tf.summary.histogram('vb', self._vb)
 
-        # grads
-        self._dW = tf.Variable(tf.zeros((self.n_visible, self.n_hidden), dtype=self._tf_dtype), name='dW')
-        self._dhb = tf.Variable(tf.zeros((self.n_hidden,), dtype=self._tf_dtype), name='dhb')
-        self._dvb = tf.Variable(tf.zeros((self.n_visible,), dtype=self._tf_dtype), name='dvb')
-        tf.summary.histogram('dW', self._dW)
-        tf.summary.histogram('dhb', self._dhb)
-        tf.summary.histogram('dvb', self._dvb)
+        with tf.name_scope('grads'):
+            self._dW = tf.Variable(tf.zeros((self.n_visible, self.n_hidden), dtype=self._tf_dtype), name='dW')
+            self._dhb = tf.Variable(tf.zeros((self.n_hidden,), dtype=self._tf_dtype), name='dhb')
+            self._dvb = tf.Variable(tf.zeros((self.n_visible,), dtype=self._tf_dtype), name='dvb')
+            tf.summary.histogram('dW', self._dW)
+            tf.summary.histogram('dhb', self._dhb)
+            tf.summary.histogram('dvb', self._dvb)
 
     def _propup(self, v):
         with tf.name_scope('prop_up'):
@@ -333,15 +335,15 @@ class BaseRBM(TensorFlowModel):
 
     def _make_tf_feed_dict(self, X_batch, v_rand=False, pll_rand=False, training=False):
         feed_dict = {}
-        feed_dict['X_batch:0'] = X_batch
-        feed_dict['h_rand:0'] = self._h_layer.make_rand(X_batch.shape[0], self._rng)
+        feed_dict['input_data/X_batch:0'] = X_batch
+        feed_dict['input_data/h_rand:0'] = self._h_layer.make_rand(X_batch.shape[0], self._rng)
         if v_rand:
-            feed_dict['v_rand:0'] = self._v_layer.make_rand(X_batch.shape[0], self._rng)
+            feed_dict['input_data/v_rand:0'] = self._v_layer.make_rand(X_batch.shape[0], self._rng)
         if pll_rand:
-            feed_dict['pll_rand:0'] = self._rng.randint(self.n_visible, size=X_batch.shape[0])
+            feed_dict['input_data/pll_rand:0'] = self._rng.randint(self.n_visible, size=X_batch.shape[0])
         if training:
-            feed_dict['learning_rate:0'] = self.learning_rate
-            feed_dict['momentum:0'] = self.momentum
+            feed_dict['input_data/learning_rate:0'] = self.learning_rate
+            feed_dict['input_data/momentum:0'] = self.momentum
         return feed_dict
 
     def _train_epoch(self, X):
