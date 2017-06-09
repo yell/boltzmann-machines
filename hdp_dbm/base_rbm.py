@@ -50,7 +50,6 @@ class BaseRBM(TensorFlowModel):
                  n_gibbs_steps=1, w_std=0.01, hb_init=0., vb_init=0.,
                  learning_rate=0.01, momentum=0.9, max_epoch=10, batch_size=10, L2=1e-4,
                  sample_h_states=True, sample_v_states=False,
-                 dbm_first=False, dbm_last=False,
                  metrics_config=None, verbose=False, save_after_each_epoch=True,
                  model_path='rbm_model/', *args, **kwargs):
         super(BaseRBM, self).__init__(model_path=model_path, *args, **kwargs)
@@ -125,10 +124,8 @@ class BaseRBM(TensorFlowModel):
 
         # tf constants
         self._L2 = None
-        self._dbm_first = None
-        self._dbm_last = None
-        self._propup_multiplier = None
-        self._propdown_multiplier = None
+        self._hb_init = None
+        self._vb_init = None
 
         # tf input data
         self._X_batch = None
@@ -191,12 +188,12 @@ class BaseRBM(TensorFlowModel):
 
     def _propup(self, v):
         with tf.name_scope('prop_up'):
-            t = tf.matmul(v, self._W) + self._hb
+            t = tf.matmul(v, self._W)
         return t
 
     def _propdown(self, h):
         with tf.name_scope('prop_down'):
-            t = tf.matmul(a=h, b=self._W, transpose_b=True) + self._vb
+            t = tf.matmul(a=h, b=self._W, transpose_b=True)
         return t
 
     def _means_h_given_v(self, v):

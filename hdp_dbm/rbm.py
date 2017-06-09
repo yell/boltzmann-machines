@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 from base_rbm import BaseRBM
-from rbm_units import BernoulliLayer, MultinomialLayer, GaussianLayer
+from layers import BernoulliLayer, MultinomialLayer, GaussianLayer
 
 
 class BernoulliRBM(BaseRBM):

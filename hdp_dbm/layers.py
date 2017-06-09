@@ -40,7 +40,7 @@ class BernoulliLayer(BaseLayer):
                                  dtype=self.tf_dtype, seed=random_seed, name='bernoulli_init')
 
     def activation(self, x, b):
-        return tf.nn.sigmoid(x)
+        return tf.nn.sigmoid(x + b)
 
     def make_rand(self, batch_size, rng):
         return rng.rand(batch_size, self.n_units)
@@ -60,7 +60,7 @@ class MultinomialLayer(BaseLayer):
         return tf.identity(t, name='multinomial_init')
 
     def activation(self, x, b):
-        return tf.nn.softmax(x)
+        return tf.nn.softmax(x + b)
 
     def make_rand(self, batch_size, rng):
         return rng.rand(batch_size, 1)
@@ -87,7 +87,7 @@ class GaussianLayer(BaseLayer):
         return t
 
     def activation(self, x, b):
-        t = x * self.sigma + b * (1. - self.sigma)
+        t = x * self.sigma + b
         return t
 
     def make_rand(self, batch_size, rng):
