@@ -334,16 +334,20 @@ class BaseRBM(TensorFlowModel):
         self._make_train_op()
 
     def _make_tf_feed_dict(self, X_batch, v_rand=False, pll_rand=False, training=False):
-        feed_dict = {}
-        feed_dict['input_data/X_batch:0'] = X_batch
-        feed_dict['input_data/h_rand:0'] = self._h_layer.make_rand(X_batch.shape[0], self._rng)
+        d = {}
+        d['X_batch'] = X_batch
+        d['h_rand'] = self._h_layer.make_rand(X_batch.shape[0], self._rng)
         if v_rand:
-            feed_dict['input_data/v_rand:0'] = self._v_layer.make_rand(X_batch.shape[0], self._rng)
+            d['v_rand'] = self._v_layer.make_rand(X_batch.shape[0], self._rng)
         if pll_rand:
-            feed_dict['input_data/pll_rand:0'] = self._rng.randint(self.n_visible, size=X_batch.shape[0])
+            d['pll_rand'] = self._rng.randint(self.n_visible, size=X_batch.shape[0])
         if training:
-            feed_dict['input_data/learning_rate:0'] = self.learning_rate
-            feed_dict['input_data/momentum:0'] = self.momentum
+            d['learning_rate'] = self.learning_rate
+            d['momentum'] = self.momentum
+        # prepend name of the scope, and append ':0'
+        feed_dict = {}
+        for k, v in d.items():
+            feed_dict['input_data/{0}:0'.format(k)] = v
         return feed_dict
 
     def _train_epoch(self, X):
