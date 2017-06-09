@@ -8,7 +8,7 @@ class BaseLayer(object):
         self.n_units = n_units
         self.tf_dtype = tf_dtype
 
-    def init(self, random_seed=None):
+    def init(self, batch_size, random_seed=None):
         """Randomly initialize states according to their distribution."""
         raise NotImplementedError
 
@@ -35,8 +35,8 @@ class BernoulliLayer(BaseLayer):
     def __init__(self, **kwargs):
         super(BernoulliLayer, self).__init__(**kwargs)
 
-    def init(self, random_seed=None):
-        return tf.random_uniform((self.n_units,), minval=0., maxval=1.,
+    def init(self, batch_size, random_seed=None):
+        return tf.random_uniform([batch_size, self.n_units], minval=0., maxval=1.,
                                  dtype=self.tf_dtype, seed=random_seed, name='bernoulli_init')
 
     def activation(self, x, b):
@@ -53,8 +53,8 @@ class MultinomialLayer(BaseLayer):
     def __init__(self, **kwargs):
         super(MultinomialLayer, self).__init__(**kwargs)
 
-    def init(self, random_seed=None):
-        t = tf.random_uniform((self.n_units,), minval=0., maxval=1.,
+    def init(self, batch_size, random_seed=None):
+        t = tf.random_uniform([batch_size, self.n_units], minval=0., maxval=1.,
                               dtype=self.tf_dtype, seed=random_seed)
         t /= tf.reduce_sum(t)
         return tf.identity(t, name='multinomial_init')
@@ -81,8 +81,8 @@ class GaussianLayer(BaseLayer):
         super(GaussianLayer, self).__init__(**kwargs)
         self.sigma = np.asarray(sigma)
 
-    def init(self, random_seed=None):
-        t = tf.random_normal((self.n_units,), dtype=self.tf_dtype, seed=random_seed)
+    def init(self, batch_size, random_seed=None):
+        t = tf.random_normal([batch_size, self.n_units], dtype=self.tf_dtype, seed=random_seed)
         t = tf.multiply(t, self.sigma, name='gaussian_init')
         return t
 
