@@ -72,6 +72,14 @@ class MultinomialRBM(BaseRBM):
             fe = tf.reduce_mean(tv + th, axis=0) - tf.reduce_sum(self._hb)
         return fe
 
+    def get_h_initializer(self):
+        def init(random_seed=None):
+            t = tf.random_uniform((self.n_hidden,), minval=0., maxval=1.,
+                                  dtype=self._tf_dtype, seed=random_seed)
+            t /= tf.reduce_sum(t)
+            return tf.identity(t, name='h_init')
+        return init
+
 
 class GaussianRBM(BaseRBM):
     """RBM with Gaussian visible and Bernoulli hidden units.
@@ -137,6 +145,13 @@ class GaussianRBM(BaseRBM):
             th = -tf.reduce_sum(tf.nn.softplus(self._propup(v)), axis=1)
             fe = tf.reduce_mean(tv + th, axis=0)
         return fe
+
+    def get_v_initializer(self):
+        def init(random_seed=None):
+            t = tf.random_normal((self.n_visible,), dtype=self._tf_dtype, seed=random_seed)
+            t = tf.multiply(t, self._sigma, name='v_init')
+            return t
+        return init
 
 
 def init_sigmoid_vb_from_data(X):

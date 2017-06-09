@@ -483,3 +483,17 @@ class BaseRBM(TensorFlowModel):
             H[start:(start + self.batch_size)] = H_b
             start += self.batch_size
         return H
+
+    def get_h_initializer(self):
+        """Random initializer of hidden states according to their distribution."""
+        def init(random_seed=None):
+            return tf.random_uniform((self.n_hidden,), minval=0., maxval=1.,
+                                     dtype=self._tf_dtype, seed=random_seed, name='h_init')
+        return init
+
+    def get_v_initializer(self):
+        """Random initializer of visible states according to their distribution."""
+        def init(random_seed=None):
+            return tf.random_uniform((self.n_visible,), minval=0., maxval=1.,
+                                     dtype=self._tf_dtype, seed=random_seed, name='v_init')
+        return init
