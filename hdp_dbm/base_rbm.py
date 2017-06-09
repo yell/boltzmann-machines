@@ -46,16 +46,19 @@ class BaseRBM(TensorFlowModel):
     [3] Restricted Boltzmann Machines (RBMs), Deep Learning Tutorial
         url: http://deeplearning.net/tutorial/rbm.html
     """
-    def __init__(self, n_visible=784, n_hidden=256, n_gibbs_steps=1,
-                 w_std=0.01, hb_init=0., vb_init=0.,
+    def __init__(self, n_visible=784, v_layer=None, n_hidden=256, h_layer=None,
+                 n_gibbs_steps=1, w_std=0.01, hb_init=0., vb_init=0.,
                  learning_rate=0.01, momentum=0.9, max_epoch=10, batch_size=10, L2=1e-4,
                  sample_h_states=True, sample_v_states=False,
                  dbm_first=False, dbm_last=False,
                  metrics_config=None, verbose=False, save_after_each_epoch=True,
-                 model_path='rbm_model/', **kwargs):
-        super(BaseRBM, self).__init__(model_path=model_path, **kwargs)
+                 model_path='rbm_model/', *args, **kwargs):
+        super(BaseRBM, self).__init__(model_path=model_path, *args, **kwargs)
         self.n_visible = n_visible
+        self._v_layer = v_layer
         self.n_hidden = n_hidden
+        self._h_layer = h_layer
+
         self.n_gibbs_steps = n_gibbs_steps
 
         self.w_std = w_std
@@ -199,25 +202,29 @@ class BaseRBM(TensorFlowModel):
     def _means_h_given_v(self, v):
         """Compute means E(h|v)."""
         with tf.name_scope('means_h_given_v'):
-            h_means = tf.nn.sigmoid(self._propup(v))
+            h_means = self._h_layer.activation(x=self._propup(v),
+                                               b=self._hb)
         return h_means
 
     def _sample_h_given_v(self, h_means):
         """Sample from P(h|v)."""
         with tf.name_scope('sample_h_given_v'):
-            h_samples = tf.cast(tf.less(self._h_rand, h_means), dtype=self._tf_dtype)
+            h_samples = self._h_layer.sample(rand_data=self._h_rand,
+                                             means=h_means)
         return h_samples
 
     def _means_v_given_h(self, h):
         """Compute means E(v|h)."""
         with tf.name_scope('means_v_given_h'):
-            v_means = tf.nn.sigmoid(self._propdown(h))
+            v_means = self._v_layer.activation(x=self._propdown(h),
+                                               b=self._vb)
         return v_means
 
     def _sample_v_given_h(self, v_means):
         """Sample from P(v|h)."""
         with tf.name_scope('sample_v_given_h'):
-            v_samples = tf.cast(tf.less(self._v_rand, v_means), dtype=self._tf_dtype)
+            v_samples = self._v_layer.sample(rand_data=self._v_rand,
+                                             means=v_means)
         return v_samples
 
     def _free_energy(self, v):
@@ -327,18 +334,12 @@ class BaseRBM(TensorFlowModel):
         self._make_vars()
         self._make_train_op()
 
-    def _make_h_rand(self, X_batch_shape):
-        raise NotImplementedError
-
-    def _make_v_rand(self, X_batch_shape):
-        raise NotImplementedError
-
     def _make_tf_feed_dict(self, X_batch, v_rand=False, pll_rand=False, training=False):
         feed_dict = {}
         feed_dict['X_batch:0'] = X_batch
-        feed_dict['h_rand:0'] = self._make_h_rand(X_batch.shape)
+        feed_dict['h_rand:0'] = self._h_layer.make_rand(X_batch.shape[0], self._rng)
         if v_rand:
-            feed_dict['v_rand:0'] = self._make_v_rand(X_batch.shape)
+            feed_dict['v_rand:0'] = self._v_layer.make_rand(X_batch.shape[0], self._rng)
         if pll_rand:
             feed_dict['pll_rand:0'] = self._rng.randint(self.n_visible, size=X_batch.shape[0])
         if training:
@@ -483,17 +484,3 @@ class BaseRBM(TensorFlowModel):
             H[start:(start + self.batch_size)] = H_b
             start += self.batch_size
         return H
-
-    def get_h_initializer(self):
-        """Random initializer of hidden states according to their distribution."""
-        def init(random_seed=None):
-            return tf.random_uniform((self.n_hidden,), minval=0., maxval=1.,
-                                     dtype=self._tf_dtype, seed=random_seed, name='h_init')
-        return init
-
-    def get_v_initializer(self):
-        """Random initializer of visible states according to their distribution."""
-        def init(random_seed=None):
-            return tf.random_uniform((self.n_visible,), minval=0., maxval=1.,
-                                     dtype=self._tf_dtype, seed=random_seed, name='v_init')
-        return init

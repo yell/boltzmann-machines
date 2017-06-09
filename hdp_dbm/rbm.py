@@ -2,22 +2,20 @@ import numpy as np
 import tensorflow as tf
 
 from base_rbm import BaseRBM
+from rbm_units import BernoulliLayer, MultinomialLayer, GaussianLayer
 
 
 class BernoulliRBM(BaseRBM):
     """RBM with Bernoulli both visible and hidden units."""
-    def __init__(self, model_path='b_rbm_model/',
-                 **kwargs):
-        super(BernoulliRBM, self).__init__(model_path=model_path, **kwargs)
+    def __init__(self, model_path='b_rbm_model/', *args, **kwargs):
+        super(BernoulliRBM, self).__init__(model_path=model_path, *args, **kwargs)
+        self._v_layer = BernoulliLayer(n_units=self.n_visible,
+                                       tf_dtype=self._tf_dtype)
+        self._h_layer = BernoulliLayer(n_units=self.n_hidden,
+                                       tf_dtype=self._tf_dtype)
 
     def _make_placeholders(self):
         super(BernoulliRBM, self)._make_placeholders_routine(h_rand_shape=[None, self.n_hidden])
-
-    def _make_h_rand(self, X_batch_shape):
-        return self._rng.rand(X_batch_shape[0], self.n_hidden)
-
-    def _make_v_rand(self, X_batch_shape):
-        return self._rng.rand(X_batch_shape[0], self.n_visible)
 
     def _free_energy(self, v):
         with tf.name_scope('free_energy'):
@@ -35,35 +33,15 @@ class MultinomialRBM(BaseRBM):
     n_hidden : int
         Number of possible states of a multinomial unit.
     """
-    def __init__(self, model_path='m_rbm_model/',
-                 **kwargs):
-        super(MultinomialRBM, self).__init__(model_path=model_path, **kwargs)
+    def __init__(self, model_path='m_rbm_model/', *args, **kwargs):
+        super(MultinomialRBM, self).__init__(model_path=model_path, *args, **kwargs)
+        self._v_layer = BernoulliLayer(n_units=self.n_visible,
+                                       tf_dtype=self._tf_dtype)
+        self._h_layer = MultinomialLayer(n_units=self.n_hidden,
+                                         tf_dtype=self._tf_dtype)
 
     def _make_placeholders(self):
         super(MultinomialRBM, self)._make_placeholders_routine(h_rand_shape=[None, 1])
-
-    def _make_h_rand(self, X_batch_shape):
-        return self._rng.rand(X_batch_shape[0], 1)
-
-    def _make_v_rand(self, X_batch_shape):
-        return self._rng.rand(X_batch_shape[0], self.n_visible)
-
-    def _means_h_given_v(self, v):
-        with tf.name_scope('means_h_given_v'):
-            h_means = tf.nn.softmax(self._propup(v))
-        return h_means
-
-    def _sample_h_given_v(self, h_means):
-        with tf.name_scope('sample_h_given_v'):
-            h_cumprobs = tf.cumsum(h_means, axis=-1)
-            t = tf.to_int32(tf.greater_equal(h_cumprobs, self._h_rand))
-            ind = tf.to_int32(tf.argmax(t, axis=-1))
-            r = tf.to_int32(tf.range(tf.shape(ind)[0]))
-            h_samples = tf.scatter_nd(tf.transpose([r, ind]),
-                                      tf.ones_like(r),
-                                      tf.to_int32(tf.shape(h_cumprobs)))
-            h_samples = tf.cast(h_samples, dtype=self._tf_dtype)
-        return h_samples
 
     def _free_energy(self, v):
         with tf.name_scope('free_energy'):
@@ -71,14 +49,6 @@ class MultinomialRBM(BaseRBM):
             th = -tf.reduce_sum(tf.matmul(v, self._W), axis=1)
             fe = tf.reduce_mean(tv + th, axis=0) - tf.reduce_sum(self._hb)
         return fe
-
-    def get_h_initializer(self):
-        def init(random_seed=None):
-            t = tf.random_uniform((self.n_hidden,), minval=0., maxval=1.,
-                                  dtype=self._tf_dtype, seed=random_seed)
-            t /= tf.reduce_sum(t)
-            return tf.identity(t, name='h_init')
-        return init
 
 
 class GaussianRBM(BaseRBM):
@@ -98,39 +68,29 @@ class GaussianRBM(BaseRBM):
     [1] Hinton, G. "A Practical Guide to Training Restricted Boltzmann
         Machines" UTML TR 2010-003
     """
-    def __init__(self,
-                 learning_rate=1e-3,
-                 sigma=1.,
-                 model_path='g_rbm_model/', **kwargs):
+    def __init__(self, learning_rate=1e-3, sigma=1.,
+                 model_path='g_rbm_model/', *args, **kwargs):
         super(GaussianRBM, self).__init__(learning_rate=learning_rate,
-                                          model_path=model_path, **kwargs)
+                                          model_path=model_path, *args, **kwargs)
         self.sigma = sigma
         if hasattr(self.sigma, '__iter__'):
             self._sigma_tmp = self.sigma = list(self.sigma)
         else:
             self._sigma_tmp = [self.sigma] * self.n_visible
 
+        self._v_layer = GaussianLayer(sigma=self.sigma,
+                                      n_units=self.n_visible,
+                                      tf_dtype=self._tf_dtype)
+        self._h_layer = BernoulliLayer(n_units=self.n_hidden,
+                                       tf_dtype=self._tf_dtype)
+
     def _make_placeholders(self):
         super(GaussianRBM, self)._make_placeholders_routine(h_rand_shape=[None, self.n_hidden])
         with tf.name_scope('input_data'):
             # divide by resp. sigmas before any operation
-            self._sigma = tf.Variable(self._sigma_tmp, dtype=self._tf_dtype)
+            self._sigma = tf.Variable(self._sigma_tmp, dtype=self._tf_dtype, name='sigma')
             self._sigma = tf.reshape(self._sigma, [1, self.n_visible])
             self._X_batch = tf.divide(self._X_batch, self._sigma)
-
-    def _make_h_rand(self, X_batch_shape):
-        return self._rng.rand(X_batch_shape[0], self.n_hidden)
-
-    def _make_v_rand(self, X_batch_shape):
-        return self._rng.randn(X_batch_shape[0], self.n_visible)
-
-    def _means_v_given_h(self, h):
-        with tf.name_scope('means_v_given_h'):
-            v_means = tf.matmul(a=h, b=self._W, transpose_b=True) * self._sigma
-            v_means += self._vb
-        # Need to multiply by 2 if used for pre-training as last layer of DBM,
-        # but typically it is used as first layer where visible layers represent data
-        return v_means
 
     def _sample_v_given_h(self, v_means):
         with tf.name_scope('sample_v_given_h'):
@@ -145,13 +105,6 @@ class GaussianRBM(BaseRBM):
             th = -tf.reduce_sum(tf.nn.softplus(self._propup(v)), axis=1)
             fe = tf.reduce_mean(tv + th, axis=0)
         return fe
-
-    def get_v_initializer(self):
-        def init(random_seed=None):
-            t = tf.random_normal((self.n_visible,), dtype=self._tf_dtype, seed=random_seed)
-            t = tf.multiply(t, self._sigma, name='v_init')
-            return t
-        return init
 
 
 def init_sigmoid_vb_from_data(X):

@@ -7,10 +7,13 @@ def is_param_name(name):
 
 
 class BaseModel(object):
-    def __init__(self, random_seed=None):
+    def __init__(self, random_seed=None, *args, **kwargs):
         super(BaseModel, self).__init__()
         self.random_seed = random_seed
         self._rng = RNG(seed=self.random_seed)
+
+    def make_random_seed(self):
+        return self._rng.randint(2 ** 20)
 
     def get_params(self, deep=True):
         """Get parameters of the model.

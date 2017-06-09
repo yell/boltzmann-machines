@@ -40,8 +40,8 @@ def run_in_tf_session(f):
 class TensorFlowModel(BaseModel):
     def __init__(self, model_path='tf_model/', paths=None, tf_dtype='float32',
                  tf_session_config=None, tf_saver_params=None, json_params=None,
-                 **kwargs):
-        super(TensorFlowModel, self).__init__(**kwargs)
+                 *args, **kwargs):
+        super(TensorFlowModel, self).__init__(*args, **kwargs)
         self._model_dirpath = None
         self._model_filepath = None
         self._params_filepath = None
