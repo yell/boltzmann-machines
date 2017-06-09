@@ -38,7 +38,7 @@ def run_in_tf_session(f):
 
 
 class TensorFlowModel(BaseModel):
-    def __init__(self, model_path='tf_model/', tf_dtype='float32',
+    def __init__(self, model_path='tf_model/', paths=None, tf_dtype='float32',
                  tf_session_config=None, tf_saver_params=None, json_params=None,
                  **kwargs):
         super(TensorFlowModel, self).__init__(**kwargs)
@@ -49,7 +49,7 @@ class TensorFlowModel(BaseModel):
         self._train_summary_dirpath = None
         self._val_summary_dirpath = None
         self._tf_meta_graph_filepath = None
-        self.setup_working_paths(model_path)
+        self.update_working_paths(model_path=model_path, paths=paths)
 
         self._tf_dtype = dict(float32=tf.float32,
                               float64=tf.float64)[tf_dtype]
@@ -67,24 +67,34 @@ class TensorFlowModel(BaseModel):
         self._tf_train_writer = None
         self._tf_val_writer = None
 
-    def setup_working_paths(self, model_path):
+    @staticmethod
+    def compute_working_paths(model_path):
         """
         Parameters
         ----------
         model_path : str
             Model dirpath (should contain slash at the end) or filepath
         """
+        paths = {}
         head, tail = os.path.split(model_path)
         if not head: head = '.'
+        if not head.endswith('/'): head += '/'
         if not tail: tail = 'model'
-        self._model_dirpath = head
-        if not self._model_dirpath.endswith('/'): self._model_dirpath += '/'
-        self._model_filepath = os.path.join(self._model_dirpath, tail)
-        self._params_filepath = os.path.join(self._model_dirpath, 'params.json')
-        self._random_state_filepath = os.path.join(self._model_dirpath, 'random_state.json')
-        self._train_summary_dirpath = os.path.join(self._model_dirpath, 'logs/train')
-        self._val_summary_dirpath = os.path.join(self._model_dirpath, 'logs/val')
-        self._tf_meta_graph_filepath = self._model_filepath + '.meta'
+        paths['model_dirpath'] = head
+        paths['model_filepath'] = os.path.join(paths['model_dirpath'], tail)
+        paths['params_filepath'] = os.path.join(paths['model_dirpath'], 'params.json')
+        paths['random_state_filepath'] = os.path.join(paths['model_dirpath'], 'random_state.json')
+        paths['train_summary_dirpath'] = os.path.join(paths['model_dirpath'], 'logs/train')
+        paths['val_summary_dirpath'] = os.path.join(paths['model_dirpath'], 'logs/val')
+        paths['tf_meta_graph_filepath'] = paths['model_filepath'] + '.meta'
+        return paths
+
+    def update_working_paths(self, model_path=None, paths=None):
+        paths = paths or {}
+        if not paths:
+            paths = TensorFlowModel.compute_working_paths(model_path=model_path)
+        for k, v in paths.items():
+            setattr(self, '_{0}'.format(k), v)
 
     def _make_tf_model(self):
         raise NotImplementedError
@@ -127,18 +137,16 @@ class TensorFlowModel(BaseModel):
 
     @classmethod
     def load_model(cls, model_path):
-        model = cls(model_path=model_path)
-
-        # update paths
-        model.setup_working_paths(model_path)
+        paths = TensorFlowModel.compute_working_paths(model_path)
 
         # load params
-        with open(model._params_filepath, 'r') as params_file:
+        with open(paths['params_filepath'], 'r') as params_file:
             params = json.load(params_file)
         class_name = params.pop('__class_name__')
         if class_name != cls.__name__:
             raise RuntimeError("attempt to open {0}'s data with class {1}".format(class_name, cls.__name__))
-        model.set_params(**params)
+        model = cls(paths=paths, **params)
+        model.set_params(**params) # set params which are not among ctor params
 
         # restore random state if needed
         if os.path.isfile(model._random_state_filepath):
