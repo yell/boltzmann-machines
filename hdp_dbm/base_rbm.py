@@ -45,8 +45,6 @@ class BaseRBM(TensorFlowModel):
         Machines" UTML TR 2010-003
     [3] Restricted Boltzmann Machines (RBMs), Deep Learning Tutorial
         url: http://deeplearning.net/tutorial/rbm.html
-    [4] Salakhutdinov, R. and Hinton, G. (2009). Deep Boltzmann machines.
-        In AISTATS 2009
     """
     def __init__(self, n_visible=784, n_hidden=256, n_gibbs_steps=1,
                  w_std=0.01, hb_init=0., vb_init=0.,
@@ -118,11 +116,6 @@ class BaseRBM(TensorFlowModel):
         self.verbose = verbose
         self.save_after_each_epoch = save_after_each_epoch
 
-        # These flags are needed for RBMs which are used for pre-training a DBM
-        # to address double-counting evidence problem [4].
-        self.dbm_first = dbm_first
-        self.dbm_last = dbm_last
-
         # current epoch and iteration
         self.epoch = 0
         self.iter = 0
@@ -160,13 +153,6 @@ class BaseRBM(TensorFlowModel):
 
     def _make_constants(self):
         self._L2 = tf.constant(self.L2, dtype=self._tf_dtype, name='L2_coef')
-        self._dbm_first = tf.constant(self.dbm_first, dtype=tf.bool, name='is_dbm_first')
-        self._dbm_last = tf.constant(self.dbm_last, dtype=tf.bool, name='is_dbm_last')
-        t = tf.constant(1., dtype=self._tf_dtype, name="1")
-        t1 = tf.cast(self._dbm_first, dtype=self._tf_dtype)
-        self._propup_multiplier = tf.identity(tf.add(t1, t), name='propup_multiplier')
-        t2 = tf.cast(self._dbm_last, dtype=self._tf_dtype)
-        self._propdown_multiplier = tf.identity(tf.add(t2, t), name='propdown_multiplier')
 
     def _make_placeholders_routine(self, h_rand_shape):
         self._X_batch = tf.placeholder(self._tf_dtype, [None, self.n_visible], name='X_batch')
@@ -201,12 +187,12 @@ class BaseRBM(TensorFlowModel):
     def _propup(self, v):
         with tf.name_scope('prop_up'):
             t = tf.matmul(v, self._W) + self._hb
-        return self._propup_multiplier * t
+        return t
 
     def _propdown(self, h):
         with tf.name_scope('prop_down'):
             t = tf.matmul(a=h, b=self._W, transpose_b=True) + self._vb
-        return self._propdown_multiplier * t
+        return t
 
     def _means_h_given_v(self, v):
         """Compute means E(h|v)."""
