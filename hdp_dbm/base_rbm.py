@@ -67,9 +67,9 @@ class BaseRBM(TensorFlowModel):
         # vectors where i-th unit is on, as proposed in [2]
         self.vb_init = vb_init
         if hasattr(self.vb_init, '__iter__'):
-            self._vb_init = self.vb_init = list(self.vb_init)
+            self._vb_init_tmp = self.vb_init = list(self.vb_init)
         else:
-            self._vb_init = [self.vb_init] * self.n_visible
+            self._vb_init_tmp = [self.vb_init] * self.n_visible
 
         self.learning_rate = learning_rate
         self._learning_rate_gen = None
@@ -153,6 +153,8 @@ class BaseRBM(TensorFlowModel):
 
     def _make_constants(self):
         self._L2 = tf.constant(self.L2, dtype=self._tf_dtype, name='L2_coef')
+        self._hb_init = tf.constant(self.hb_init, dtype=self._tf_dtype, name='hb_init')
+        self._vb_init = tf.constant(self._vb_init_tmp, dtype=self._tf_dtype, name='vb_init')
 
     def _make_placeholders_routine(self, h_rand_shape):
         self._X_batch = tf.placeholder(self._tf_dtype, [None, self.n_visible], name='X_batch')
@@ -170,8 +172,8 @@ class BaseRBM(TensorFlowModel):
         W_tensor = tf.random_normal((self.n_visible, self.n_hidden),
                                     mean=0.0, stddev=self.w_std, seed=self.random_seed, dtype=self._tf_dtype)
         self._W = tf.Variable(W_tensor, name='W', dtype=self._tf_dtype)
-        self._hb = tf.Variable(self.hb_init * tf.ones((self.n_hidden,), dtype=self._tf_dtype), name='hb')
-        self._vb = tf.Variable(self._vb_init, name='vb', dtype=self._tf_dtype)
+        self._hb = tf.Variable(self._hb_init * tf.ones((self.n_hidden,), dtype=self._tf_dtype), name='hb')
+        self._vb = tf.Variable(self._vb_init, dtype=self._tf_dtype, name='vb')
         tf.summary.histogram('W', self._W)
         tf.summary.histogram('hb', self._hb)
         tf.summary.histogram('vb', self._vb)
@@ -325,18 +327,18 @@ class BaseRBM(TensorFlowModel):
         self._make_vars()
         self._make_train_op()
 
-    def _make_h_rand(self, X_batch):
+    def _make_h_rand(self, X_batch_shape):
         raise NotImplementedError
 
-    def _make_v_rand(self, X_batch):
+    def _make_v_rand(self, X_batch_shape):
         raise NotImplementedError
 
     def _make_tf_feed_dict(self, X_batch, v_rand=False, pll_rand=False, training=False):
         feed_dict = {}
         feed_dict['X_batch:0'] = X_batch
-        feed_dict['h_rand:0'] = self._make_h_rand(X_batch)
+        feed_dict['h_rand:0'] = self._make_h_rand(X_batch.shape)
         if v_rand:
-            feed_dict['v_rand:0'] = self._make_v_rand(X_batch)
+            feed_dict['v_rand:0'] = self._make_v_rand(X_batch.shape)
         if pll_rand:
             feed_dict['pll_rand:0'] = self._rng.randint(self.n_visible, size=X_batch.shape[0])
         if training:

@@ -13,11 +13,11 @@ class BernoulliRBM(BaseRBM):
     def _make_placeholders(self):
         super(BernoulliRBM, self)._make_placeholders_routine(h_rand_shape=[None, self.n_hidden])
 
-    def _make_h_rand(self, X_batch):
-        return self._rng.rand(X_batch.shape[0], self.n_hidden)
+    def _make_h_rand(self, X_batch_shape):
+        return self._rng.rand(X_batch_shape[0], self.n_hidden)
 
-    def _make_v_rand(self, X_batch):
-        return self._rng.rand(X_batch.shape[0], self.n_visible)
+    def _make_v_rand(self, X_batch_shape):
+        return self._rng.rand(X_batch_shape[0], self.n_visible)
 
     def _free_energy(self, v):
         with tf.name_scope('free_energy'):
@@ -42,11 +42,11 @@ class MultinomialRBM(BaseRBM):
     def _make_placeholders(self):
         super(MultinomialRBM, self)._make_placeholders_routine(h_rand_shape=[None, 1])
 
-    def _make_h_rand(self, X_batch):
-        return self._rng.rand(X_batch.shape[0], 1)
+    def _make_h_rand(self, X_batch_shape):
+        return self._rng.rand(X_batch_shape[0], 1)
 
-    def _make_v_rand(self, X_batch):
-        return self._rng.rand(X_batch.shape[0], self.n_visible)
+    def _make_v_rand(self, X_batch_shape):
+        return self._rng.rand(X_batch_shape[0], self.n_visible)
 
     def _means_h_given_v(self, v):
         with tf.name_scope('means_h_given_v'):
@@ -110,11 +110,11 @@ class GaussianRBM(BaseRBM):
             self._sigma = tf.reshape(self._sigma, [1, self.n_visible])
             self._X_batch = tf.divide(self._X_batch, self._sigma)
 
-    def _make_h_rand(self, X_batch):
-        return self._rng.rand(X_batch.shape[0], self.n_hidden)
+    def _make_h_rand(self, X_batch_shape):
+        return self._rng.rand(X_batch_shape[0], self.n_hidden)
 
-    def _make_v_rand(self, X_batch):
-        return self._rng.randn(X_batch.shape[0], self.n_visible)
+    def _make_v_rand(self, X_batch_shape):
+        return self._rng.randn(X_batch_shape[0], self.n_visible)
 
     def _means_v_given_h(self, h):
         with tf.name_scope('means_v_given_h'):
