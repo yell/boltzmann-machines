@@ -139,9 +139,10 @@ class GaussianRBM(BaseRBM):
         return fe
 
 
-def bernoulli_vb_initializer(X):
+def init_sigmoid_vb_from_data(X):
     p = np.mean(X, axis=0)
-    q = np.log(np.maximum(p, 1e-6) / np.maximum(1. - p, 1e-6))
+    p = np.clip(p, 1e-7, 1e-7)
+    q = np.log(p / (1. - p))
     return q
 
 
