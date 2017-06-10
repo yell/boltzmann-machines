@@ -54,7 +54,7 @@ class DBM(TensorFlowModel):
         # other params
         self.n_particles = n_particles
         self.n_gibbs_steps = n_gibbs_steps
-        self.max_mf_updates_per_epoch = max_mf_updates_per_epoch
+        self.max_mf_updates_per_iter = max_mf_updates_per_epoch
 
         self.learning_rate = learning_rate
         self._learning_rate_gen = None
@@ -105,6 +105,8 @@ class DBM(TensorFlowModel):
             self._L2 = tf.constant(self.L2, dtype=self._tf_dtype, name='L2_coef')
             self._n_particles = tf.constant(self.n_particles, dtype=tf.int32, name='n_particles')
             self._batch_size = tf.constant(self.batch_size, dtype=tf.int32, name='batch_size')
+            self._max_mf_updates_per_iter = tf.constant(self.max_mf_updates_per_iter,
+                                                        dtype=tf.int32, name='max_mf_updates_per_iter')
 
     def _make_placeholders(self):
         with tf.name_scope('input_data'):
@@ -175,8 +177,10 @@ class DBM(TensorFlowModel):
         with tf.name_scope('variational_params'):
             for i in xrange(self.n_layers):
                 with tf.name_scope('mu'):
-                    mu = tf.Variable(tf.zeros([self._batch_size, self.n_hiddens[i]], dtype=self._tf_dtype), name='mu')
-                    mu_new = tf.Variable(tf.zeros([self._batch_size, self.n_hiddens[i]], dtype=self._tf_dtype), name='mu_new')
+                    t = tf.zeros([self._batch_size, self.n_hiddens[i]], dtype=self._tf_dtype)
+                    mu = tf.Variable(t, name='mu')
+                    t_new = tf.zeros([self._batch_size, self.n_hiddens[i]], dtype=self._tf_dtype)
+                    mu_new = tf.Variable(t_new, name='mu_new')
                     tf.summary.histogram('mu', mu)
                     tf.summary.histogram('mu_new', mu_new)
                     self._mu.append(mu)
@@ -208,8 +212,7 @@ class DBM(TensorFlowModel):
             self._particles_new = (v_new, H_new)
 
     def _make_gibbs_step(self, v, H, v_new, H_new, update_v=True, sample=True):
-        """Compute one Gibbs step"""
-
+        """Compute one Gibbs step."""
         with tf.name_scope('sweep'):
             # update visible layer
             if update_v:
@@ -258,18 +261,41 @@ class DBM(TensorFlowModel):
                 v_new, H_new, v, H = v, H, v_new, H_new
         return v, H, v_new, H_new # v, H contain the most recent values
 
-    def _make_mf(self, **params):
-        pass
+    def _make_mf(self, tol=1e-7):
+        """Run mean-field updates until convergence for 1 batch."""
+        with tf.name_scope('mean_field'):
+            # randomly initialize variational parameters
+            init_ops = []
+            for i in xrange(self.n_layers):
+                t = self._h_layers[i].init(self.batch_size, random_seed=self.make_random_seed())
+                init_op = tf.assign(self._mu[i], t, name='init_mu')
+                init_ops.append(init_op)
+
+            # run mean-field updates until convergence
+            mf_counter = tf.constant(0, dtype=tf.int32, name='mf_counter')
+            def cond(step, X_batch, mu, mu_new):
+                c1 = step < self._max_mf_updates_per_iter
+                c2 = tf.reduce_mean([ tf.norm(mu[i] - mu_new[i], ord=np.inf) for i in xrange(self.n_layers) ]) > tol
+                return tf.logical_and(c1, c2)
+            def body(step, X_batch, mu, mu_new):
+                _, mu, _, mu_new = self._make_gibbs_step(X_batch, mu, X_batch, mu_new,
+                                                         update_v=False, sample=False)
+                return step + 1, X_batch, mu_new, mu # swap mu and mu_new
+
+            with tf.control_dependencies(init_ops):
+                _, _, mu, _ = tf.while_loop(cond=cond,
+                                            body=body,
+                                            loop_vars=[mf_counter, self._X_batch, self._mu, self._mu_new],
+                                            back_prop=False,
+                                            name='mean_field_updates')
+        return mu
 
     def _make_stochastic_approx(self, **params):
         pass
 
     def _make_train_op(self):
-        v, H = self._particles
-        v_new, H_new = self._particles_new
-        T = self._make_gibbs_chain(v, H, v_new, H_new)
-        self._make_stochastic_approx()
-        return T
+        i, mu = self._make_mf()
+        return i, mu
 
     def _make_tf_model(self):
         self._make_constants()
@@ -294,16 +320,24 @@ class DBM(TensorFlowModel):
         return feed_dict
 
     def _fit(self, X, X_val=None):
-        v_new, H_new, v, H = self._tf_session.run(self._make_train_op(),
-                                                  feed_dict=self._make_tf_feed_dict(X[:10]))
-        print "H_new"
-        print H_new[0][0][:15]
-        print H_new[1][0][:15]
-        print H_new[2][0][:15]
-        print "H"
-        print H[0][0][:15]
-        print H[1][0][:15]
-        print H[2][0][:15]
+        # v_new, H_new, v, H = self._tf_session.run(self._make_train_op(),
+        #                                           feed_dict=self._make_tf_feed_dict(X[:10]))
+        # print "H_new"
+        # print H_new[0][0][:15]
+        # print H_new[1][0][:15]
+        # print H_new[2][0][:15]
+        # print "H"
+        # print H[0][0][:15]
+        # print H[1][0][:15]
+        # print H[2][0][:15]
+        i, mu = self._tf_session.run(self._make_train_op(),
+                                 feed_dict=self._make_tf_feed_dict(X[:100]))
+        print i
+        print mu[0][0]
+        print mu[1][0]
+        print mu[2][0]
+        # print T[1]
+        # print T[2]
 
     @run_in_tf_session
     def gibbs(self, n_steps=5):
@@ -388,7 +422,7 @@ if __name__ == '__main__':
     dbm = DBM(rbms=[rbm1, rbm2, rbm3],
               n_particles=10,
               n_gibbs_steps=5,
-              max_mf_updates_per_epoch=10, # or 30
+              max_mf_updates_per_epoch=30, # or 30
               learning_rate=0.001, # 0.001 -> epsilonw = max(epsilonw/1.000015,0.00010);
               # OR in paper 0.005 + gradually -> 0
               # momentum=???
