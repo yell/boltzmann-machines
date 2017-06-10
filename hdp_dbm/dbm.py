@@ -103,7 +103,6 @@ class DBM(TensorFlowModel):
     def _make_constants(self):
         with tf.name_scope('constants'):
             self._L2 = tf.constant(self.L2, dtype=self._tf_dtype, name='L2_coef')
-            self._n_gibbs_steps = tf.constant(self.n_gibbs_steps, dtype=tf.int32, name='n_gibbs_steps')
             self._n_particles = tf.constant(self.n_particles, dtype=tf.int32, name='n_particles')
             self._batch_size = tf.constant(self.batch_size, dtype=tf.int32, name='batch_size')
 
@@ -211,48 +210,53 @@ class DBM(TensorFlowModel):
     def _make_gibbs_step(self, v, H, v_new, H_new, update_v=True, sample=True):
         """Compute one Gibbs step"""
 
-        # update visible layer
-        if update_v:
-            T = tf.matmul(a=H[0], b=self._W[0], transpose_b=True)
-            v_new = self._v_layer.activation(T, self._vb)
+        with tf.name_scope('sweep'):
+            # update visible layer
+            if update_v:
+                with tf.name_scope('means_v_given_h0'):
+                    T = tf.matmul(a=H[0], b=self._W[0], transpose_b=True)
+                    v_new = self._v_layer.activation(T, self._vb)
+                if sample:
+                    with tf.name_scope('sample_v_given_h'):
+                        v_new = self._v_layer.sample(rand_data=self._v_rand, means=v_new)
+
+            # update last hidden layer
+            with tf.name_scope('means_h{0}_given_h{1}'.format(self.n_layers - 1, self.n_layers - 2)):
+                T = tf.matmul(H[-2], self._W[-1])
+                H_new[-1] = self._h_layers[-1].activation(T, self._hb[-1])
             if sample:
-                v_new = self._v_layer.sample(rand_data=self._v_rand, means=v_new)
+                with tf.name_scope('sample_h{0}_given_h{1}'.format(self.n_layers - 1, self.n_layers - 2)):
+                    H_new[-1] = self._h_layers[-1].sample(rand_data=self._h_rand[-1], means=H_new[-1])
 
-        # update last hidden layer
-        T = tf.matmul(H[-2], self._W[-1])
-        H_new[-1] = self._h_layers[-1].activation(T, self._hb[-1])
+            # update first hidden layer
+            with tf.name_scope('means_h0_given_v_h1'):
+                T1 = tf.matmul(v, self._W[0])
+                T2 = tf.matmul(a=H[1], b=self._W[1], transpose_b=True)
+                H_new[0] = self._h_layers[0].activation(T1 + T2, self._hb[0])
+            if sample:
+                with tf.name_scope('sample_h0_given_v_h1'):
+                    H_new[0] = self._h_layers[0].sample(rand_data=self._h_rand[0], means=H_new[0])
 
-        # update first hidden layer
-        T1 = tf.matmul(v, self._W[0])
-        T2 = tf.matmul(a=H[1], b=self._W[1], transpose_b=True)
-        H_new[0] = self._h_layers[0].activation(T1 + T2, self._hb[0])
-
-        # update the intermediate hidden layers if any
-        for i in xrange(1, self.n_layers - 1):
-            T1 = tf.matmul(H[i - 1], self._W[i])
-            T2 = tf.matmul(a=H[i + 1], b=self._W[i + 1], transpose_b=True)
-            H_new[i] = self._h_layers[i].activation(T1 + T2, self._hb[i])
-
-        # sample if needed
-        if sample:
-            for i in xrange(self.n_layers):
-                H_new[i] = self._h_layers[i].sample(rand_data=self._h_rand[i], means=H_new[i])
+            # update the intermediate hidden layers if any
+            for i in xrange(1, self.n_layers - 1):
+                with tf.name_scope('means_h{0}_given_h{1}_h{2}'.format(i, i-1, i+1)):
+                    T1 = tf.matmul(H[i - 1], self._W[i])
+                    T2 = tf.matmul(a=H[i + 1], b=self._W[i + 1], transpose_b=True)
+                    H_new[i] = self._h_layers[i].activation(T1 + T2, self._hb[i])
+                if sample:
+                    with tf.name_scope('sample_h{0}_given_h{1}_h{2}'.format(i, i - 1, i + 1)):
+                        H_new[i] = self._h_layers[i].sample(rand_data=self._h_rand[i], means=H_new[i])
         return v, H, v_new, H_new
 
-    def _make_gibbs_chain(self, v, H, v_new, H_new, update_v=True, n_steps=None):
+    def _make_gibbs_chain(self, v, H, v_new, H_new, update_v=True, sample=True, n_steps=None):
         """Run Gibbs chain for specified number of steps"""
-        n_steps = n_steps or self._n_gibbs_steps
+        n_steps = n_steps or self.n_gibbs_steps
         with tf.name_scope('gibbs_chain'):
-            gibbs_step_count = tf.constant(0, name='gibbs_step')
-            def body(step, v, H, v_new, H_new):
-                v, H, v_new, H_new = self._make_gibbs_step(v, H, v_new, H_new, update_v=update_v)
-                return step + 1, v_new, H_new, v, H # swap variables
-            result = tf.while_loop(cond=lambda step, H, H_new, v, v_new: step < n_steps,
-                                   body=body,
-                                   loop_vars=[gibbs_step_count,
-                                              v, H, v_new, H_new],
-                                   back_prop=False)
-        return result[1:] # all states after gibbs sampling
+            for _ in xrange(n_steps):
+                v, H, v_new, H_new = self._make_gibbs_step(v, H, v_new, H_new, update_v=update_v,
+                                                           sample=sample)
+                v_new, H_new, v, H = v, H, v_new, H_new
+        return v, H, v_new, H_new # v, H contain the most recent values
 
     def _make_mf(self, **params):
         pass
@@ -290,16 +294,16 @@ class DBM(TensorFlowModel):
         return feed_dict
 
     def _fit(self, X, X_val=None):
-        v, H, v_new, H_new = self._tf_session.run(self._make_train_op(),
+        v_new, H_new, v, H = self._tf_session.run(self._make_train_op(),
                                                   feed_dict=self._make_tf_feed_dict(X[:10]))
-        print "H"
-        print H[0][0][:5]
-        print H[1][0][:5]
-        print H[2][0][:5]
         print "H_new"
-        print H_new[0][0][:5]
-        print H_new[1][0][:5]
-        print H_new[2][0][:5]
+        print H_new[0][0][:15]
+        print H_new[1][0][:15]
+        print H_new[2][0][:15]
+        print "H"
+        print H[0][0][:15]
+        print H[1][0][:15]
+        print H[2][0][:15]
 
     @run_in_tf_session
     def gibbs(self, n_steps=5):
