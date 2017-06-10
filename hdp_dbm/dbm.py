@@ -2,6 +2,8 @@ import numpy as np
 import tensorflow as tf
 
 from base import TensorFlowModel, run_in_tf_session
+from utils import (batch_iter, epoch_iter,
+                   make_inf_generator, print_inline)
 
 
 class DBM(TensorFlowModel):
@@ -26,10 +28,10 @@ class DBM(TensorFlowModel):
     [2] Salakhutdinov, R. Learning Deep Boltzmann Machines, Matlab code.
         url: https://www.cs.toronto.edu/~rsalakhu/DBM.html
     """
-    def __init__(self,
-                 rbms=None,
+    def __init__(self, rbms=None,
                  n_particles=100, n_gibbs_steps=5, max_mf_updates_per_iter=10, mf_tol=1e-7,
                  learning_rate=0.001, momentum=0.9, max_epoch=10, batch_size=100, L2=1e-5,
+                 train_metrics_every_iter=10, val_metrics_every_epoch=1,
                  verbose=False, save_after_each_epoch=False,
                  model_path='dbm_model/', *args, **kwargs):
         super(DBM, self).__init__(model_path=model_path, *args, **kwargs)
@@ -67,11 +69,14 @@ class DBM(TensorFlowModel):
         self.batch_size = batch_size
         self.L2 = L2
 
+        self.train_metrics_every_iter = train_metrics_every_iter
+        self.val_metrics_every_epoch = val_metrics_every_epoch
         self.verbose = verbose
         self.save_after_each_epoch = save_after_each_epoch
 
-        # current epoch
+        # current epoch and iter
         self.epoch = 0
+        self.iter = 0
 
         # tf constants
         self._L2 = None
@@ -100,8 +105,8 @@ class DBM(TensorFlowModel):
 
         # tf operations
         self._train_op = None
-        self._transform_op = None
-        self._gibbs_op = None
+        self._msre = None
+        self._n_mf_updates = None
 
     def _make_constants(self):
         with tf.name_scope('constants'):
@@ -190,7 +195,6 @@ class DBM(TensorFlowModel):
                     t_new = tf.zeros([self._batch_size, self.n_hiddens[i]], dtype=self._tf_dtype)
                     mu_new = tf.Variable(t_new, name='mu_new')
                     tf.summary.histogram('mu', mu)
-                    tf.summary.histogram('mu_new', mu_new)
                     self._mu.append(mu)
                     self._mu_new.append(mu_new)
 
@@ -221,7 +225,7 @@ class DBM(TensorFlowModel):
 
     def _make_gibbs_step(self, v, H, v_new, H_new, update_v=True, sample=True):
         """Compute one Gibbs step."""
-        with tf.name_scope('sweep'):
+        with tf.name_scope('gibbs_step'):
             # update visible layer
             if update_v:
                 with tf.name_scope('means_v_given_h0'):
@@ -250,7 +254,7 @@ class DBM(TensorFlowModel):
 
             # update the intermediate hidden layers if any
             for i in xrange(1, self.n_layers - 1):
-                with tf.name_scope('means_h{0}_given_h{1}_h{2}'.format(i, i-1, i+1)):
+                with tf.name_scope('means_h{0}_given_h{1}_h{2}'.format(i, i - 1, i + 1)):
                     T1 = tf.matmul(H[i - 1], self._W[i])
                     T2 = tf.matmul(a=H[i + 1], b=self._W[i + 1], transpose_b=True)
                     H_new[i] = self._h_layers[i].activation(T1 + T2, self._hb[i])
@@ -291,12 +295,12 @@ class DBM(TensorFlowModel):
                 return step + 1, X_batch, mu_new, mu # swap mu and mu_new
 
             with tf.control_dependencies(init_ops):
-                mf_updates_performed, _, mu, _ = tf.while_loop(cond=cond, body=body,
-                                                               loop_vars=[mf_counter, self._X_batch,
-                                                                          self._mu, self._mu_new],
-                                                               back_prop=False,
-                                                               name='mean_field_updates')
-        return mf_updates_performed, mu
+                n_mf_updates, _, mu, _ = tf.while_loop(cond=cond, body=body,
+                                                       loop_vars=[mf_counter, self._X_batch,
+                                                                  self._mu, self._mu_new],
+                                                       back_prop=False,
+                                                       name='mean_field_updates')
+        return n_mf_updates, mu
 
     def _make_stochastic_approx(self):
         """Update fantasy particles by running Gibbs sampler
@@ -312,7 +316,7 @@ class DBM(TensorFlowModel):
 
     def _make_train_op(self):
         # run mean-field updates
-        mf_updates_performed, mu = self._make_mf()
+        n_mf_updates, mu = self._make_mf()
 
         # update particles
         v, H = self._make_stochastic_approx()
@@ -370,8 +374,18 @@ class DBM(TensorFlowModel):
             train_op = tf.group(vb_update, tf.group(*W_updates), tf.group(*hb_updates))
             tf.add_to_collection('train_op', train_op)
 
-        # summaries
-        tf.summary.scalar('mf_updates_performed', mf_updates_performed)
+        # compute metrics
+        with tf.name_scope('mean_squared_reconstruction_error'):
+            T = tf.matmul(a=mu[0], b=self._W[0], transpose_b=True)
+            v_means = self._v_layer.activation(T, self._vb)
+            msre = tf.reduce_mean(tf.square(self._X_batch - v_means))
+            tf.add_to_collection('msre', msre)
+
+        tf.add_to_collection('n_mf_updates', n_mf_updates)
+
+        # collect summaries
+        tf.summary.scalar('mean_squared_recon_error', msre)
+        tf.summary.scalar('n_mf_updates', n_mf_updates)
 
     def _make_tf_model(self):
         self._make_constants()
@@ -395,9 +409,56 @@ class DBM(TensorFlowModel):
             feed_dict['input_data/{0}:0'.format(k)] = v
         return feed_dict
 
+    def _train_epoch(self, X):
+        # updates hyper-parameters if needed
+        self.learning_rate = next(self._learning_rate_gen)
+        self.momentum = next(self._momentum_gen)
+
+        train_msres, train_n_mf_updates = [], []
+        for X_batch in batch_iter(X, self.batch_size, verbose=self.verbose):
+            self.iter += 1
+            if self.iter % self.train_metrics_every_iter == 0:
+                msre, n_mf_upds, _, s = self._tf_session.run([self._msre, self._n_mf_updates,
+                                                              self._train_op, self._tf_merged_summaries],
+                                                             feed_dict=self._make_tf_feed_dict(X_batch,
+                                                                                               training=True))
+                train_msres.append(msre)
+                train_n_mf_updates.append(n_mf_upds)
+                self._tf_train_writer.add_summary(s, self.iter)
+            else:
+                self._tf_session.run(self._train_op,
+                                     feed_dict=self._make_tf_feed_dict(X_batch, training=True))
+        return (np.mean(train_msres) if train_msres else None,
+                np.mean(train_n_mf_updates) if train_n_mf_updates else None)
+
     def _fit(self, X, X_val=None):
+        # init generators
+        self._learning_rate_gen = make_inf_generator(self.learning_rate)
+        self._momentum_gen = make_inf_generator(self.momentum)
+
+        # load ops requested
         self._train_op = tf.get_collection('train_op')[0]
-        self._tf_session.run(self._train_op, feed_dict=self._make_tf_feed_dict(X[:100], training=True))
+        self._msre = tf.get_collection('msre')[0]
+        self._n_mf_updates = tf.get_collection('n_mf_updates')[0]
+
+        # main loop
+        for self.epoch in epoch_iter(start_epoch=self.epoch, max_epoch=self.max_epoch,
+                                     verbose=self.verbose):
+            train_msre, train_n_mf_updates = self._train_epoch(X)
+
+            # print progress
+            if self.verbose:
+                s = "epoch: {0:{1}}/{2}".format(self.epoch, len(str(self.max_epoch)), self.max_epoch)
+                if train_msre:
+                    s += "; msre: {0:.5f}".format(train_msre)
+                if train_n_mf_updates:
+                    s += "; n_mf_upds: {0:.2f}".format(train_n_mf_updates)
+                print_inline(s + '\n')
+
+            # save if needed
+            if self.save_after_each_epoch:
+                self._save_model(global_step=self.epoch)
+
 
     @run_in_tf_session
     def gibbs(self, n_steps=5):
@@ -486,9 +547,11 @@ if __name__ == '__main__':
               learning_rate=0.001, # 0.001 -> epsilonw = max(epsilonw/1.000015,0.00010);
               # OR in paper 0.005 + gradually -> 0
               # momentum=???
-              max_epoch=300, # 500 for paper results
+              max_epoch=100, # 300 or 500 for paper results
               batch_size=100,
               L2=2e-4,
               random_seed=1337,
+              # verbose=True,
+              save_after_each_epoch=True,
               model_path = 'dbm/')
     dbm.fit(X)
