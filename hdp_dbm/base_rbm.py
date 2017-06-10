@@ -284,11 +284,11 @@ class BaseRBM(TensorFlowModel):
             tf.add_to_collection('train_op', train_op)
 
         # compute metrics
-        with tf.name_scope(self._metrics_names_map['l2_loss']):
+        with tf.name_scope('L2_loss'):
             l2_loss = self._L2 * tf.nn.l2_loss(self._W)
             tf.add_to_collection('l2_loss', l2_loss)
 
-        with tf.name_scope(self._metrics_names_map['msre']):
+        with tf.name_scope('mean_squared_recon_error'):
             msre = tf.reduce_mean(tf.square(self._X_batch - v_means))
             tf.add_to_collection('msre', msre)
 
@@ -298,7 +298,7 @@ class BaseRBM(TensorFlowModel):
         # instead, which not only is much more cheaper to compute, but also is
         # an asymptotically consistent estimate of the true log-likelihood [1].
         # More specifically, PLL computed using approximation as in [3].
-        with tf.name_scope(self._metrics_names_map['pll']):
+        with tf.name_scope('pseudo_loglik'):
             x = self._X_batch
             # randomly corrupt one feature in each sample
             x_ = tf.identity(x)
@@ -308,6 +308,7 @@ class BaseRBM(TensorFlowModel):
                                 dense_shape=tf.to_int64(tf.shape(x_)))
             x_ = tf.multiply(x_, -tf.sparse_tensor_to_dense(m, default_value=-1))
             x_ = tf.sparse_add(x_, m)
+            x_ = tf.identity(x_, name='x_corrupted')
 
             # TODO: change -tf.nn.softplus(-z) to tf.log_sigmoid(z) when updated to r1.2
             pll = -tf.constant(self.n_visible, dtype=self._tf_dtype) *\
@@ -360,7 +361,7 @@ class BaseRBM(TensorFlowModel):
             self.iter += 1
             if self.iter % self.metrics_config['train_metrics_every_iter'] == 0:
                 run_ops = [v for _, v in sorted(self._train_metrics_map.items())]
-                run_ops += [self._train_op, self._tf_merged_summaries]
+                run_ops += [self._tf_merged_summaries, self._train_op]
                 outputs = \
                 self._tf_session.run(run_ops,
                                      feed_dict=self._make_tf_feed_dict(X_batch,
