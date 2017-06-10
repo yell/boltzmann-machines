@@ -20,7 +20,7 @@ class BernoulliRBM(BaseRBM):
     def _free_energy(self, v):
         with tf.name_scope('free_energy'):
             tv = -tf.einsum('ij,j->i', v, self._vb)
-            th = -tf.reduce_sum(tf.nn.softplus(self._propup(v)), axis=1)
+            th = -tf.reduce_sum(tf.nn.softplus(self._propup(v) + self._hb), axis=1)
             fe = tf.reduce_mean(tv + th, axis=0)
         return fe
 
@@ -102,7 +102,7 @@ class GaussianRBM(BaseRBM):
             t = tf.divide(tf.reshape(self._vb, [1, self.n_visible]), self._sigma)
             t2 = tf.square(tf.subtract(v, t))
             tv = 0.5 * tf.reduce_sum(t2, axis=1)
-            th = -tf.reduce_sum(tf.nn.softplus(self._propup(v)), axis=1)
+            th = -tf.reduce_sum(tf.nn.softplus(self._propup(v) + self._hb), axis=1)
             fe = tf.reduce_mean(tv + th, axis=0)
         return fe
 
