@@ -1,5 +1,6 @@
 import numpy as np
 import tensorflow as tf
+from tensorflow.core.framework import summary_pb2
 
 from base import TensorFlowModel, run_in_tf_session
 from utils import (batch_iter, epoch_iter,
@@ -431,6 +432,22 @@ class DBM(TensorFlowModel):
         return (np.mean(train_msres) if train_msres else None,
                 np.mean(train_n_mf_updates) if train_n_mf_updates else None)
 
+    def _run_val_metrics(self, X_val):
+        val_msres, val_n_mf_updates = [], []
+        for X_vb in batch_iter(X_val, batch_size=self.batch_size):
+            msre, n_mf_upds = self._tf_session.run([self._msre, self._n_mf_updates],
+                                                   feed_dict=self._make_tf_feed_dict(X_vb))
+            val_msres.append(msre)
+            val_n_mf_updates.append(n_mf_upds)
+        mean_msre = np.mean(val_msres)
+        mean_n_mf_updates = np.mean(val_n_mf_updates)
+        s = summary_pb2.Summary(value=[
+            summary_pb2.Summary.Value(tag='mean_squared_recon_error', simple_value=mean_msre),
+            summary_pb2.Summary.Value(tag='n_mf_updates', simple_value=mean_n_mf_updates),
+        ])
+        self._tf_val_writer.add_summary(s, self.iter)
+        return mean_msre, mean_n_mf_updates
+
     def _fit(self, X, X_val=None):
         # init generators
         self._learning_rate_gen = make_inf_generator(self.learning_rate)
@@ -442,9 +459,14 @@ class DBM(TensorFlowModel):
         self._n_mf_updates = tf.get_collection('n_mf_updates')[0]
 
         # main loop
+        val_msre, val_n_mf_updates = None, None
         for self.epoch in epoch_iter(start_epoch=self.epoch, max_epoch=self.max_epoch,
                                      verbose=self.verbose):
             train_msre, train_n_mf_updates = self._train_epoch(X)
+
+            # run validation metrics if needed
+            if X_val is not None and self.epoch % self.val_metrics_every_epoch == 0:
+                val_msre, val_n_mf_updates = self._run_val_metrics(X_val)
 
             # print progress
             if self.verbose:
@@ -453,12 +475,15 @@ class DBM(TensorFlowModel):
                     s += "; msre: {0:.5f}".format(train_msre)
                 if train_n_mf_updates:
                     s += "; n_mf_upds: {0:.2f}".format(train_n_mf_updates)
+                if val_msre:
+                    s += "; val.msre: {0:.5f}".format(val_msre)
+                if val_n_mf_updates:
+                    s += "; val.n_mf_upds: {0:.2f}".format(val_n_mf_updates)
                 print_inline(s + '\n')
 
             # save if needed
             if self.save_after_each_epoch:
                 self._save_model(global_step=self.epoch)
-
 
     @run_in_tf_session
     def gibbs(self, n_steps=5):
