@@ -99,7 +99,7 @@ class DBM(TensorFlowModel):
         self._train_op = None
         self._msre = None
         self._n_mf_updates = None
-        self._sample_v_particle_op = None
+        self._sample_v_particle = None
 
     def load_rbms(self, rbms):
         self._rbms = rbms
@@ -122,6 +122,10 @@ class DBM(TensorFlowModel):
             # collect resp. layers of units
             self._v_layer = self._rbms[0]._v_layer
             self._h_layers = [rbm._h_layer for rbm in self._rbms]
+
+            # ... and update their dtypes
+            self._v_layer.tf_dtype = self._tf_dtype
+            for h in self._h_layers: h.tf_dtype = self._tf_dtype
         else:
             self.n_layers = None
             self.n_visible = None
@@ -174,18 +178,18 @@ class DBM(TensorFlowModel):
 
         # initialize weights and biases
         with tf.name_scope('weights'):
-            t = tf.identity(vb_init, name='vb_init')
+            t = tf.constant(vb_init, name='vb_init', dtype=self._tf_dtype)
             self._vb = tf.Variable(t, name='vb', dtype=self._tf_dtype)
             tf.summary.histogram('vb_hist', self._vb)
 
             for i in xrange(self.n_layers):
-                T = tf.identity(W_init[i], name='W_init')
+                T = tf.constant(W_init[i], name='W_init', dtype=self._tf_dtype)
                 W = tf.Variable(T, name='W', dtype=self._tf_dtype)
                 tf.summary.histogram('W_hist', W)
                 self._W.append(W)
 
             for i in xrange(self.n_layers):
-                t = tf.identity(hb_init[i], name='hb_init')
+                t = tf.constant(hb_init[i], name='hb_init', dtype=self._tf_dtype)
                 hb = tf.Variable(t, name='hb', dtype=self._tf_dtype)
                 tf.summary.histogram('hb_hist', hb)
                 self._hb.append(hb)
@@ -288,8 +292,12 @@ class DBM(TensorFlowModel):
             # randomly initialize variational parameters
             init_ops = []
             for i in xrange(self.n_layers):
+                # (1) -- random initialization
+                # ----------------------------
                 t = self._h_layers[i].init(self.batch_size, random_seed=self.make_random_seed())
+                q = self._h_layers[i].init(self.batch_size, random_seed=self.make_random_seed())
                 init_op = tf.assign(self._mu[i], t, name='init_mu')
+                init_op2 = tf.assign(self._mu_new[i], q, name='init_mu')
                 init_ops.append(init_op)
 
             # run mean-field updates until convergence
@@ -424,12 +432,13 @@ class DBM(TensorFlowModel):
         tf.summary.scalar('n_mf_updates', n_mf_updates)
 
     def _make_sample_v_particle(self):
-        v, H, v_new, H_new = self._make_particles_update(n_steps=self._n_steps_sample_particles)
-        with tf.control_dependencies([v, v_new] + H + H_new):
+        v_update, H_updates, v_new_update, H_new_updates = \
+            self._make_particles_update(n_steps=self._n_gibbs_steps)
+        with tf.control_dependencies([v_update, v_new_update] + H_updates + H_new_updates):
             T = tf.matmul(a=self._H[0], b=self._W[0], transpose_b=True)
             v_probs = self._v_layer.activation(T, self._vb)
-            sample_v_particle_op = self._v.assign(v_probs)
-        tf.add_to_collection('sample_v_particle_op', sample_v_particle_op)
+            sample_v_particle = self._v.assign(v_probs)
+        tf.add_to_collection('sample_v_particle', sample_v_particle)
 
     def _make_tf_model(self):
         self._make_constants()
@@ -536,8 +545,8 @@ class DBM(TensorFlowModel):
     def sample_v_particle(self, n_gibbs_steps=0, save_model=False):
         if not self.called_fit:
             raise RuntimeError('`fit` must be called before calling `sample_v_particle`')
-        self._sample_v_particle_op = tf.get_collection('sample_v_particle_op')[0]
-        v = self._tf_session.run(self._sample_v_particle_op,
+        self._sample_v_particle = tf.get_collection('sample_v_particle')[0]
+        v = self._tf_session.run(self._sample_v_particle,
                                  feed_dict=self._make_tf_feed_dict(n_gibbs_steps=n_gibbs_steps))
         self._save_model()
         return v
@@ -559,46 +568,47 @@ if __name__ == '__main__':
     print rbm1.get_tf_params(scope='weights')['W'][0][0]
     print rbm2.get_tf_params(scope='weights')['W'][0][0]
     #
-    # dbm = DBM(rbms=[rbm1, rbm2],
-    #           n_particles=10,
-    #           n_gibbs_steps=5, # or 5
-    #           max_mf_updates_per_iter=100, # or 30
-    #           mf_tol=1e-5,
-    #           learning_rate=0.001,
-    #           momentum=[.5] * 5 + [.9],
-    #           max_epoch=1, # 300 or 500 for paper results
-    #           batch_size=100,
-    #           L2=2e-4,
-    #           random_seed=1337,
-    #           verbose=True,
-    #           tf_dtype='float32',
-    #           save_after_each_epoch=True,
-    #           model_path='dbm/')
-    #
+    dbm = DBM(rbms=[rbm1, rbm2],
+              n_particles=10,
+              n_gibbs_steps=5, # or 5
+              max_mf_updates_per_iter=100, # or 30
+              mf_tol=1e-5,
+              learning_rate=0.001,
+              momentum=[.5] * 5 + [.9],
+              max_epoch=3, # 300 or 500 for paper results
+              batch_size=100,
+              L2=2e-4,
+              random_seed=1337,
+              verbose=True,
+              tf_dtype='float32',
+              save_after_each_epoch=True,
+              model_path='dbm/')
 
-    dbm = DBM.load_model('dbm/')
-    dbm.load_rbms([rbm1, rbm2])
+
+    # dbm = DBM.load_model('dbm/')
+    # dbm.load_rbms([rbm1, rbm2])
+
     # dbm.set_params(max_epoch=2)
-    # dbm.fit(X, X_val)
-    v = dbm.sample_v_particle(save_model=True)
-
-    # print v[0][:100]
-    # v = dbm.get_tf_params('fantasy_particles/v_particle/')['v']
-    # print v[0][:100]
-
-    # v_new = dbm.get_tf_params('fantasy_particles/v_particle/')['v_new']
-    # h = dbm.get_tf_params('fantasy_particles/h_particle/')['h']
-    # print "v"
-    # print v[0][:200]
-    # print "v_new"
-    # print v[0][:200]
-
-    # print v[1][:15]
-    # print v[2][:15]
-    # print "H"
-    # print h[0][:10]
-    # print h[1][:10]
-    # print h[2][:10]
+    dbm.fit(X, X_val)
+    # v = dbm.sample_v_particle(save_model=True)
     #
-    plot_matrices(v, 10, 1, shape=(28, 28))
-    plt.show()
+    # # print v[0][:100]
+    # # v = dbm.get_tf_params('fantasy_particles/v_particle/')['v']
+    # # print v[0][:100]
+    #
+    # # v_new = dbm.get_tf_params('fantasy_particles/v_particle/')['v_new']
+    # # h = dbm.get_tf_params('fantasy_particles/h_particle/')['h']
+    # # print "v"
+    # # print v[0][:200]
+    # # print "v_new"
+    # # print v[0][:200]
+    #
+    # # print v[1][:15]
+    # # print v[2][:15]
+    # # print "H"
+    # # print h[0][:10]
+    # # print h[1][:10]
+    # # print h[2][:10]
+    # #
+    # plot_matrices(v, 10, 1, shape=(28, 28))
+    # plt.show()
