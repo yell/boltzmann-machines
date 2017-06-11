@@ -37,30 +37,7 @@ class DBM(TensorFlowModel):
                  verbose=False, save_after_each_epoch=False,
                  model_path='dbm_model/', *args, **kwargs):
         super(DBM, self).__init__(model_path=model_path, *args, **kwargs)
-        self._rbms = rbms
-
-        if self._rbms is not None:
-            # create some shortcuts
-            self.n_layers = len(self._rbms)
-            assert self.n_layers >= 2
-            self.n_visible = self._rbms[0].n_visible
-            self.n_hiddens = [rbm.n_hidden for rbm in self._rbms]
-
-            # extract weights and biases
-            self._W_tmp, self._vb_tmp, self._hb_tmp = [], [], []
-            for i in xrange(self.n_layers):
-                weights = self._rbms[i].get_tf_params(scope='weights')
-                self._W_tmp.append(weights['W'])
-                self._vb_tmp.append(weights['vb'])
-                self._hb_tmp.append(weights['hb'])
-
-            # collect resp. layers of units
-            self._v_layer = self._rbms[0]._v_layer
-            self._h_layers = [rbm._h_layer for rbm in self._rbms]
-        else:
-            self.n_layers = None
-            self.n_visible = None
-            self.n_hiddens = None
+        self.load_rbms(rbms)
 
         self.n_particles = n_particles
         self.n_particles_updates_per_iter = n_particles_updates_per_iter
@@ -123,6 +100,32 @@ class DBM(TensorFlowModel):
         self._msre = None
         self._n_mf_updates = None
         self._sample_v_particle_op = None
+
+    def load_rbms(self, rbms):
+        self._rbms = rbms
+        if self._rbms is not None:
+
+            # create some shortcuts
+            self.n_layers = len(self._rbms)
+            assert self.n_layers >= 2
+            self.n_visible = self._rbms[0].n_visible
+            self.n_hiddens = [rbm.n_hidden for rbm in self._rbms]
+
+            # extract weights and biases
+            self._W_tmp, self._vb_tmp, self._hb_tmp = [], [], []
+            for i in xrange(self.n_layers):
+                weights = self._rbms[i].get_tf_params(scope='weights')
+                self._W_tmp.append(weights['W'])
+                self._vb_tmp.append(weights['vb'])
+                self._hb_tmp.append(weights['hb'])
+
+            # collect resp. layers of units
+            self._v_layer = self._rbms[0]._v_layer
+            self._h_layers = [rbm._h_layer for rbm in self._rbms]
+        else:
+            self.n_layers = None
+            self.n_visible = None
+            self.n_hiddens = None
 
     def _make_constants(self):
         with tf.name_scope('constants'):
@@ -556,24 +559,27 @@ if __name__ == '__main__':
     print rbm1.get_tf_params(scope='weights')['W'][0][0]
     print rbm2.get_tf_params(scope='weights')['W'][0][0]
     #
-    dbm = DBM(rbms=[rbm1, rbm2],
-              n_particles=10,
-              n_gibbs_steps=5, # or 5
-              max_mf_updates_per_iter=100, # or 30
-              mf_tol=1e-5,
-              learning_rate=0.001,
-              momentum=[.5] * 5 + [.9],
-              max_epoch=1, # 300 or 500 for paper results
-              batch_size=100,
-              L2=2e-4,
-              random_seed=1337,
-              verbose=True,
-              tf_dtype='float32',
-              save_after_each_epoch=True,
-              model_path='dbm/')
+    # dbm = DBM(rbms=[rbm1, rbm2],
+    #           n_particles=10,
+    #           n_gibbs_steps=5, # or 5
+    #           max_mf_updates_per_iter=100, # or 30
+    #           mf_tol=1e-5,
+    #           learning_rate=0.001,
+    #           momentum=[.5] * 5 + [.9],
+    #           max_epoch=1, # 300 or 500 for paper results
+    #           batch_size=100,
+    #           L2=2e-4,
+    #           random_seed=1337,
+    #           verbose=True,
+    #           tf_dtype='float32',
+    #           save_after_each_epoch=True,
+    #           model_path='dbm/')
+    #
 
-    dbm.fit(X, X_val)
-    # dbm = DBM.load_model('dbm/')
+    dbm = DBM.load_model('dbm/')
+    dbm.load_rbms([rbm1, rbm2])
+    # dbm.set_params(max_epoch=2)
+    # dbm.fit(X, X_val)
     v = dbm.sample_v_particle(save_model=True)
 
     # print v[0][:100]
