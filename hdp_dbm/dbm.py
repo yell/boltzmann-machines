@@ -30,7 +30,8 @@ class DBM(TensorFlowModel):
         url: https://www.cs.toronto.edu/~rsalakhu/DBM.html
     """
     def __init__(self, rbms=None,
-                 n_particles=100, n_gibbs_steps=5, max_mf_updates_per_iter=10, mf_tol=1e-7,
+                 n_particles=100, n_particles_updates_per_iter=5,
+                 max_mf_updates_per_iter=10, mf_tol=1e-7,
                  learning_rate=0.001, momentum=0.9, max_epoch=10, batch_size=100, L2=1e-5,
                  train_metrics_every_iter=10, val_metrics_every_epoch=1,
                  verbose=False, save_after_each_epoch=False,
@@ -38,27 +39,31 @@ class DBM(TensorFlowModel):
         super(DBM, self).__init__(model_path=model_path, *args, **kwargs)
         self._rbms = rbms
 
-        # create some shortcuts
-        self.n_layers = len(self._rbms)
-        assert self.n_layers >= 2
-        self.n_visible = self._rbms[0].n_visible
-        self.n_hiddens = [rbm.n_hidden for rbm in self._rbms]
+        if self._rbms is not None:
+            # create some shortcuts
+            self.n_layers = len(self._rbms)
+            assert self.n_layers >= 2
+            self.n_visible = self._rbms[0].n_visible
+            self.n_hiddens = [rbm.n_hidden for rbm in self._rbms]
 
-        # extract weights and biases
-        self._W_tmp, self._vb_tmp, self._hb_tmp = [], [], []
-        for i in xrange(self.n_layers):
-            weights = self._rbms[i].get_tf_params(scope='weights')
-            self._W_tmp.append(weights['W'])
-            self._vb_tmp.append(weights['vb'])
-            self._hb_tmp.append(weights['hb'])
+            # extract weights and biases
+            self._W_tmp, self._vb_tmp, self._hb_tmp = [], [], []
+            for i in xrange(self.n_layers):
+                weights = self._rbms[i].get_tf_params(scope='weights')
+                self._W_tmp.append(weights['W'])
+                self._vb_tmp.append(weights['vb'])
+                self._hb_tmp.append(weights['hb'])
 
-        # collect resp. layers of units
-        self._v_layer = self._rbms[0]._v_layer
-        self._h_layers = [rbm._h_layer for rbm in self._rbms]
+            # collect resp. layers of units
+            self._v_layer = self._rbms[0]._v_layer
+            self._h_layers = [rbm._h_layer for rbm in self._rbms]
+        else:
+            self.n_layers = None
+            self.n_visible = None
+            self.n_hiddens = None
 
-        # other params
         self.n_particles = n_particles
-        self.n_gibbs_steps = n_gibbs_steps
+        self.n_particles_updates_per_iter = n_particles_updates_per_iter
         self.max_mf_updates_per_iter = max_mf_updates_per_iter
         self.mf_tol = mf_tol
 
@@ -81,14 +86,21 @@ class DBM(TensorFlowModel):
 
         # tf constants
         self._L2 = None
-        self._n_gibbs_steps = None
+        self._n_particles_updates_per_iter = None
         self._n_particles = None
         self._batch_size = None
+        self._max_mf_updates_per_iter = None
+        self._mf_tol = None
+        self._N = None
+        self._M = None
 
         # tf input data
         self._X_batch = None
         self._learning_rate = None
         self._momentum = None
+        self._v_rand = None
+        self._h_rand = []
+        self._n_gibbs_steps = None
 
         # tf vars
         self._W = []
@@ -101,18 +113,23 @@ class DBM(TensorFlowModel):
 
         self._mu = []
         self._mu_new = []
-        self._particles = []
-        self._particles_new = []
+        self._v = None
+        self._H = []
+        self._v_new = None
+        self._H_new = []
 
         # tf operations
         self._train_op = None
         self._msre = None
         self._n_mf_updates = None
+        self._sample_v_particle_op = None
 
     def _make_constants(self):
         with tf.name_scope('constants'):
             self._L2 = tf.constant(self.L2, dtype=self._tf_dtype, name='L2_coef')
             self._n_particles = tf.constant(self.n_particles, dtype=tf.int32, name='n_particles')
+            self._n_particles_updates_per_iter = \
+                tf.constant(self.n_particles_updates_per_iter, dtype=tf.int32, name='n_particles_updates_per_iter')
             self._batch_size = tf.constant(self.batch_size, dtype=tf.int32, name='batch_size')
             self._max_mf_updates_per_iter = tf.constant(self.max_mf_updates_per_iter,
                                                         dtype=tf.int32, name='max_mf_updates_per_iter')
@@ -130,6 +147,7 @@ class DBM(TensorFlowModel):
             for i in xrange(self.n_layers):
                 P = tf.placeholder(self._tf_dtype, [None, self.n_hiddens[i]], name='h_rand')
                 self._h_rand.append(P)
+            self._n_gibbs_steps = tf.placeholder(tf.int32, [], name='n_gibbs_steps')
 
     def _make_vars(self):
         # Compose weights and biases of DBM from trained RBMs' ones
@@ -204,11 +222,10 @@ class DBM(TensorFlowModel):
             with tf.name_scope('v_particle'):
                 t = self._v_layer.init(batch_size=self._n_particles,
                                        random_seed=self.make_random_seed())
-                v = tf.Variable(t, dtype=self._tf_dtype, name='v')
+                self._v = tf.Variable(t, dtype=self._tf_dtype, name='v')
                 t_new = self._v_layer.init(batch_size=self._n_particles,
                                            random_seed=self.make_random_seed())
-                v_new = tf.Variable(t_new, dtype=self._tf_dtype, name='v_new')
-                H, H_new = [], []
+                self._v_new = tf.Variable(t_new, dtype=self._tf_dtype, name='v_new')
 
             for j in xrange(self.n_layers):
                 with tf.name_scope('h_particle'):
@@ -218,15 +235,13 @@ class DBM(TensorFlowModel):
                     q_new = self._h_layers[j].init(batch_size=self._n_particles,
                                                    random_seed=self.make_random_seed())
                     h_new = tf.Variable(q_new, dtype=self._tf_dtype, name='h_new')
-                    H.append(h)
-                    H_new.append(h_new)
-
-            self._particles = (v, H)
-            self._particles_new = (v_new, H_new)
+                    self._H.append(h)
+                    self._H_new.append(h_new)
 
     def _make_gibbs_step(self, v, H, v_new, H_new, update_v=True, sample=True):
         """Compute one Gibbs step."""
         with tf.name_scope('gibbs_step'):
+
             # update visible layer
             if update_v:
                 with tf.name_scope('means_v_given_h0'):
@@ -264,18 +279,8 @@ class DBM(TensorFlowModel):
                         H_new[i] = self._h_layers[i].sample(rand_data=self._h_rand[i], means=H_new[i])
         return v, H, v_new, H_new
 
-    def _make_gibbs_chain(self, v, H, v_new, H_new, update_v=True, sample=True, n_steps=None):
-        """Run Gibbs chain for specified number of steps"""
-        n_steps = n_steps or self.n_gibbs_steps
-        with tf.name_scope('gibbs_chain'):
-            for _ in xrange(n_steps):
-                v, H, v_new, H_new = self._make_gibbs_step(v, H, v_new, H_new, update_v=update_v,
-                                                           sample=sample)
-                v_new, H_new, v, H = v, H, v_new, H_new
-        return v, H, v_new, H_new # v, H contain the most recent values
-
     def _make_mf(self):
-        """Run mean-field updates until convergence for 1 batch."""
+        """Run mean-files updates for current mini-batch"""
         with tf.name_scope('mean_field'):
             # randomly initialize variational parameters
             init_ops = []
@@ -285,100 +290,127 @@ class DBM(TensorFlowModel):
                 init_ops.append(init_op)
 
             # run mean-field updates until convergence
-            mf_counter = tf.constant(0, dtype=tf.int32, name='mf_counter')
-            def cond(step, X_batch, mu, mu_new):
-                c1 = step < self._max_mf_updates_per_iter
-                c2 = tf.reduce_max([ tf.norm(u - v, ord=np.inf) for u, v in zip(mu, mu_new) ]) > self._mf_tol
+            def mf_cond(step, max_step, tol, X_batch, mu, mu_new):
+                c1 = step < max_step
+                c2 = tf.reduce_max([tf.norm(u - v, ord=np.inf) for u, v in zip(mu, mu_new)]) > tol
                 return tf.logical_and(c1, c2)
-            def body(step, X_batch, mu, mu_new):
+
+            def mf_body(step, max_step, tol, X_batch, mu, mu_new):
                 _, mu, _, mu_new = self._make_gibbs_step(X_batch, mu, X_batch, mu_new,
                                                          update_v=False, sample=False)
-                return step + 1, X_batch, mu_new, mu # swap mu and mu_new
+                return step + 1, max_step, tol, X_batch, mu_new, mu  # swap mu and mu_new
 
-            with tf.control_dependencies(init_ops):
-                n_mf_updates, _, mu, _ = tf.while_loop(cond=cond, body=body,
-                                                       loop_vars=[mf_counter, self._X_batch,
-                                                                  self._mu, self._mu_new],
-                                                       back_prop=False,
-                                                       name='mean_field_updates')
-        return n_mf_updates, mu
+            with tf.control_dependencies(init_ops):  # make sure mu's are initialized
+                n_mf_updates, _, _, _, mu, _ = tf.while_loop(cond=mf_cond, body=mf_body,
+                                                             loop_vars=[tf.constant(0),
+                                                                        self._max_mf_updates_per_iter,
+                                                                        self._mf_tol,
+                                                                        self._X_batch,
+                                                                        self._mu, self._mu_new],
+                                                             back_prop=False,
+                                                             name='mean_field_updates')
+            return n_mf_updates, mu
 
-    def _make_stochastic_approx(self):
+    def _make_particles_update(self, n_steps=None):
         """Update fantasy particles by running Gibbs sampler
         for specified number of steps.
         """
-        v, H = self._particles
-        v_new, H_new = self._particles_new
-        v, H, v_new, H_new = self._make_gibbs_chain(v, H, v_new, H_new,
-                                                    update_v=True, sample=True)
-        self._particles = (v, H)
-        self._particles_new = (v_new, H_new)
-        return v, H
+        if n_steps is None: n_steps = self._n_particles_updates_per_iter
+        with tf.name_scope('particles_update'):
+            def sa_cond(step, max_step, v, H, v_new, H_new):
+                return step < max_step
+
+            def sa_body(step, max_step, v, H, v_new, H_new):
+                v, H, v_new, H_new = self._make_gibbs_step(v, H, v_new, H_new,
+                                                           update_v=True, sample=True)
+                return step + 1, max_step, v_new, H_new, v, H  # swap particles
+
+            _, _, v, H, v_new, H_new = tf.while_loop(cond=sa_cond, body=sa_body,
+                                                     loop_vars=[tf.constant(0),
+                                                                n_steps,
+                                                                self._v, self._H,
+                                                                self._v_new, self._H_new],
+                                                     back_prop=False)
+            v_update = self._v.assign(v)
+            v_new_update = self._v_new.assign(v_new)
+            H_updates = [ self._H[i].assign(H[i]) for i in xrange(self.n_layers) ]
+            H_new_updates = [ self._H_new[i].assign(H_new[i]) for i in xrange(self.n_layers) ]
+        return v_update, H_updates, v_new_update, H_new_updates
 
     def _make_train_op(self):
-        # run mean-field updates
+        # run mean-field updates for current mini-batch
         n_mf_updates, mu = self._make_mf()
 
-        # update particles
-        v, H = self._make_stochastic_approx()
+        # update fantasy particles by running Gibbs sampler
+        # for specified number of steps
+        v_update, H_updates, v_new_update, H_new_updates = self._make_particles_update()
 
-        # compute gradients estimates (= positive - negative associations)
-        with tf.name_scope('grads_estimates'):
-            # visible bias
-            with tf.name_scope('dvb'):
-                dvb = tf.reduce_mean(self._X_batch, axis=0) - tf.reduce_mean(v, axis=0)
+        with tf.control_dependencies([v_update, v_new_update] + H_updates + H_new_updates):
+            # compute gradients estimates (= positive - negative associations)
+            with tf.name_scope('grads_estimates'):
+                # visible bias
+                with tf.name_scope('dvb'):
+                    dvb = tf.reduce_mean(self._X_batch, axis=0) - tf.reduce_mean(self._v, axis=0)
 
-            dW = []
-            # first layer of weights
-            with tf.name_scope('dW'):
-                dW_0_positive = tf.matmul(a=self._X_batch, b=mu[0], transpose_a=True) / self._N
-                dW_0_negative = tf.matmul(a=v, b=H[0], transpose_a=True) / self._M
-                dW_0 = (dW_0_positive - dW_0_negative) - self._L2 * self._W[0]
-                dW.append(dW_0)
-            # ... rest of them
-            for i in xrange(1, self.n_layers):
+                dW = []
+                # first layer of weights
                 with tf.name_scope('dW'):
-                    dW_i_positive = tf.matmul(a=mu[i - 1], b=mu[i], transpose_a=True) / self._N
-                    dW_i_negative = tf.matmul(a=H[i - 1], b=H[i], transpose_a=True) / self._M
-                    dW_i = (dW_i_positive - dW_i_negative) - self._L2 * self._W[i]
-                    dW.append(dW_i)
+                    dW_0_positive = tf.matmul(a=self._X_batch, b=mu[0], transpose_a=True) / self._N
+                    dW_0_negative = tf.matmul(a=self._v, b=self._H[0], transpose_a=True) / self._M
+                    dW_0 = (dW_0_positive - dW_0_negative) - self._L2 * self._W[0]
+                    dW.append(dW_0)
+                # ... rest of them
+                for i in xrange(1, self.n_layers):
+                    with tf.name_scope('dW'):
+                        dW_i_positive = tf.matmul(a=mu[i - 1], b=mu[i], transpose_a=True) / self._N
+                        dW_i_negative = tf.matmul(a=self._H[i - 1], b=self._H[i], transpose_a=True) / self._M
+                        dW_i = (dW_i_positive - dW_i_negative) - self._L2 * self._W[i]
+                        dW.append(dW_i)
 
-            dhb = []
-            # hidden biases
-            for i in xrange(self.n_layers):
-                with tf.name_scope('dhb'):
-                    dhb_i = tf.reduce_mean(mu[i], axis=0) - tf.reduce_mean(H[i], axis=0)
-                    dhb.append(dhb_i)
+                dhb = []
+                # hidden biases
+                for i in xrange(self.n_layers):
+                    with tf.name_scope('dhb'):
+                        dhb_i = tf.reduce_mean(mu[i], axis=0) - tf.reduce_mean(self._H[i], axis=0)
+                        dhb.append(dhb_i)
 
-        # update parameters
-        with tf.name_scope('momentum_updates'):
-            with tf.name_scope('dvb'):
-                dvb_update = self._dvb.assign(self._learning_rate * (self._momentum * self._dvb + dvb))
-                vb_update = self._vb.assign_add(dvb_update)
+            # update parameters
+            with tf.name_scope('momentum_updates'):
+                with tf.name_scope('dvb'):
+                    dvb_update = self._dvb.assign(self._learning_rate * (self._momentum * self._dvb + dvb))
+                    vb_update = self._vb.assign_add(dvb_update)
 
-            W_updates = []
-            for i in xrange(self.n_layers):
-                with tf.name_scope('dW'):
-                    dW_update = self._dW[i].assign(self._learning_rate * (self._momentum * self._dW[i] + dW[i]))
-                    W_update = self._W[i].assign_add(dW_update)
-                    W_updates.append(W_update)
+                W_updates = []
+                for i in xrange(self.n_layers):
+                    with tf.name_scope('dW'):
+                        dW_update = self._dW[i].assign(self._learning_rate * (self._momentum * self._dW[i] + dW[i]))
+                        W_update = self._W[i].assign_add(dW_update)
+                        W_updates.append(W_update)
 
-            hb_updates = []
-            for i in xrange(self.n_layers):
-                with tf.name_scope('dhb'):
-                    dhb_update = self._dhb[i].assign(self._learning_rate * (self._momentum * self._dhb[i] + dhb[i]))
-                    hb_update = self._hb[i].assign_add(dhb_update)
-                    hb_updates.append(hb_update)
+                hb_updates = []
+                for i in xrange(self.n_layers):
+                    with tf.name_scope('dhb'):
+                        dhb_update = self._dhb[i].assign(self._learning_rate * (self._momentum * self._dhb[i] + dhb[i]))
+                        hb_update = self._hb[i].assign_add(dhb_update)
+                        hb_updates.append(hb_update)
 
-        # assemble train_op
-        with tf.name_scope('training_step'):
-            train_op = tf.group(vb_update, tf.group(*W_updates), tf.group(*hb_updates))
-            tf.add_to_collection('train_op', train_op)
+            # assemble train_op
+            with tf.name_scope('training_step'):
+                particles_updates = tf.group(v_update, v_new_update,
+                                             tf.group(*H_updates), tf.group(*H_new_updates),
+                                             name='particles_updates')
+                weights_updates = tf.group(vb_update,
+                                           tf.group(*W_updates),
+                                           tf.group(*hb_updates),
+                                           name='weights_update')
+                train_op = tf.group(weights_updates, particles_updates)
+                tf.add_to_collection('train_op', train_op)
 
         # compute metrics
         with tf.name_scope('mean_squared_reconstruction_error'):
             T = tf.matmul(a=mu[0], b=self._W[0], transpose_b=True)
             v_means = self._v_layer.activation(T, self._vb)
+            v_means = tf.identity(v_means, name='x_reconstruction')
             msre = tf.reduce_mean(tf.square(self._X_batch - v_means))
             tf.add_to_collection('msre', msre)
 
@@ -388,22 +420,34 @@ class DBM(TensorFlowModel):
         tf.summary.scalar('mean_squared_recon_error', msre)
         tf.summary.scalar('n_mf_updates', n_mf_updates)
 
+    def _make_sample_v_particle(self):
+        v, H, v_new, H_new = self._make_particles_update(n_steps=self._n_steps_sample_particles)
+        with tf.control_dependencies([v, v_new] + H + H_new):
+            T = tf.matmul(a=self._H[0], b=self._W[0], transpose_b=True)
+            v_probs = self._v_layer.activation(T, self._vb)
+            sample_v_particle_op = self._v.assign(v_probs)
+        tf.add_to_collection('sample_v_particle_op', sample_v_particle_op)
+
     def _make_tf_model(self):
         self._make_constants()
         self._make_placeholders()
         self._make_vars()
         self._make_train_op()
+        self._make_sample_v_particle()
 
-    def _make_tf_feed_dict(self, X_batch, training=False):
+    def _make_tf_feed_dict(self, X_batch=None, training=False, n_gibbs_steps=None):
         d = {}
-        d['X_batch'] = X_batch
         d['v_rand'] = self._v_layer.make_rand(self.n_particles, self._rng)
         d['h_rand'] = self._h_layers[0].make_rand(self.n_particles, self._rng)
         for i in xrange(1, self.n_layers):
             d['h_rand_{0}'.format(i)] = self._h_layers[i].make_rand(self.n_particles, self._rng)
+        if X_batch is not None:
+            d['X_batch'] = X_batch
         if training:
             d['learning_rate'] = self.learning_rate
             d['momentum'] = self.momentum
+        if n_gibbs_steps is not None:
+            d['n_gibbs_steps'] = n_gibbs_steps
         # prepend name of the scope, and append ':0'
         feed_dict = {}
         for k, v in d.items():
@@ -486,97 +530,69 @@ class DBM(TensorFlowModel):
                 self._save_model(global_step=self.epoch)
 
     @run_in_tf_session
-    def gibbs(self, n_steps=5):
-        pass
+    def sample_v_particle(self, n_gibbs_steps=0, save_model=False):
+        if not self.called_fit:
+            raise RuntimeError('`fit` must be called before calling `sample_v_particle`')
+        self._sample_v_particle_op = tf.get_collection('sample_v_particle_op')[0]
+        v = self._tf_session.run(self._sample_v_particle_op,
+                                 feed_dict=self._make_tf_feed_dict(n_gibbs_steps=n_gibbs_steps))
+        self._save_model()
+        return v
 
 
 if __name__ == '__main__':
     from rbm import BernoulliRBM
     from hdp_dbm.utils.dataset import load_mnist
+    from utils.plot_utils import plot_matrices
+    import matplotlib.pyplot as plt
     X, _ = load_mnist('train', '../data/')
     X /= 255.
-    X = X[:1000]
+    X_val = X[-1000:]
+    X = X[:2000]
+
+    rbm1 = BernoulliRBM.load_model('../models/2_dbm_mnist_rbm_1/')
+    rbm2 = BernoulliRBM.load_model('../models/2_dbm_mnist_rbm_2/')
     #
-    # [1]
-    rbm1 = BernoulliRBM(n_visible=784,
-                        n_hidden=5, # 500
-                        n_gibbs_steps=1,
-                        w_std=0.001,
-                        hb_init=0.,
-                        vb_init=0.,
-                        learning_rate=0.05,
-                        momentum=[.5] * 5 + [.9],
-                        batch_size=100,
-                        max_epoch=5,#100,
-                        L2=1e-3,
-                        sample_h_states=True,
-                        sample_v_states=True,
-                        metrics_config={}, # TODO
-                        # verbose=True,
-                        random_seed=1337,
-                        model_path='dbm-rbm-1/')
-    rbm1.fit(X)
-    H = rbm1.transform(X)
-    # #
-    # [2]
-    rbm2 = BernoulliRBM(n_visible=5, # 500
-                        n_hidden=10, # 1000
-                        n_gibbs_steps=2,# [e/20 + 1 for e in xrange(200)],
-                        w_std=0.01,
-                        hb_init=0.,
-                        vb_init=0.,
-                        learning_rate=0.05,
-                        momentum=[.5] * 5 + [.9],
-                        batch_size=100,
-                        max_epoch=5,# 200,
-                        L2=1e-3,
-                        sample_h_states=True,
-                        sample_v_states=True,
-                        metrics_config={}, # TODO
-                        # verbose=True,
-                        random_seed=1337,
-                        model_path='dbm-rbm-2/')
-    rbm2.fit(H)
-    Z = rbm2.transform(H)
-
-    rbm3 = BernoulliRBM(n_visible=10,  # 500
-                        n_hidden=20,  # 1000
-                        n_gibbs_steps=2,  # [e/20 + 1 for e in xrange(200)],
-                        w_std=0.01,
-                        hb_init=0.,
-                        vb_init=0.,
-                        learning_rate=0.05,
-                        momentum=[.5] * 5 + [.9],
-                        batch_size=100,
-                        max_epoch=5,  # 200,
-                        L2=1e-3,
-                        sample_h_states=True,
-                        sample_v_states=True,
-                        metrics_config={},  # TODO
-                        # verbose=True,
-                        random_seed=1337,
-                        model_path='dbm-rbm-3/')
-    rbm3.fit(Z)
-
-    rbm1 = BernoulliRBM.load_model('dbm-rbm-1/')
     print rbm1.get_tf_params(scope='weights')['W'][0][0]
-    rbm2 = BernoulliRBM.load_model('dbm-rbm-2/')
     print rbm2.get_tf_params(scope='weights')['W'][0][0]
-    rbm3 = BernoulliRBM.load_model('dbm-rbm-3/')
-    print rbm3.get_tf_params(scope='weights')['W'][0][0]
-
-    dbm = DBM(rbms=[rbm1, rbm2, rbm3],
+    #
+    dbm = DBM(rbms=[rbm1, rbm2],
               n_particles=10,
-              n_gibbs_steps=1, # or 5
-              max_mf_updates_per_epoch=10, # or 30
-              learning_rate=0.001, # 0.001 -> epsilonw = max(epsilonw/1.000015,0.00010);
-              # OR in paper 0.005 + gradually -> 0
-              # momentum=???
-              max_epoch=100, # 300 or 500 for paper results
+              n_gibbs_steps=5, # or 5
+              max_mf_updates_per_iter=100, # or 30
+              mf_tol=1e-5,
+              learning_rate=0.001,
+              momentum=[.5] * 5 + [.9],
+              max_epoch=1, # 300 or 500 for paper results
               batch_size=100,
               L2=2e-4,
               random_seed=1337,
-              # verbose=True,
+              verbose=True,
+              tf_dtype='float32',
               save_after_each_epoch=True,
-              model_path = 'dbm/')
-    dbm.fit(X)
+              model_path='dbm/')
+
+    dbm.fit(X, X_val)
+    # dbm = DBM.load_model('dbm/')
+    v = dbm.sample_v_particle(save_model=True)
+
+    # print v[0][:100]
+    # v = dbm.get_tf_params('fantasy_particles/v_particle/')['v']
+    # print v[0][:100]
+
+    # v_new = dbm.get_tf_params('fantasy_particles/v_particle/')['v_new']
+    # h = dbm.get_tf_params('fantasy_particles/h_particle/')['h']
+    # print "v"
+    # print v[0][:200]
+    # print "v_new"
+    # print v[0][:200]
+
+    # print v[1][:15]
+    # print v[2][:15]
+    # print "H"
+    # print h[0][:10]
+    # print h[1][:10]
+    # print h[2][:10]
+    #
+    plot_matrices(v, 10, 1, shape=(28, 28))
+    plt.show()
