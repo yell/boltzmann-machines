@@ -28,11 +28,14 @@ class DBM(TensorFlowModel):
         In AISTATS 2009
     [2] Salakhutdinov, R. Learning Deep Boltzmann Machines, Matlab code.
         url: https://www.cs.toronto.edu/~rsalakhu/DBM.html
+    [3] Goodfellow, I. et. al. (2013). Joint Training of Deep Boltzmann machines
+        for Classification.
     """
     def __init__(self, rbms=None, v_particle_init=None, h_particles_init=None,
                  n_particles=100, n_particles_updates_per_iter=5,
                  max_mf_updates_per_iter=10, mf_tol=1e-7,
-                 learning_rate=0.001, momentum=0.9, max_epoch=10, batch_size=100, L2=1e-5,
+                 learning_rate=0.001, momentum=0.9, max_epoch=10, batch_size=100,
+                 L2=0., max_norm=None,
                  train_metrics_every_iter=10, val_metrics_every_epoch=1,
                  verbose=False, save_after_each_epoch=False,
                  model_path='dbm_model/', *args, **kwargs):
@@ -54,6 +57,12 @@ class DBM(TensorFlowModel):
         self.batch_size = batch_size
         self.L2 = L2
 
+        # It might be helpful to use constraints on the norms of
+        # column of weight vectors instead of L2-regularization,
+        # as is recommended in [3].
+        self.max_norm = max_norm
+        if self.max_norm is None: self.max_norm = np.inf
+
         self.train_metrics_every_iter = train_metrics_every_iter
         self.val_metrics_every_epoch = val_metrics_every_epoch
         self.verbose = verbose
@@ -64,12 +73,13 @@ class DBM(TensorFlowModel):
         self.iter = 0
 
         # tf constants
-        self._L2 = None
-        self._n_particles_updates_per_iter = None
         self._n_particles = None
-        self._batch_size = None
+        self._n_particles_updates_per_iter = None
         self._max_mf_updates_per_iter = None
         self._mf_tol = None
+        self._batch_size = None
+        self._L2 = None
+        self._max_norm = None
         self._N = None
         self._M = None
 
@@ -103,6 +113,10 @@ class DBM(TensorFlowModel):
         self._n_mf_updates = None
         self._sample_v_particle = None
 
+    def _apply_max_norm(self, T):
+        n = tf.norm(T, axis=0)
+        return T * tf.minimum(self._max_norm, n) / tf.maximum(n, 1e-8)
+
     def load_rbms(self, rbms):
         self._rbms = rbms
         if self._rbms is not None:
@@ -135,14 +149,16 @@ class DBM(TensorFlowModel):
 
     def _make_constants(self):
         with tf.name_scope('constants'):
-            self._L2 = tf.constant(self.L2, dtype=self._tf_dtype, name='L2_coef')
+
             self._n_particles = tf.constant(self.n_particles, dtype=tf.int32, name='n_particles')
             self._n_particles_updates_per_iter = \
                 tf.constant(self.n_particles_updates_per_iter, dtype=tf.int32, name='n_particles_updates_per_iter')
-            self._batch_size = tf.constant(self.batch_size, dtype=tf.int32, name='batch_size')
             self._max_mf_updates_per_iter = tf.constant(self.max_mf_updates_per_iter,
                                                         dtype=tf.int32, name='max_mf_updates_per_iter')
             self._mf_tol = tf.constant(self.mf_tol, dtype=self._tf_dtype, name='mf_tol')
+            self._batch_size = tf.constant(self.batch_size, dtype=tf.int32, name='batch_size')
+            self._L2 = tf.constant(self.L2, dtype=self._tf_dtype, name='L2_coef')
+            self._max_norm = tf.constant(self.max_norm, dtype=self._tf_dtype, name='max_norm_coef')
             self._N = tf.cast(self._batch_size, dtype=self._tf_dtype)
             self._M = tf.cast(self._n_particles, dtype=self._tf_dtype)
 
@@ -219,6 +235,7 @@ class DBM(TensorFlowModel):
             for i in xrange(self.n_layers):
                 with tf.name_scope('mu'):
                     t = tf.zeros([self._batch_size, self.n_hiddens[i]], dtype=self._tf_dtype)
+                    # t = .5 * tf.ones([self._batch_size, self.n_hiddens[i]], dtype=self._tf_dtype)
                     mu = tf.Variable(t, name='mu')
                     t_new = tf.zeros([self._batch_size, self.n_hiddens[i]], dtype=self._tf_dtype)
                     mu_new = tf.Variable(t_new, name='mu_new')
@@ -304,11 +321,11 @@ class DBM(TensorFlowModel):
             for i in xrange(self.n_layers):
                 # (1) -- random initialization
                 # ----------------------------
-                t = self._h_layers[i].init(self.batch_size, random_seed=self.make_random_seed())
+                # t = self._h_layers[i].init(self.batch_size, random_seed=self.make_random_seed())
                 q = self._h_layers[i].init(self.batch_size, random_seed=self.make_random_seed())
-                init_op = tf.assign(self._mu[i], t, name='init_mu')
+                # init_op = tf.assign(self._mu[i], t, name='init_mu')
                 init_op2 = tf.assign(self._mu_new[i], q, name='init_mu')
-                init_ops.append(init_op)
+                # init_ops.append(init_op)
                 init_ops.append(init_op2)
 
             # run mean-field updates until convergence
@@ -367,7 +384,8 @@ class DBM(TensorFlowModel):
         # for specified number of steps
         v_update, H_updates, v_new_update, H_new_updates = self._make_particles_update()
 
-        with tf.control_dependencies([v_update, v_new_update] + H_updates + H_new_updates):
+        with tf.control_dependencies([v_update, v_new_update] + H_updates + H_new_updates + \
+                                             [self._mu[i].assign(mu[i]) for i in xrange(self.n_layers)]):
             # compute gradients estimates (= positive - negative associations)
             with tf.name_scope('grads_estimates'):
                 # visible bias
@@ -407,6 +425,7 @@ class DBM(TensorFlowModel):
                     with tf.name_scope('dW'):
                         dW_update = self._dW[i].assign(self._learning_rate * (self._momentum * self._dW[i] + dW[i]))
                         W_update = self._W[i].assign_add(dW_update)
+                        W_update = self._W[i].assign(self._apply_max_norm(W_update))
                         W_updates.append(W_update)
 
                 hb_updates = []
@@ -579,8 +598,9 @@ if __name__ == '__main__':
     rbm1 = BernoulliRBM.load_model('../models/2_dbm_mnist_rbm_1/')
     rbm2 = BernoulliRBM.load_model('../models/2_dbm_mnist_rbm_2/')
     #
-    print rbm1.get_tf_params(scope='weights')['W'][0][0]
-    print rbm2.get_tf_params(scope='weights')['W'][0][0]
+
+    # print np.linalg.norm(rbm1.get_tf_params(scope='weights')['W'], axis=0)#[0][0]
+    # print rbm2.get_tf_params(scope='weights')['W'][0][0]
     #
     H = rbm1.transform(X)
     print H[:10].shape
@@ -598,13 +618,14 @@ if __name__ == '__main__':
               momentum=[.5] * 5 + [.9],
               max_epoch=3, # 300 or 500 for paper results
               batch_size=100,
-              L2=2e-4,
+              L2=0.,
+              max_norm=2.,
               random_seed=1337,
               verbose=True,
               tf_dtype='float32',
               save_after_each_epoch=True,
               model_path='dbm/')
-
+    # print dbm.max_norm
     # dbm = DBM.load_model('dbm/')
 
     # dbm.load_rbms([rbm1, rbm2])
