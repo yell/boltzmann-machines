@@ -92,3 +92,6 @@ class GaussianLayer(BaseLayer):
 
     def make_rand(self, batch_size, rng):
         return rng.randn(batch_size, self.n_units)
+
+    def sample(self, rand_data, means):
+        return rand_data * self.sigma + means
