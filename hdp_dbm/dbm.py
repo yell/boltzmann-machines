@@ -196,36 +196,36 @@ class DBM(TensorFlowModel):
 
         # initialize weights and biases
         with tf.name_scope('weights'):
-            t = tf.constant(vb_init, name='vb_init', dtype=self._tf_dtype)
-            self._vb = tf.Variable(t, name='vb', dtype=self._tf_dtype)
+            t = tf.constant(vb_init, dtype=self._tf_dtype, name='vb_init')
+            self._vb = tf.Variable(t, dtype=self._tf_dtype, name='vb')
             tf.summary.histogram('vb_hist', self._vb)
 
             for i in xrange(self.n_layers):
-                T = tf.constant(W_init[i], name='W_init', dtype=self._tf_dtype)
-                W = tf.Variable(T, name='W', dtype=self._tf_dtype)
+                T = tf.constant(W_init[i], dtype=self._tf_dtype, name='W_init')
+                W = tf.Variable(T, dtype=self._tf_dtype, name='W')
                 self._W.append(W)
                 tf.summary.histogram('W_hist', W)
 
             for i in xrange(self.n_layers):
-                t = tf.constant(hb_init[i], name='hb_init', dtype=self._tf_dtype)
-                hb = tf.Variable(t, name='hb', dtype=self._tf_dtype)
+                t = tf.constant(hb_init[i],  dtype=self._tf_dtype, name='hb_init')
+                hb = tf.Variable(t,  dtype=self._tf_dtype, name='hb')
                 self._hb.append(hb)
                 tf.summary.histogram('hb_hist', hb)
 
         # initialize grads accumulators
         with tf.name_scope('grads'):
-            t = tf.zeros_like(self._vb, dtype=self._tf_dtype, name='dvb_init')
+            t = tf.zeros(vb_init.shape, dtype=self._tf_dtype, name='dvb_init')
             self._dvb = tf.Variable(t, name='dvb')
             tf.summary.histogram('dvb_hist', self._dvb)
 
             for i in xrange(self.n_layers):
-                T = tf.zeros_like(self._W[i], dtype=self._tf_dtype, name='dW_init')
+                T = tf.zeros(W_init[i].shape, dtype=self._tf_dtype, name='dW_init')
                 dW = tf.Variable(T, name='dW')
                 tf.summary.histogram('dW_hist', dW)
                 self._dW.append(dW)
 
             for i in xrange(self.n_layers):
-                t = tf.zeros_like(self._hb[i], dtype=self._tf_dtype, name='dhb_init')
+                t = tf.zeros(hb_init[i].shape, dtype=self._tf_dtype, name='dhb_init')
                 dhb = tf.Variable(t, name='dhb')
                 tf.summary.histogram('dhb_hist', dhb)
                 self._dhb.append(dhb)
@@ -235,7 +235,6 @@ class DBM(TensorFlowModel):
             for i in xrange(self.n_layers):
                 with tf.name_scope('mu'):
                     t = tf.zeros([self._batch_size, self.n_hiddens[i]], dtype=self._tf_dtype)
-                    # t = .5 * tf.ones([self._batch_size, self.n_hiddens[i]], dtype=self._tf_dtype)
                     mu = tf.Variable(t, name='mu')
                     t_new = tf.zeros([self._batch_size, self.n_hiddens[i]], dtype=self._tf_dtype)
                     mu_new = tf.Variable(t_new, name='mu_new')
@@ -245,32 +244,30 @@ class DBM(TensorFlowModel):
 
         # initialize fantasy particles
         with tf.name_scope('fantasy_particles'):
-            with tf.name_scope('v_particle'):
-                if self._v_particle_init is not None:
-                    t = tf.constant(self._v_particle_init, dtype=self._tf_dtype, name='v_init')
-                else:
-                    t = self._v_layer.init(batch_size=self._n_particles,
-                                           random_seed=self.make_random_seed())
-                self._v = tf.Variable(t, dtype=self._tf_dtype, name='v')
-                t_new = self._v_layer.init(batch_size=self._n_particles,
-                                           random_seed=self.make_random_seed())
-                self._v_new = tf.Variable(t_new, dtype=self._tf_dtype, name='v_new')
+            if self._v_particle_init is not None:
+                t = tf.constant(self._v_particle_init, dtype=self._tf_dtype, name='v_init')
+            else:
+                t = self._v_layer.init(batch_size=self._n_particles,
+                                       random_seed=self.make_random_seed())
+            self._v = tf.Variable(t, dtype=self._tf_dtype, name='v')
+            t_new = self._v_layer.init(batch_size=self._n_particles,
+                                       random_seed=self.make_random_seed())
+            self._v_new = tf.Variable(t_new, dtype=self._tf_dtype, name='v_new')
 
-            with tf.name_scope('h_particles'):
-                for i in xrange(self.n_layers):
-                    with tf.name_scope('h_particle'):
-                        if self._h_particles_init is not None:
-                            q = tf.constant(self._h_particles_init[i], shape=[self.n_particles, self.n_hiddens[i]],
-                                            dtype=self._tf_dtype, name='h_init')
-                        else:
-                            q = self._h_layers[i].init(batch_size=self._n_particles,
-                                                       random_seed=self.make_random_seed())
-                        h = tf.Variable(q, dtype=self._tf_dtype, name='h')
-                        q_new = self._h_layers[i].init(batch_size=self._n_particles,
-                                                       random_seed=self.make_random_seed())
-                        h_new = tf.Variable(q_new, dtype=self._tf_dtype, name='h_new')
-                        self._H.append(h)
-                        self._H_new.append(h_new)
+            for i in xrange(self.n_layers):
+                with tf.name_scope('h_particle'):
+                    if self._h_particles_init is not None:
+                        q = tf.constant(self._h_particles_init[i], shape=[self.n_particles, self.n_hiddens[i]],
+                                        dtype=self._tf_dtype, name='h_init')
+                    else:
+                        q = self._h_layers[i].init(batch_size=self._n_particles,
+                                                   random_seed=self.make_random_seed())
+                    h = tf.Variable(q, dtype=self._tf_dtype, name='h')
+                    q_new = self._h_layers[i].init(batch_size=self._n_particles,
+                                                   random_seed=self.make_random_seed())
+                    h_new = tf.Variable(q_new, dtype=self._tf_dtype, name='h_new')
+                    self._H.append(h)
+                    self._H_new.append(h_new)
 
     def _make_gibbs_step(self, v, H, v_new, H_new, update_v=True, sample=True):
         """Compute one Gibbs step."""
@@ -316,16 +313,11 @@ class DBM(TensorFlowModel):
     def _make_mf(self):
         """Run mean-files updates for current mini-batch"""
         with tf.name_scope('mean_field'):
-            # randomly initialize variational parameters
+            # randomly initialize mu_new
             init_ops = []
             for i in xrange(self.n_layers):
-                # (1) -- random initialization
-                # ----------------------------
-                # t = self._h_layers[i].init(self.batch_size, random_seed=self.make_random_seed())
                 q = self._h_layers[i].init(self.batch_size, random_seed=self.make_random_seed())
-                # init_op = tf.assign(self._mu[i], t, name='init_mu')
                 init_op2 = tf.assign(self._mu_new[i], q, name='init_mu')
-                # init_ops.append(init_op)
                 init_ops.append(init_op2)
 
             # run mean-field updates until convergence
@@ -384,7 +376,7 @@ class DBM(TensorFlowModel):
         # for specified number of steps
         v_update, H_updates, v_new_update, H_new_updates = self._make_particles_update()
 
-        with tf.control_dependencies([v_update, v_new_update] + H_updates + H_new_updates + \
+        with tf.control_dependencies([v_update, v_new_update] + H_updates + H_new_updates +\
                                              [self._mu[i].assign(mu[i]) for i in xrange(self.n_layers)]):
             # compute gradients estimates (= positive - negative associations)
             with tf.name_scope('grads_estimates'):
@@ -609,14 +601,14 @@ if __name__ == '__main__':
 
     dbm = DBM(rbms=[rbm1, rbm2],
               n_particles=10,
-              v_particle_init=X[:10].copy(),
-              h_particles_init=(H[:10].copy(), Z[:10].copy()),
+              v_particle_init=X[:10],
+              h_particles_init=(H[:10], Z[:10]),
               n_particles_updates_per_iter=5, # or 5
               max_mf_updates_per_iter=100, # or 30
               mf_tol=1e-5,
               learning_rate=0.001,
               momentum=[.5] * 5 + [.9],
-              max_epoch=3, # 300 or 500 for paper results
+              max_epoch=2, # 300 or 500 for paper results
               batch_size=100,
               L2=0.,
               max_norm=2.,

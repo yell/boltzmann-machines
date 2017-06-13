@@ -171,9 +171,9 @@ class BaseRBM(TensorFlowModel):
 
     def _make_vars(self):
         with tf.name_scope('weights'):
-            W_tensor = tf.random_normal((self.n_visible, self.n_hidden),
+            W_tensor = tf.random_normal([self.n_visible, self.n_hidden],
                                         mean=0.0, stddev=self.w_std, seed=self.random_seed, dtype=self._tf_dtype)
-            self._W = tf.Variable(W_tensor, name='W', dtype=self._tf_dtype)
+            self._W = tf.Variable(W_tensor, dtype=self._tf_dtype, name='W')
             self._hb = tf.Variable(self._hb_init * tf.ones((self.n_hidden,), dtype=self._tf_dtype), name='hb')
             self._vb = tf.Variable(self._vb_init, dtype=self._tf_dtype, name='vb')
             tf.summary.histogram('W', self._W)
@@ -181,9 +181,9 @@ class BaseRBM(TensorFlowModel):
             tf.summary.histogram('vb', self._vb)
 
         with tf.name_scope('grads'):
-            self._dW = tf.Variable(tf.zeros((self.n_visible, self.n_hidden), dtype=self._tf_dtype), name='dW')
-            self._dhb = tf.Variable(tf.zeros((self.n_hidden,), dtype=self._tf_dtype), name='dhb')
-            self._dvb = tf.Variable(tf.zeros((self.n_visible,), dtype=self._tf_dtype), name='dvb')
+            self._dW = tf.Variable(tf.zeros([self.n_visible, self.n_hidden], dtype=self._tf_dtype), name='dW')
+            self._dhb = tf.Variable(tf.zeros([self.n_hidden], dtype=self._tf_dtype), name='dhb')
+            self._dvb = tf.Variable(tf.zeros([self.n_visible], dtype=self._tf_dtype), name='dvb')
             tf.summary.histogram('dW', self._dW)
             tf.summary.histogram('dhb', self._dhb)
             tf.summary.histogram('dvb', self._dvb)
