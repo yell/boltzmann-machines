@@ -97,7 +97,7 @@ class TensorFlowModel(BaseModel):
             setattr(self, '_{0}'.format(k), v)
 
     def _make_tf_model(self):
-        raise NotImplementedError
+        raise NotImplementedError('`_make_tf_model` is not implemented')
 
     def _init_tf_ops(self):
         """Initialize all TF variables and Saver"""
@@ -159,7 +159,7 @@ class TensorFlowModel(BaseModel):
 
     def _fit(self, X, X_val=None):
         """Class-specific `fit` routine."""
-        raise NotImplementedError()
+        raise NotImplementedError('`fit` is not implemented')
 
     @run_in_tf_session
     def fit(self, X, X_val=None):

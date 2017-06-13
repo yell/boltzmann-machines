@@ -10,7 +10,7 @@ class BaseLayer(object):
 
     def init(self, batch_size, random_seed=None):
         """Randomly initialize states according to their distribution."""
-        raise NotImplementedError
+        raise NotImplementedError('`init` is not implemented')
 
     def activation(self, x, b):
         """Compute activation of states according to the distribution.
@@ -20,15 +20,15 @@ class BaseLayer(object):
         x - total input received (incl. bias)
         b - bias
         """
-        raise NotImplementedError
+        raise NotImplementedError('`activation` is not implemented')
 
     def make_rand(self, batch_size, rng):
         """Generate random data that will be passed to feed_dict."""
-        pass
+        raise NotImplementedError('`make_rand` is not implemented')
 
     def sample(self, rand_data, means):
         """Sample states of the units by combining output from 2 previous functions."""
-        pass
+        raise NotImplementedError('`sample` is not implemented')
 
 
 class BernoulliLayer(BaseLayer):

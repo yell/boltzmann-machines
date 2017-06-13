@@ -167,7 +167,7 @@ class BaseRBM(TensorFlowModel):
             self._momentum = tf.placeholder(self._tf_dtype, [], name='momentum')
 
     def _make_placeholders(self):
-        raise NotImplementedError
+        raise NotImplementedError('`_make_placeholders` is not implemented')
 
     def _make_vars(self):
         with tf.name_scope('weights'):
@@ -228,7 +228,7 @@ class BaseRBM(TensorFlowModel):
 
     def _free_energy(self, v):
         """Compute (average) free energy of a visible vectors `v`."""
-        raise NotImplementedError
+        raise NotImplementedError('`free_energy` is not implemented')
 
     def _make_train_op(self):
         # Run Gibbs chain for specified number of steps.
