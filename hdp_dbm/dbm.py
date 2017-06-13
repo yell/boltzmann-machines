@@ -274,41 +274,42 @@ class DBM(TensorFlowModel):
         """Compute one Gibbs step."""
         with tf.name_scope('gibbs_step'):
 
-            # update visible layer
-            if update_v:
-                with tf.name_scope('means_v_given_h0'):
-                    T = tf.matmul(a=H[0], b=self._W[0], transpose_b=True)
-                    v_new = self._v_layer.activation(T, self._vb)
-                if sample:
-                    with tf.name_scope('sample_v_given_h'):
-                        v_new = self._v_layer.sample(rand_data=self._v_rand, means=v_new)
-
-            # update last hidden layer
-            with tf.name_scope('means_h{0}_given_h{1}'.format(self.n_layers - 1, self.n_layers - 2)):
-                T = tf.matmul(H[-2], self._W[-1])
-                H_new[-1] = self._h_layers[-1].activation(T, self._hb[-1])
-            if sample:
-                with tf.name_scope('sample_h{0}_given_h{1}'.format(self.n_layers - 1, self.n_layers - 2)):
-                    H_new[-1] = self._h_layers[-1].sample(rand_data=self._h_rand[-1], means=H_new[-1])
-
             # update first hidden layer
-            with tf.name_scope('means_h0_given_v_h1'):
+            with tf.name_scope('means_h0_hat_given_v_h1'):
                 T1 = tf.matmul(v, self._W[0])
                 T2 = tf.matmul(a=H[1], b=self._W[1], transpose_b=True)
                 H_new[0] = self._h_layers[0].activation(T1 + T2, self._hb[0])
             if sample:
-                with tf.name_scope('sample_h0_given_v_h1'):
+                with tf.name_scope('sample_h0_hat_given_v_h1'):
                     H_new[0] = self._h_layers[0].sample(rand_data=self._h_rand[0], means=H_new[0])
 
             # update the intermediate hidden layers if any
             for i in xrange(1, self.n_layers - 1):
-                with tf.name_scope('means_h{0}_given_h{1}_h{2}'.format(i, i - 1, i + 1)):
-                    T1 = tf.matmul(H[i - 1], self._W[i])
+                with tf.name_scope('means_h{0}_hat_given_h{1}_hat_h{2}'.format(i, i - 1, i + 1)):
+                    T1 = tf.matmul(H_new[i - 1], self._W[i])
                     T2 = tf.matmul(a=H[i + 1], b=self._W[i + 1], transpose_b=True)
                     H_new[i] = self._h_layers[i].activation(T1 + T2, self._hb[i])
                 if sample:
-                    with tf.name_scope('sample_h{0}_given_h{1}_h{2}'.format(i, i - 1, i + 1)):
+                    with tf.name_scope('sample_h{0}_hat_given_h{1}_hat_h{2}'.format(i, i - 1, i + 1)):
                         H_new[i] = self._h_layers[i].sample(rand_data=self._h_rand[i], means=H_new[i])
+
+            # update last hidden layer
+            with tf.name_scope('means_h{0}_hat_given_h{1}_hat'.format(self.n_layers - 1, self.n_layers - 2)):
+                T = tf.matmul(H_new[-2], self._W[-1])
+                H_new[-1] = self._h_layers[-1].activation(T, self._hb[-1])
+            if sample:
+                with tf.name_scope('sample_h{0}_hat_given_h{1}_hat'.format(self.n_layers - 1, self.n_layers - 2)):
+                    H_new[-1] = self._h_layers[-1].sample(rand_data=self._h_rand[-1], means=H_new[-1])
+
+            # update visible layer
+            if update_v:
+                with tf.name_scope('means_v_hat_given_h0_hat'):
+                    T = tf.matmul(a=H_new[0], b=self._W[0], transpose_b=True)
+                    v_new = self._v_layer.activation(T, self._vb)
+                if sample:
+                    with tf.name_scope('sample_v_hat_given_h_hat'):
+                        v_new = self._v_layer.sample(rand_data=self._v_rand, means=v_new)
+
         return v, H, v_new, H_new
 
     def _make_mf(self):
