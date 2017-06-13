@@ -478,7 +478,7 @@ class BaseRBM(TensorFlowModel):
 
     @run_in_tf_session
     def transform(self, X):
-        """Compute hidden units activation probabilities."""
+        """Compute hidden units' activation probabilities."""
         self._transform_op = tf.get_collection('transform_op')[0]
         H = np.zeros((len(X), self.n_hidden))
         start = 0

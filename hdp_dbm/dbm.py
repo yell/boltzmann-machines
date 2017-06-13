@@ -109,6 +109,7 @@ class DBM(TensorFlowModel):
 
         # tf operations
         self._train_op = None
+        self._transform_op = None
         self._msre = None
         self._n_mf_updates = None
         self._sample_v_particle = None
@@ -372,6 +373,11 @@ class DBM(TensorFlowModel):
         # run mean-field updates for current mini-batch
         n_mf_updates, mu = self._make_mf()
 
+        # encoded data, used by the transform method
+        with tf.name_scope('transform'):
+            transform_op = tf.identity(mu[-1])
+            tf.add_to_collection('transform_op', transform_op)
+
         # update fantasy particles by running Gibbs sampler
         # for specified number of steps
         v_update, H_updates, v_new_update, H_new_updates = self._make_particles_update()
@@ -574,6 +580,18 @@ class DBM(TensorFlowModel):
         self._save_model()
         return v
 
+    @run_in_tf_session
+    def transform(self, X):
+        """Compute hidden units' (from last layer) activation probabilities."""
+        self._transform_op = tf.get_collection('transform_op')[0]
+        Z = np.zeros((len(X), self.n_hiddens[-1]))
+        start = 0
+        for X_b in batch_iter(X, batch_size=self.batch_size):
+            Z_b = self._transform_op.eval(feed_dict=self._make_tf_feed_dict(X_b))
+            Z[start:(start + self.batch_size)] = Z_b
+            start += self.batch_size
+        return Z
+
 
 if __name__ == '__main__':
     from rbm import BernoulliRBM
@@ -625,7 +643,10 @@ if __name__ == '__main__':
     # print dbm._h_particles_init[0]
 
     dbm.fit(X, X_val)
-    print dbm.get_tf_params('weights')['W'][0][0] * 2
+    Zt = dbm.transform(X)
+    print Zt.shape
+    print Zt[0][:10]
+    # print dbm.get_tf_params('weights')['W'][0][0] * 2
 
 
 
