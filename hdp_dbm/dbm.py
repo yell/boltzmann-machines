@@ -171,7 +171,7 @@ class DBM(TensorFlowModel):
             self._v_rand = tf.placeholder(self._tf_dtype, [None, self.n_visible], name='v_rand')
             self._h_rand = []
             for i in xrange(self.n_layers):
-                P = tf.placeholder(self._tf_dtype, [None, self.n_hiddens[i]], name='h_rand')
+                P = tf.placeholder(self._tf_dtype, self._h_layers[i].get_rand_shape(), name='h_rand')
                 self._h_rand.append(P)
             self._n_gibbs_steps = tf.placeholder(tf.int32, [], name='n_gibbs_steps')
 
@@ -599,78 +599,127 @@ if __name__ == '__main__':
     from hdp_dbm.utils.dataset import load_mnist
     from utils.plot_utils import plot_matrices
     import matplotlib.pyplot as plt
-    X, _ = load_mnist('train', '../data/')
-    X /= 255.
-    X_val = X[-1000:]
-    X = X[:2000]
-
-    print X[:10].shape
-
-    rbm1 = BernoulliRBM.load_model('../models/2_dbm_mnist_rbm_1/')
-    rbm2 = BernoulliRBM.load_model('../models/2_dbm_mnist_rbm_2/')
+    # X, _ = load_mnist('train', '../data/')
+    # X /= 255.
+    # X_val = X[-1000:]
+    # X = X[:2000]
     #
-
-    # print np.linalg.norm(rbm1.get_tf_params(scope='weights')['W'], axis=0)#[0][0]
-    # print rbm2.get_tf_params(scope='weights')['W'][0][0]
+    # print X[:10].shape
     #
-    H = rbm1.transform(X)
-    print H[:10].shape
-    Z = rbm2.transform(H)
-    print Z[:10].shape
-
-    dbm = DBM(rbms=[rbm1, rbm2],
-              n_particles=10,
-              v_particle_init=X[:10],
-              h_particles_init=(H[:10], Z[:10]),
-              n_particles_updates_per_iter=5, # or 5
-              max_mf_updates_per_iter=100, # or 30
-              mf_tol=1e-5,
-              learning_rate=0.001,
-              momentum=[.5] * 5 + [.9],
-              max_epoch=2, # 300 or 500 for paper results
-              batch_size=100,
-              L2=0.,
-              max_norm=2.,
-              random_seed=1337,
-              verbose=True,
-              tf_dtype='float32',
-              save_after_each_epoch=True,
-              model_path='dbm/')
-    # print dbm.max_norm
-    # dbm = DBM.load_model('dbm/')
-
-    # dbm.load_rbms([rbm1, rbm2])
-    # print dbm._v_particle_init.shape
-    # print dbm._h_particles_init[0]
-
-    dbm.fit(X, X_val)
-    Zt = dbm.transform(X)
-    print Zt.shape
-    print Zt[0][:10]
-    # print dbm.get_tf_params('weights')['W'][0][0] * 2
-
-
-
-
-    # v = dbm.sample_v_particle(save_model=True)
-    #
-    # # print v[0][:100]
-    # # v = dbm.get_tf_params('fantasy_particles/v_particle/')['v']
-    # # print v[0][:100]
-    #
-    # # v_new = dbm.get_tf_params('fantasy_particles/v_particle/')['v_new']
-    # # h = dbm.get_tf_params('fantasy_particles/h_particle/')['h']
-    # # print "v"
-    # # print v[0][:200]
-    # # print "v_new"
-    # # print v[0][:200]
-    #
-    # # print v[1][:15]
-    # # print v[2][:15]
-    # # print "H"
-    # # print h[0][:10]
-    # # print h[1][:10]
-    # # print h[2][:10]
+    # rbm1 = BernoulliRBM.load_model('../models/2_dbm_mnist_rbm_1/')
+    # rbm2 = BernoulliRBM.load_model('../models/2_dbm_mnist_rbm_2/')
     # #
+    #
+    # # print np.linalg.norm(rbm1.get_tf_params(scope='weights')['W'], axis=0)#[0][0]
+    # # print rbm2.get_tf_params(scope='weights')['W'][0][0]
+    # #
+    # H = rbm1.transform(X)
+    # print H[:10].shape
+    # Z = rbm2.transform(H)
+    # print Z[:10].shape
+    #
+    # dbm = DBM(rbms=[rbm1, rbm2],
+    #           n_particles=10,
+    #           v_particle_init=X[:10],
+    #           h_particles_init=(H[:10], Z[:10]),
+    #           n_particles_updates_per_iter=5, # or 5
+    #           max_mf_updates_per_iter=100, # or 30
+    #           mf_tol=1e-5,
+    #           learning_rate=0.001,
+    #           momentum=[.5] * 5 + [.9],
+    #           max_epoch=2, # 300 or 500 for paper results
+    #           batch_size=100,
+    #           L2=0.,
+    #           max_norm=2.,
+    #           random_seed=1337,
+    #           verbose=True,
+    #           tf_dtype='float32',
+    #           save_after_each_epoch=True,
+    #           model_path='dbm/')
+    # # print dbm.max_norm
+    # # dbm = DBM.load_model('dbm/')
+    #
+    # # dbm.load_rbms([rbm1, rbm2])
+    # # print dbm._v_particle_init.shape
+    # # print dbm._h_particles_init[0]
+    #
+    # dbm.fit(X, X_val)
+    # Zt = dbm.transform(X)
+    # print Zt.shape
+    # print Zt[0][:10]
+    # print dbm.get_tf_params('weights')['W'][0][0] * 2
+    #
+    #
+    #
+    #
+    # v = dbm.sample_v_particle(save_model=True)
+
+    # print v[0][:100]
+    # v = dbm.get_tf_params('fantasy_particles/v_particle/')['v']
+    # print v[0][:100]
+
+    # v_new = dbm.get_tf_params('fantasy_particles/v_particle/')['v_new']
+    # h = dbm.get_tf_params('fantasy_particles/h_particle/')['h']
+    # print "v"
+    # print v[0][:200]
+    # print "v_new"
+    # print v[0][:200]
+
+    # print v[1][:15]
+    # print v[2][:15]
+    # print "H"
+    # print h[0][:10]
+    # print h[1][:10]
+    # print h[2][:10]
+    #
     # plot_matrices(v, 10, 1, shape=(28, 28))
     # plt.show()
+
+    ########################
+
+    from hdp_dbm.rbm import GaussianRBM, MultinomialRBM
+
+    X, _ = load_mnist(mode='train', path='../data/')
+    X /= 255.
+
+    m = X.mean(axis=0)
+    X -= m
+
+    def learning_rate(lr=0.001):
+        gamma = 1.000015 ** 600
+        while True:
+            yield max(lr, 1e-5)
+            lr /= gamma
+
+    def momentum():
+        m = 0.5
+        while True:
+            yield min(m, 0.9)
+            m *= 1.08
+
+    rbm1 = GaussianRBM.load_model('../models/3_rbm_1/')
+    rbm2 = MultinomialRBM.load_model('../models/3_rbm_2/')
+
+    Y = X[:1000].copy()
+    H = rbm1.transform(Y)
+    Z = rbm2.transform(H)
+
+    dbm = DBM(rbms=[rbm1, rbm2],
+              n_particles=1000,  # M
+              v_particle_init=Y,
+              h_particles_init=(H, Z),
+              n_particles_updates_per_iter=5,
+              max_mf_updates_per_iter=10,
+              mf_tol=1e-7,
+              learning_rate=learning_rate(1e-5),
+              momentum=momentum(),  # [.5] * 5 + [.9],
+              max_epoch=200,
+              batch_size=100,
+              L2=0.,
+              max_norm=4.,
+              random_seed=1337,
+              verbose=True,
+              save_after_each_epoch=True,
+              tf_dtype='float64',  # crucial for this model
+              model_path='../models/3_dbm/')
+    dbm.fit(X)

@@ -22,6 +22,10 @@ class BaseLayer(object):
         """
         raise NotImplementedError('`activation` is not implemented')
 
+    def get_rand_shape(self):
+        """Return shape of respective placeholder."""
+        return [None, self.n_units]
+
     def make_rand(self, batch_size, rng):
         """Generate random data that will be passed to feed_dict."""
         raise NotImplementedError('`make_rand` is not implemented')
@@ -61,6 +65,9 @@ class MultinomialLayer(BaseLayer):
 
     def activation(self, x, b):
         return tf.nn.softmax(x + b)
+
+    def get_rand_shape(self):
+        return [None, 1]
 
     def make_rand(self, batch_size, rng):
         return rng.rand(batch_size, 1)
