@@ -87,8 +87,6 @@ class DBM(TensorFlowModel):
         self._X_batch = None
         self._learning_rate = None
         self._momentum = None
-        self._v_rand = None
-        self._h_rand = []
         self._n_gibbs_steps = None
 
         # tf vars
@@ -168,11 +166,6 @@ class DBM(TensorFlowModel):
             self._X_batch = tf.placeholder(self._tf_dtype, [None, self.n_visible], name='X_batch')
             self._learning_rate = tf.placeholder(self._tf_dtype, [], name='learning_rate')
             self._momentum = tf.placeholder(self._tf_dtype, [], name='momentum')
-            self._v_rand = tf.placeholder(self._tf_dtype, [None, self.n_visible], name='v_rand')
-            self._h_rand = []
-            for i in xrange(self.n_layers):
-                P = tf.placeholder(self._tf_dtype, self._h_layers[i].get_rand_shape(), name='h_rand')
-                self._h_rand.append(P)
             self._n_gibbs_steps = tf.placeholder(tf.int32, [], name='n_gibbs_steps')
 
     def _make_vars(self):
@@ -248,11 +241,9 @@ class DBM(TensorFlowModel):
             if self._v_particle_init is not None:
                 t = tf.constant(self._v_particle_init, dtype=self._tf_dtype, name='v_init')
             else:
-                t = self._v_layer.init(batch_size=self._n_particles,
-                                       random_seed=self.make_random_seed())
+                t = self._v_layer.init(batch_size=self._n_particles)
             self._v = tf.Variable(t, dtype=self._tf_dtype, name='v')
-            t_new = self._v_layer.init(batch_size=self._n_particles,
-                                       random_seed=self.make_random_seed())
+            t_new = self._v_layer.init(batch_size=self._n_particles)
             self._v_new = tf.Variable(t_new, dtype=self._tf_dtype, name='v_new')
 
             for i in xrange(self.n_layers):
@@ -261,11 +252,9 @@ class DBM(TensorFlowModel):
                         q = tf.constant(self._h_particles_init[i], shape=[self.n_particles, self.n_hiddens[i]],
                                         dtype=self._tf_dtype, name='h_init')
                     else:
-                        q = self._h_layers[i].init(batch_size=self._n_particles,
-                                                   random_seed=self.make_random_seed())
+                        q = self._h_layers[i].init(batch_size=self._n_particles)
                     h = tf.Variable(q, dtype=self._tf_dtype, name='h')
-                    q_new = self._h_layers[i].init(batch_size=self._n_particles,
-                                                   random_seed=self.make_random_seed())
+                    q_new = self._h_layers[i].init(batch_size=self._n_particles)
                     h_new = tf.Variable(q_new, dtype=self._tf_dtype, name='h_new')
                     self._H.append(h)
                     self._H_new.append(h_new)
@@ -281,7 +270,7 @@ class DBM(TensorFlowModel):
                 H_new[0] = self._h_layers[0].activation(T1 + T2, self._hb[0])
             if sample:
                 with tf.name_scope('sample_h0_hat_given_v_h1'):
-                    H_new[0] = self._h_layers[0].sample(rand_data=self._h_rand[0], means=H_new[0])
+                    H_new[0] = self._h_layers[0].sample(means=H_new[0])
 
             # update the intermediate hidden layers if any
             for i in xrange(1, self.n_layers - 1):
@@ -291,7 +280,7 @@ class DBM(TensorFlowModel):
                     H_new[i] = self._h_layers[i].activation(T1 + T2, self._hb[i])
                 if sample:
                     with tf.name_scope('sample_h{0}_hat_given_h{1}_hat_h{2}'.format(i, i - 1, i + 1)):
-                        H_new[i] = self._h_layers[i].sample(rand_data=self._h_rand[i], means=H_new[i])
+                        H_new[i] = self._h_layers[i].sample(means=H_new[i])
 
             # update last hidden layer
             with tf.name_scope('means_h{0}_hat_given_h{1}_hat'.format(self.n_layers - 1, self.n_layers - 2)):
@@ -299,7 +288,7 @@ class DBM(TensorFlowModel):
                 H_new[-1] = self._h_layers[-1].activation(T, self._hb[-1])
             if sample:
                 with tf.name_scope('sample_h{0}_hat_given_h{1}_hat'.format(self.n_layers - 1, self.n_layers - 2)):
-                    H_new[-1] = self._h_layers[-1].sample(rand_data=self._h_rand[-1], means=H_new[-1])
+                    H_new[-1] = self._h_layers[-1].sample(means=H_new[-1])
 
             # update visible layer
             if update_v:
@@ -308,7 +297,7 @@ class DBM(TensorFlowModel):
                     v_new = self._v_layer.activation(T, self._vb)
                 if sample:
                     with tf.name_scope('sample_v_hat_given_h_hat'):
-                        v_new = self._v_layer.sample(rand_data=self._v_rand, means=v_new)
+                        v_new = self._v_layer.sample(means=v_new)
 
         return v, H, v_new, H_new
 
@@ -318,7 +307,7 @@ class DBM(TensorFlowModel):
             # randomly initialize mu_new
             init_ops = []
             for i in xrange(self.n_layers):
-                q = self._h_layers[i].init(self.batch_size, random_seed=self.make_random_seed())
+                q = self._h_layers[i].init(self.batch_size)
                 init_op2 = tf.assign(self._mu_new[i], q, name='init_mu')
                 init_ops.append(init_op2)
 
@@ -477,17 +466,12 @@ class DBM(TensorFlowModel):
         self._make_train_op()
         self._make_sample_v_particle()
 
-    def _make_tf_feed_dict(self, X_batch=None, training=False, n_gibbs_steps=None):
+    def _make_tf_feed_dict(self, X_batch=None, n_gibbs_steps=None):
         d = {}
-        d['v_rand'] = self._v_layer.make_rand(self.n_particles, self._rng)
-        d['h_rand'] = self._h_layers[0].make_rand(self.n_particles, self._rng)
-        for i in xrange(1, self.n_layers):
-            d['h_rand_{0}'.format(i)] = self._h_layers[i].make_rand(self.n_particles, self._rng)
+        d['learning_rate'] = self.learning_rate
+        d['momentum'] = self.momentum
         if X_batch is not None:
             d['X_batch'] = X_batch
-        if training:
-            d['learning_rate'] = self.learning_rate
-            d['momentum'] = self.momentum
         if n_gibbs_steps is not None:
             d['n_gibbs_steps'] = n_gibbs_steps
         # prepend name of the scope, and append ':0'
@@ -507,14 +491,13 @@ class DBM(TensorFlowModel):
             if self.iter % self.train_metrics_every_iter == 0:
                 msre, n_mf_upds, _, s = self._tf_session.run([self._msre, self._n_mf_updates,
                                                               self._train_op, self._tf_merged_summaries],
-                                                             feed_dict=self._make_tf_feed_dict(X_batch,
-                                                                                               training=True))
+                                                             feed_dict=self._make_tf_feed_dict(X_batch))
                 train_msres.append(msre)
                 train_n_mf_updates.append(n_mf_upds)
                 self._tf_train_writer.add_summary(s, self.iter)
             else:
                 self._tf_session.run(self._train_op,
-                                     feed_dict=self._make_tf_feed_dict(X_batch, training=True))
+                                     feed_dict=self._make_tf_feed_dict(X_batch))
         return (np.mean(train_msres) if train_msres else None,
                 np.mean(train_n_mf_updates) if train_n_mf_updates else None)
 
@@ -596,7 +579,7 @@ class DBM(TensorFlowModel):
 
 if __name__ == '__main__':
     from rbm import BernoulliRBM
-    from hdp_dbm.utils.dataset import load_mnist
+    from utils.dataset import load_mnist
     from utils.plot_utils import plot_matrices
     import matplotlib.pyplot as plt
     # X, _ = load_mnist('train', '../data/')
@@ -677,7 +660,7 @@ if __name__ == '__main__':
 
     ########################
 
-    from hdp_dbm.rbm import GaussianRBM, MultinomialRBM
+    from rbm import GaussianRBM, MultinomialRBM
 
     X, _ = load_mnist(mode='train', path='../data/')
     X /= 255.
@@ -701,13 +684,13 @@ if __name__ == '__main__':
     rbm2 = MultinomialRBM.load_model('../models/3_rbm_2/')
 
     Y = X[:1000].copy()
-    H = rbm1.transform(Y)
-    Z = rbm2.transform(H)
+    # H = rbm1.transform(Y)
+    # Z = rbm2.transform(H)
 
     dbm = DBM(rbms=[rbm1, rbm2],
               n_particles=1000,  # M
               v_particle_init=Y,
-              h_particles_init=(H, Z),
+              # h_particles_init=(H, Z),
               n_particles_updates_per_iter=5,
               max_mf_updates_per_iter=10,
               mf_tol=1e-7,
@@ -720,6 +703,6 @@ if __name__ == '__main__':
               random_seed=1337,
               verbose=True,
               save_after_each_epoch=True,
-              tf_dtype='float64',  # crucial for this model
+              tf_dtype='float64',
               model_path='../models/3_dbm/')
     dbm.fit(X)

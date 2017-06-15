@@ -10,12 +10,11 @@ class BernoulliRBM(BaseRBM):
     def __init__(self, model_path='b_rbm_model/', *args, **kwargs):
         super(BernoulliRBM, self).__init__(model_path=model_path, *args, **kwargs)
         self._v_layer = BernoulliLayer(n_units=self.n_visible,
-                                       tf_dtype=self._tf_dtype)
+                                       tf_dtype=self._tf_dtype,
+                                       random_seed=self.make_random_seed())
         self._h_layer = BernoulliLayer(n_units=self.n_hidden,
-                                       tf_dtype=self._tf_dtype)
-
-    def _make_placeholders(self):
-        super(BernoulliRBM, self)._make_placeholders_routine(h_rand_shape=[None, self.n_hidden])
+                                       tf_dtype=self._tf_dtype,
+                                       random_seed=self.make_random_seed())
 
     def _free_energy(self, v):
         with tf.name_scope('free_energy'):
@@ -26,7 +25,8 @@ class BernoulliRBM(BaseRBM):
 
 
 class MultinomialRBM(BaseRBM):
-    """RBM with Bernoulli visible and single Multinomial hidden unit.
+    """RBM with Bernoulli visible and single Multinomial hidden unit
+    (= multiple softmax units with tied weights).
 
     Parameters
     ----------
@@ -36,12 +36,11 @@ class MultinomialRBM(BaseRBM):
     def __init__(self, model_path='m_rbm_model/', *args, **kwargs):
         super(MultinomialRBM, self).__init__(model_path=model_path, *args, **kwargs)
         self._v_layer = BernoulliLayer(n_units=self.n_visible,
-                                       tf_dtype=self._tf_dtype)
+                                       tf_dtype=self._tf_dtype,
+                                       random_seed=self.make_random_seed())
         self._h_layer = MultinomialLayer(n_units=self.n_hidden,
-                                         tf_dtype=self._tf_dtype)
-
-    def _make_placeholders(self):
-        super(MultinomialRBM, self)._make_placeholders_routine(h_rand_shape=[None, 1])
+                                         tf_dtype=self._tf_dtype,
+                                         random_seed=self.make_random_seed())
 
     def _free_energy(self, v):
         with tf.name_scope('free_energy'):
@@ -80,22 +79,19 @@ class GaussianRBM(BaseRBM):
 
         self._v_layer = GaussianLayer(sigma=self.sigma,
                                       n_units=self.n_visible,
-                                      tf_dtype=self._tf_dtype)
+                                      tf_dtype=self._tf_dtype,
+                                      random_seed=self.make_random_seed())
         self._h_layer = BernoulliLayer(n_units=self.n_hidden,
-                                       tf_dtype=self._tf_dtype)
+                                       tf_dtype=self._tf_dtype,
+                                       random_seed=self.make_random_seed())
 
     def _make_placeholders(self):
-        super(GaussianRBM, self)._make_placeholders_routine(h_rand_shape=[None, self.n_hidden])
+        super(GaussianRBM, self)._make_placeholders()
         with tf.name_scope('input_data'):
             # divide by resp. sigmas before any operation
             self._sigma = tf.Variable(self._sigma_tmp, dtype=self._tf_dtype, name='sigma')
             self._sigma = tf.reshape(self._sigma, [1, self.n_visible])
             self._X_batch = tf.divide(self._X_batch, self._sigma)
-
-    def _sample_v_given_h(self, v_means):
-        with tf.name_scope('sample_v_given_h'):
-            v_samples = v_means + self._v_rand * self._sigma
-        return v_samples
 
     def _free_energy(self, v):
         with tf.name_scope('free_energy'):

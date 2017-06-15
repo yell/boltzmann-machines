@@ -129,9 +129,6 @@ class BaseRBM(TensorFlowModel):
 
         # tf input data
         self._X_batch = None
-        self._h_rand = None
-        self._v_rand = None
-        self._pll_rand = None
         self._learning_rate = None
         self._momentum = None
 
@@ -157,17 +154,11 @@ class BaseRBM(TensorFlowModel):
             self._hb_init = tf.constant(self.hb_init, dtype=self._tf_dtype, name='hb_init')
             self._vb_init = tf.constant(self._vb_init_tmp, dtype=self._tf_dtype, name='vb_init')
 
-    def _make_placeholders_routine(self, h_rand_shape):
+    def _make_placeholders(self):
         with tf.name_scope('input_data'):
             self._X_batch = tf.placeholder(self._tf_dtype, [None, self.n_visible], name='X_batch')
-            self._h_rand = tf.placeholder(self._tf_dtype, h_rand_shape, name='h_rand')
-            self._v_rand = tf.placeholder(self._tf_dtype, [None, self.n_visible], name='v_rand')
-            self._pll_rand = tf.placeholder(tf.int32, [None], name='pll_rand')
             self._learning_rate = tf.placeholder(self._tf_dtype, [], name='learning_rate')
             self._momentum = tf.placeholder(self._tf_dtype, [], name='momentum')
-
-    def _make_placeholders(self):
-        raise NotImplementedError('`_make_placeholders` is not implemented')
 
     def _make_vars(self):
         with tf.name_scope('weights'):
@@ -208,8 +199,7 @@ class BaseRBM(TensorFlowModel):
     def _sample_h_given_v(self, h_means):
         """Sample from P(h|v)."""
         with tf.name_scope('sample_h_given_v'):
-            h_samples = self._h_layer.sample(rand_data=self._h_rand,
-                                             means=h_means)
+            h_samples = self._h_layer.sample(means=h_means)
         return h_samples
 
     def _means_v_given_h(self, h):
@@ -222,8 +212,7 @@ class BaseRBM(TensorFlowModel):
     def _sample_v_given_h(self, v_means):
         """Sample from P(v|h)."""
         with tf.name_scope('sample_v_given_h'):
-            v_samples = self._v_layer.sample(rand_data=self._v_rand,
-                                             means=v_means)
+            v_samples = self._v_layer.sample(means=v_means)
         return v_samples
 
     def _free_energy(self, v):
@@ -302,9 +291,12 @@ class BaseRBM(TensorFlowModel):
             x = self._X_batch
             # randomly corrupt one feature in each sample
             x_ = tf.identity(x)
-            ind = tf.transpose([tf.range(tf.shape(x)[0]), self._pll_rand])
+            batch_size = tf.shape(x)[0]
+            pll_rand = tf.random_uniform([batch_size], minval=0, maxval=self.n_visible,
+                                         dtype=tf.int32, seed=self.make_random_seed())
+            ind = tf.transpose([tf.range(batch_size), pll_rand])
             m = tf.SparseTensor(indices=tf.to_int64(ind),
-                                values=tf.ones_like(self._pll_rand, dtype=self._tf_dtype),
+                                values=tf.ones_like(pll_rand, dtype=self._tf_dtype),
                                 dense_shape=tf.to_int64(tf.shape(x_)))
             x_ = tf.multiply(x_, -tf.sparse_tensor_to_dense(m, default_value=-1))
             x_ = tf.sparse_add(x_, m)
@@ -334,17 +326,11 @@ class BaseRBM(TensorFlowModel):
         self._make_vars()
         self._make_train_op()
 
-    def _make_tf_feed_dict(self, X_batch, v_rand=False, pll_rand=False, training=False):
+    def _make_tf_feed_dict(self, X_batch):
         d = {}
         d['X_batch'] = X_batch
-        d['h_rand'] = self._h_layer.make_rand(X_batch.shape[0], self._rng)
-        if v_rand:
-            d['v_rand'] = self._v_layer.make_rand(X_batch.shape[0], self._rng)
-        if pll_rand:
-            d['pll_rand'] = self._rng.randint(self.n_visible, size=X_batch.shape[0])
-        if training:
-            d['learning_rate'] = self.learning_rate
-            d['momentum'] = self.momentum
+        d['learning_rate'] = self.learning_rate
+        d['momentum'] = self.momentum
         # prepend name of the scope, and append ':0'
         feed_dict = {}
         for k, v in d.items():
@@ -364,10 +350,7 @@ class BaseRBM(TensorFlowModel):
                 run_ops += [self._tf_merged_summaries, self._train_op]
                 outputs = \
                 self._tf_session.run(run_ops,
-                                     feed_dict=self._make_tf_feed_dict(X_batch,
-                                                                       v_rand=self.sample_v_states,
-                                                                       pll_rand=('pll' in self._train_metrics_map),
-                                                                       training=True))
+                                     feed_dict=self._make_tf_feed_dict(X_batch))
                 values = outputs[:len(self._train_metrics_map)]
                 for i, v in enumerate(values):
                     results[i].append(v)
@@ -375,9 +358,8 @@ class BaseRBM(TensorFlowModel):
                 self._tf_train_writer.add_summary(train_s, self.iter)
             else:
                 self._tf_session.run(self._train_op,
-                                     feed_dict=self._make_tf_feed_dict(X_batch,
-                                                                       v_rand=self.sample_v_states,
-                                                                       training=True))
+                                     feed_dict=self._make_tf_feed_dict(X_batch))
+
         # aggregate and return metrics values
         results = map(lambda r: np.mean(r) if r else None, results)
         return dict(zip(sorted(self._train_metrics_map), results))
@@ -388,9 +370,7 @@ class BaseRBM(TensorFlowModel):
             run_ops = [v for _, v in sorted(self._val_metrics_map.items())]
             values = \
             self._tf_session.run(run_ops,
-                                 feed_dict=self._make_tf_feed_dict(X_vb,
-                                                                   v_rand=self.sample_v_states,
-                                                                   pll_rand=('pll' in self._val_metrics_map)))
+                                 feed_dict=self._make_tf_feed_dict(X_vb))
             for i, v in enumerate(values):
                 results[i].append(v)
         for i, r in enumerate(results):
@@ -483,8 +463,7 @@ class BaseRBM(TensorFlowModel):
         H = np.zeros((len(X), self.n_hidden))
         start = 0
         for X_b in batch_iter(X, batch_size=self.batch_size):
-            H_b = self._transform_op.eval(feed_dict=self._make_tf_feed_dict(X_b,
-                                                                            v_rand=self.sample_v_states))
+            H_b = self._transform_op.eval(feed_dict=self._make_tf_feed_dict(X_b))
             H[start:(start + self.batch_size)] = H_b
             start += self.batch_size
         return H
