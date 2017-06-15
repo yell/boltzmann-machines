@@ -18,10 +18,10 @@ class Stopwatch(object):
     >>> import time
     >>> with Stopwatch(verbose=True) as s:
     ...     time.sleep(0.1) # doctest: +ELLIPSIS
-    Elapsed time: 0.100... sec
+    Elapsed time: 0.10... sec
     >>> with Stopwatch(verbose=False) as s:
     ...     time.sleep(0.1)
-    >>> np.abs(s.elapsed() - 0.1) < 0.01
+    >>> np.abs(s.elapsed() - 0.1) < 0.05
     True
     """
 
@@ -98,7 +98,7 @@ def batch_iter(X, batch_size=10, verbose=False):
 
 def epoch_iter(start_epoch, max_epoch, verbose=False):
     gen = xrange(start_epoch + 1, max_epoch + 1)
-    if verbose: gen = _t(gen, leave=True, ncols=64, desc='training')
+    if verbose: gen = _t(gen, leave=False, ncols=84, desc='training')
     for epoch in gen:
         yield epoch
 

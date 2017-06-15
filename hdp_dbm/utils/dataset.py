@@ -121,6 +121,5 @@ def plot_cifar10(X, y):
 if __name__ == '__main__':
     X, y = load_cifar10(mode='test', path='../../data/')
     X = convert_cifar10(X)
-    import matplotlib.pyplot as plt
     plot_cifar10(X, y)
     plt.show()

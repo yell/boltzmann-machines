@@ -3,8 +3,9 @@ from shutil import rmtree
 from numpy.testing import (assert_allclose,
                            assert_almost_equal)
 
-from hdp_dbm.utils import RNG
-from hdp_dbm.rbm import BernoulliRBM, MultinomialRBM, GaussianRBM
+import env
+from utils.rng import RNG
+from rbm import BernoulliRBM, MultinomialRBM, GaussianRBM
 
 
 class TestRBM(object):
@@ -15,9 +16,7 @@ class TestRBM(object):
                                n_hidden=16,
                                verbose=False,
                                random_seed=1337,
-                               metrics_config=dict(
-                                   feg_every_epoch=10000,
-                               ),
+                               sample_h_states=False,
                                L2=0.)
 
     def cleanup(self):
@@ -28,7 +27,6 @@ class TestRBM(object):
     def test_fit_consistency(self):
         for C in (BernoulliRBM, MultinomialRBM, GaussianRBM):
             for dtype in ('float32', 'float64'):
-
                 # 1) train 2, then 5 more epochs
                 rbm = C(max_epoch=2,
                         model_path='test_rbm_1/',
