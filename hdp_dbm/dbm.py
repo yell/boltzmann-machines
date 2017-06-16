@@ -36,6 +36,7 @@ class DBM(TensorFlowModel):
                  max_mf_updates_per_iter=10, mf_tol=1e-7,
                  learning_rate=0.001, momentum=0.9, max_epoch=10, batch_size=100,
                  L2=0., max_norm=None,
+                 sample_v_states=True, sample_h_states=None,
                  train_metrics_every_iter=10, val_metrics_every_epoch=1,
                  verbose=False, save_after_each_epoch=False,
                  model_path='dbm_model/', *args, **kwargs):
@@ -62,6 +63,11 @@ class DBM(TensorFlowModel):
         # as is recommended in [3].
         self.max_norm = max_norm
         if self.max_norm is None: self.max_norm = np.inf
+
+        self.sample_v_states = sample_v_states
+        self.sample_h_states = sample_h_states
+        if self.sample_h_states is None:
+            self.sample_h_states = [True] * self.n_hiddens
 
         self.train_metrics_every_iter = train_metrics_every_iter
         self.val_metrics_every_epoch = val_metrics_every_epoch
@@ -268,7 +274,7 @@ class DBM(TensorFlowModel):
                 T1 = tf.matmul(v, self._W[0])
                 T2 = tf.matmul(a=H[1], b=self._W[1], transpose_b=True)
                 H_new[0] = self._h_layers[0].activation(T1 + T2, self._hb[0])
-            if sample:
+            if sample and self.sample_h_states[0]:
                 with tf.name_scope('sample_h0_hat_given_v_h1'):
                     H_new[0] = self._h_layers[0].sample(means=H_new[0])
 
@@ -278,7 +284,7 @@ class DBM(TensorFlowModel):
                     T1 = tf.matmul(H_new[i - 1], self._W[i])
                     T2 = tf.matmul(a=H[i + 1], b=self._W[i + 1], transpose_b=True)
                     H_new[i] = self._h_layers[i].activation(T1 + T2, self._hb[i])
-                if sample:
+                if sample and self.sample_h_states[i]:
                     with tf.name_scope('sample_h{0}_hat_given_h{1}_hat_h{2}'.format(i, i - 1, i + 1)):
                         H_new[i] = self._h_layers[i].sample(means=H_new[i])
 
@@ -286,7 +292,7 @@ class DBM(TensorFlowModel):
             with tf.name_scope('means_h{0}_hat_given_h{1}_hat'.format(self.n_layers - 1, self.n_layers - 2)):
                 T = tf.matmul(H_new[-2], self._W[-1])
                 H_new[-1] = self._h_layers[-1].activation(T, self._hb[-1])
-            if sample:
+            if sample and self.sample_h_states[-1]:
                 with tf.name_scope('sample_h{0}_hat_given_h{1}_hat'.format(self.n_layers - 1, self.n_layers - 2)):
                     H_new[-1] = self._h_layers[-1].sample(means=H_new[-1])
 
@@ -295,7 +301,7 @@ class DBM(TensorFlowModel):
                 with tf.name_scope('means_v_hat_given_h0_hat'):
                     T = tf.matmul(a=H_new[0], b=self._W[0], transpose_b=True)
                     v_new = self._v_layer.activation(T, self._vb)
-                if sample:
+                if sample and self.sample_v_states:
                     with tf.name_scope('sample_v_hat_given_h_hat'):
                         v_new = self._v_layer.sample(means=v_new)
 
