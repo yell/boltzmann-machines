@@ -90,7 +90,7 @@ def convert_cifar10(X):
 def get_cifar10_label(index):
     return {
         0: 'airplane',
-        1: 'automobile',
+        1: 'auto',
         2: 'bird',
         3: 'cat',
         4: 'deer',
@@ -102,7 +102,9 @@ def get_cifar10_label(index):
     }[index]
 
 
-def plot_cifar10(X, y):
+def plot_cifar10(X, y, imshow_params=None):
+    imshow_params = imshow_params or {}
+    imshow_params.setdefault('interpolation', 'none')
     num_classes = 10
     classes = range(num_classes)
     samples_per_class = 7
@@ -111,15 +113,26 @@ def plot_cifar10(X, y):
         idxs = RNG(1337).choice(idxs, samples_per_class, replace=False)
         for i, idx in enumerate(idxs):
             plt_idx = i * num_classes + c + 1
-            plt.subplot(samples_per_class, num_classes, plt_idx)
-            plt.imshow(X[idx].astype('uint8'), interpolation='none')
-            plt.axis('off')
+            ax = plt.subplot(samples_per_class, num_classes, plt_idx)
+            ax.spines['bottom'].set_linewidth(2.)
+            ax.spines['top'].set_linewidth(2.)
+            ax.spines['left'].set_linewidth(2.)
+            ax.spines['right'].set_linewidth(2.)
+            plt.tick_params(axis='both', which='both',
+                            bottom='off', top='off', left='off', right='off',
+                            labelbottom='off', labelleft='off', labelright='off')
+            plt.imshow(X[idx].astype('uint8'), **imshow_params)
             if i == 0:
                 plt.title(get_cifar10_label(c))
+    plt.suptitle('CIFAR-10 dataset', fontsize=22)
+    plt.subplots_adjust(wspace=0, hspace=0)
 
 
 if __name__ == '__main__':
     X, y = load_cifar10(mode='test', path='../../data/')
-    X = convert_cifar10(X)
-    plot_cifar10(X, y)
+    X = convert_cifar10(X[:120])
+    plt.figure(figsize=(12, 8))
+    # plot_cifar10(X, y[:120])
+    from plot_utils import plot_matrices_color
+    plot_matrices_color(X)
     plt.show()
