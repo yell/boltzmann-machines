@@ -576,7 +576,7 @@ class DBM(TensorFlowModel):
         self._transform_op = tf.get_collection('transform_op')[0]
         Z = np.zeros((len(X), self.n_hiddens[-1]))
         start = 0
-        for X_b in batch_iter(X, batch_size=self.batch_size):
+        for X_b in batch_iter(X, batch_size=self.batch_size, verbose=self.verbose):
             Z_b = self._transform_op.eval(feed_dict=self._make_tf_feed_dict(X_b))
             Z[start:(start + self.batch_size)] = Z_b
             start += self.batch_size
