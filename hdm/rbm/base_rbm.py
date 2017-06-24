@@ -2,9 +2,9 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.core.framework import summary_pb2
 
-from base import TensorFlowModel, run_in_tf_session
-from utils import (batch_iter, epoch_iter,
-                   make_inf_generator, print_inline)
+from hdm.base import TensorFlowModel, run_in_tf_session
+from hdm.utils import (batch_iter, epoch_iter,
+                       make_inf_generator, print_inline)
 
 
 class BaseRBM(TensorFlowModel):

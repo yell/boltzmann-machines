@@ -3,7 +3,7 @@ import json
 import tensorflow as tf
 from functools import wraps
 
-from base_model import BaseModel
+from hdm.base import BaseModel
 
 
 def is_weight_name(name):
@@ -190,6 +190,6 @@ class TensorFlowModel(BaseModel):
 
 if __name__ == '__main__':
     # run corresponding tests
-    import env; from utils.testing import run_tests
+    from hdm.utils.testing import run_tests
     from tests import test_tf_model as t
     run_tests(__file__, t)

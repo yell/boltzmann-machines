@@ -3,9 +3,8 @@ from shutil import rmtree
 from numpy.testing import (assert_allclose,
                            assert_almost_equal)
 
-import env
-from utils.rng import RNG
-from rbm import BernoulliRBM, MultinomialRBM, GaussianRBM
+from hdm.utils import RNG
+from hdm.rbm import BernoulliRBM, MultinomialRBM, GaussianRBM
 
 
 class TestRBM(object):

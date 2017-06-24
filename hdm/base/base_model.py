@@ -1,5 +1,6 @@
 from copy import deepcopy
-import env; from utils import RNG
+
+from hdm.utils import RNG
 
 
 class SeedMixin(object):

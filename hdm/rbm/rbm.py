@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 from base_rbm import BaseRBM
-from layers import BernoulliLayer, MultinomialLayer, GaussianLayer
+from rbm_layers import BernoulliLayer, MultinomialLayer, GaussianLayer
 
 
 class BernoulliRBM(BaseRBM):
@@ -121,7 +121,7 @@ if __name__ == '__main__':
     # from utils.testing import run_tests
     # from tests import test_rbm
     # run_tests(__file__, test_rbm)
-    from utils.dataset import load_mnist
+    from hdm.utils.dataset import load_mnist
 
     X, _ = load_mnist(mode='train', path='../data/')
     X /= 255.

@@ -1,6 +1,6 @@
 from nose.tools import eq_
 
-from base import TensorFlowModel as TFM
+from hdm.base import TensorFlowModel as TFM
 
 
 class TestWorkingPaths(object):
