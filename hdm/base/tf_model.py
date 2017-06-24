@@ -3,7 +3,7 @@ import json
 import tensorflow as tf
 from functools import wraps
 
-from hdm.base import BaseModel
+from base_model import BaseModel
 
 
 def is_weight_name(name):

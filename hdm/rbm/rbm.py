@@ -117,41 +117,7 @@ def init_sigmoid_vb_from_data(X):
 
 
 if __name__ == '__main__':
-    # # run corresponding tests
-    # from utils.testing import run_tests
-    # from tests import test_rbm
-    # run_tests(__file__, test_rbm)
-    from hdm.utils.dataset import load_mnist
-
-    X, _ = load_mnist(mode='train', path='../data/')
-    X /= 255.
-    print X.shape
-    X = X[:1000]
-
-    rbm2 = MultinomialRBM(n_visible=784,
-                          n_hidden=500,
-                          n_samples=500,
-                          n_gibbs_steps=2,
-                          w_std=0.01,
-                          hb_init=0.,
-                          vb_init=0.,
-                          learning_rate=0.005,
-                          momentum=[.5] * 5 + [.9],
-                          batch_size=100,
-                          max_epoch=3,
-                          L2=1e-3,
-                          sample_h_states=True,
-                          sample_v_states=True,
-                          metrics_config=dict(
-                              msre=True,
-                              pll=True,
-                              train_metrics_every_iter=10,
-                          ),
-                          verbose=True,
-                          random_seed=1337,
-                          tf_dtype='float32',
-                          model_path='../models/m-rbm/')
-    rbm2.fit(X)
-    H = rbm2.transform(X)
-    print H.shape
-    print H[0].sum()
+    # run corresponding tests
+    from hdm.utils.testing import run_tests
+    from tests import test_rbm as t
+    run_tests(__file__, t)

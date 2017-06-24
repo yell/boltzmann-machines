@@ -6,6 +6,7 @@
 data/*.npy
 data/*idx1-ubyte
 data/*idx3-ubyte
+data/cifar-10-batches-py
 examples/.ipynb_checkpoints/*
 hdm/test_rbm_1/*
 hdm/test_rbm_2/*
