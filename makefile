@@ -10,7 +10,7 @@ test:
 clean:
 	find . -name '*.pyc' -type f -delete
 	rm -f './random_state.json'
-	rm -f 'hdp_dbm/utils/random_state.json'
+	rm -f 'hdm/utils/random_state.json'
 
 tb:
 	tensorboard --logdir=$(LOGDIR)
