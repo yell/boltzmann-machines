@@ -50,9 +50,6 @@ class MultinomialRBM(BaseRBM):
             th = -tf.reduce_sum(tf.matmul(v, self._W), axis=1)
             fe = tf.reduce_mean(tv, axis=0) +\
                  self.n_samples * (tf.reduce_mean(th, axis=0) - tf.reduce_sum(self._hb))
-            # actually, last term should be multiplied by `n_samples`, not by one,
-            # but because for large `n_samples` last term will dominate the first,
-            # the PLL estimation is literally zero and is useless therefore
         return fe
 
 
@@ -109,9 +106,9 @@ class GaussianRBM(BaseRBM):
         return fe
 
 
-def init_sigmoid_vb_from_data(X):
+def logit_mean(X):
     p = np.mean(X, axis=0)
-    p = np.clip(p, 1e-7, 1e-7)
+    p = np.clip(p, 1e-7, 1. - 1e-7)
     q = np.log(p / (1. - p))
     return q
 
