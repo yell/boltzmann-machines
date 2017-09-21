@@ -4,7 +4,7 @@ from tensorflow.core.framework import summary_pb2
 
 from hdm.base import TensorFlowModel, run_in_tf_session
 from hdm.utils import (batch_iter, epoch_iter,
-                       make_inf_generator, print_inline)
+                       make_inf_generator, write_during_training)
 
 
 class BaseRBM(TensorFlowModel):
@@ -462,7 +462,7 @@ class BaseRBM(TensorFlowModel):
                     if v is not None:
                         s += "; val.{0}: {1:{2}}".format(m, v, self.metrics_config['{0}_fmt'.format(m)])
                 if feg is not None: s += " ; feg: {0:{1}}".format(feg, self.metrics_config['feg_fmt'])
-                print_inline(s + '\n')
+                write_during_training(s)
 
             # save if needed
             if self.save_after_each_epoch:

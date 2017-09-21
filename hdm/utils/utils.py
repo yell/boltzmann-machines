@@ -70,9 +70,8 @@ class Stopwatch(object):
         return self
 
 
-def print_inline(s):
-    sys.stdout.write(s)
-    sys.stdout.flush()
+def write_during_training(s):
+    tqdm.write(s)
 
 
 def batch_iter(X, batch_size=10, verbose=False):
@@ -108,7 +107,7 @@ def batch_iter(X, batch_size=10, verbose=False):
 
 def epoch_iter(start_epoch, max_epoch, verbose=False):
     gen = xrange(start_epoch + 1, max_epoch + 1)
-    if verbose: gen = _t(gen, leave=False, ncols=84, desc='training')
+    if verbose: gen = _t(gen, leave=True, ncols=84, desc='training')
     for epoch in gen:
         yield epoch
 
