@@ -12,7 +12,7 @@ _t = tqdm_notebook if _is_in_ipython() else tqdm
 class Stopwatch(object):
     """
     A simple cross-platform
-    class encapsulating stopwatch.
+    context-manager stopwatch.
 
     Examples
     --------
@@ -28,37 +28,46 @@ class Stopwatch(object):
     """
     def __init__(self, verbose=False):
         self.verbose = verbose
-        if sys.platform == "win32":
+        if sys.platform == 'win32':
             # on Windows, the best timer is time.clock()
-            self.timer_func = time.clock
+            self._timer_func = time.clock
         else:
             # on most other platforms, the best timer is time.time()
-            self.timer_func = time.time
-        self.start_ = None
-        self.elapsed_ = None
+            self._timer_func = time.time
+        self.reset()
 
     def __enter__(self, verbose=False):
         return self.start()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        elapsed = self.stop().elapsed()
+        self.stop()
         if self.verbose:
-            print "Elapsed time: {0:.3f} sec".format(elapsed)
+            print "Elapsed time: {0:.3f} sec".format(self.elapsed())
 
     def start(self):
-        self.start_ = self.timer_func()
-        self.elapsed_ = None
+        if not self._is_running:
+            self._start = self._timer_func()
+            self._is_running = True
         return self
 
     def stop(self):
-        self.elapsed_ = self.timer_func() - self.start_
-        self.start_ = None
+        if self._is_running:
+            self._total += (self._timer_func() - self._start)
+            self._is_running = False
         return self
 
     def elapsed(self):
-        if self.start_ is None:
-            return self.elapsed_
-        return self.timer_func() - self.start_
+        if self._is_running:
+            now = self._timer_func()
+            self._total += (now - self._start)
+            self._start = now
+        return self._total
+
+    def reset(self):
+        self._start = 0.
+        self._total = 0.
+        self._is_running = False
+        return self
 
 
 def print_inline(s):
