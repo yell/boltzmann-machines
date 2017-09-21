@@ -16,7 +16,9 @@ class BaseRBM(TensorFlowModel):
     learning_rate, momentum : float, iterable, or generator
         Gradient descent parameters. Values are updated after each epoch.
     vb_init : float or iterable
-        Visible bias(es).
+        Visible unit bias.
+    hb_init : float or iterable
+        Hidden unit bias.
     metrics_config : dict
         Parameters that controls which metrics and how often they are computed.
         Possible (optional) commands:
@@ -46,20 +48,29 @@ class BaseRBM(TensorFlowModel):
     [3] Restricted Boltzmann Machines (RBMs), Deep Learning Tutorial
         url: http://deeplearning.net/tutorial/rbm.html
     """
-    def __init__(self, n_visible=784, v_layer=None, n_hidden=256, h_layer=None,
-                 n_gibbs_steps=1, w_std=0.01, hb_init=0., vb_init=0.,
+    def __init__(self,
+                 v_layer_cls=None, v_layer_params=None, n_visible=784,
+                 h_layer_cls=None, h_layer_params=None, n_hidden=256,
+                 n_gibbs_steps=1, w_std=0.01, vb_init=0., hb_init=0.,
                  learning_rate=0.01, momentum=0.9, max_epoch=10, batch_size=10, L2=1e-4,
-                 sample_h_states=True, sample_v_states=False,
+                 sample_v_states=False, sample_h_states=True,
                  metrics_config=None, verbose=False, save_after_each_epoch=True,
                  model_path='rbm_model/', *args, **kwargs):
         super(BaseRBM, self).__init__(model_path=model_path, *args, **kwargs)
         self.n_visible = n_visible
-        self._v_layer = v_layer
         self.n_hidden = n_hidden
-        self._h_layer = h_layer
+        v_layer_params = v_layer_params or {}
+        v_layer_params.setdefault('n_units', self.n_visible)
+        v_layer_params.setdefault('tf_dtype', self._tf_dtype)
+        v_layer_params.setdefault('random_seed', self.make_random_seed())
+        h_layer_params = h_layer_params or {}
+        h_layer_params.setdefault('n_units', self.n_hidden)
+        h_layer_params.setdefault('tf_dtype', self._tf_dtype)
+        h_layer_params.setdefault('random_seed', self.make_random_seed())
+        self._v_layer = v_layer_cls(**v_layer_params)
+        self._h_layer = h_layer_cls(**h_layer_params)
 
         self.n_gibbs_steps = n_gibbs_steps
-
         self.w_std = w_std
         self.hb_init = hb_init
 
