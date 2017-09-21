@@ -11,8 +11,4 @@ clean:
 	rm -f 'random_state.json'
 	rm -f 'hdm/utils/random_state.json'
 
-jp:
-	sudo jupyter nbextension enable --py --sys-prefix widgetsnbextension
-	jupyter notebook
-
-.PHONY: test clean jp
+.PHONY: test clean
