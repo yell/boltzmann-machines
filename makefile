@@ -1,8 +1,7 @@
-# needed to be able to call other targets within given one:
+# need to be able to call other targets within given one
 THIS_FILE := $(lastword $(MAKEFILE_LIST))
-LOGDIR='logs/'
 
-test: 
+test:
 	@$(MAKE) -f $(THIS_FILE) clean
 	nosetests
 	@$(MAKE) -f $(THIS_FILE) clean
@@ -12,7 +11,4 @@ clean:
 	rm -f './random_state.json'
 	rm -f 'hdm/utils/random_state.json'
 
-tb:
-	tensorboard --logdir=$(LOGDIR)
-
-.PHONY: test clean tb
+.PHONY: test clean
