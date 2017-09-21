@@ -9,6 +9,9 @@ from hdm.utils import (batch_iter, epoch_iter,
 
 class BaseRBM(TensorFlowModel):
     """
+    A generic implementation of RBM with CD-k
+    learning algorithm.
+
     Parameters
     ----------
     n_gibbs_steps : int
@@ -23,14 +26,14 @@ class BaseRBM(TensorFlowModel):
         Parameters that controls which metrics and how often they are computed.
         Possible (optional) commands:
         * l2_loss : bool, default False
-            Whether to compute weight decay penalty
+            Whether to compute weight decay penalty.
         * msre : bool, default False
             Whether to compute MSRE = mean squared reconstruction error.
         * pll : bool, default False
             Whether to compute pseudo-loglikelihood estimation. Only makes sense
             to compute for binary visible units (BernoulliRBM, MultinomialRBM).
         * feg : bool, default False
-            Whether to compute free energy gap
+            Whether to compute free energy gap.
         * l2_loss_fmt : str, default '.2e'
         * msre_fmt : str, default '.4f'
         * pll_fmt : str, default '.3f'
