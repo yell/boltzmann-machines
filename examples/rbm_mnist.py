@@ -85,6 +85,7 @@ def main():
                        verbose=True,
                        random_seed=1337,
                        tf_dtype=args.dtype,
+                       tf_saver_params=dict(max_to_keep=1),
                        model_path=args.model_dirpath)
     rbm.fit(X_train, X_val)
 
