@@ -8,7 +8,11 @@ test:
 
 clean:
 	find . -name '*.pyc' -type f -delete
-	rm -f './random_state.json'
+	rm -f 'random_state.json'
 	rm -f 'hdm/utils/random_state.json'
 
-.PHONY: test clean
+jp:
+	sudo jupyter nbextension enable --py --sys-prefix widgetsnbextension
+	jupyter notebook
+
+.PHONY: test clean jp
