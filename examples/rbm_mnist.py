@@ -50,6 +50,8 @@ def main():
                         help='sample visible states, otherwise use probabilities w/o sampling')
     parser.add_argument('--dtype', type=str, default='float32', metavar='D',
                         help="datatype precision to use, {'float32', 'float64'}")
+    parser.add_argument('--model_dirpath', type=str, default='../models/rbm_mnist/', metavar='DIRPATH',
+                        help='directory path to save the model')
     args = parser.parse_args()
 
     # prepare data
@@ -83,7 +85,7 @@ def main():
                        verbose=True,
                        random_seed=1337,
                        tf_dtype=args.dtype,
-                       model_path='../models/rbm_mnist/')
+                       model_path=args.model_dirpath)
     rbm.fit(X_train, X_val)
 
 
