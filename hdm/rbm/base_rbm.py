@@ -316,10 +316,8 @@ class BaseRBM(TensorFlowModel):
             x_ = tf.sparse_add(x_, m)
             x_ = tf.identity(x_, name='x_corrupted')
 
-            # TODO: change -tf.nn.softplus(-z) to tf.log_sigmoid(z) when updated to r1.2
-            pll = -tf.constant(self.n_visible, dtype=self._tf_dtype) *\
-                             tf.nn.softplus(-(self._free_energy(x_) -
-                                              self._free_energy(x)))
+            pll = tf.constant(self.n_visible, dtype=self._tf_dtype) *\
+                  tf.log_sigmoid(self._free_energy(x_)-self._free_energy(x))
             tf.add_to_collection('pll', pll)
 
         # add also free energy of input batch to collection (for feg)
