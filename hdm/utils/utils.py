@@ -1,6 +1,5 @@
 import sys
 import time
-import argparse
 import numpy as np
 
 from tqdm import tqdm, tqdm_notebook
@@ -149,28 +148,6 @@ def make_inf_generator(x):
         yield value
     while True:
         yield value
-
-
-class ArgumentParserWrapper(argparse.ArgumentParser):
-    """Class-wrapper for ArgumentParser that automatically
-    appends default value to help string of new argument.
-    """
-    def __init__(self, default_template=' (default: {0})', *args, **kwargs):
-        self.default_template = default_template
-        super(ArgumentParserWrapper, self).__init__(*args, **kwargs)
-
-    def add_argument(self, *args, **kwargs):
-        if not 'default' in kwargs or '-h' in args:
-            return super(ArgumentParserWrapper, self).add_argument(*args, **kwargs)
-
-        help = kwargs.pop('help')
-        default = kwargs['default']
-        template = self.default_template
-        if default is not None and 'type' in kwargs and kwargs['type'] is str and not "'{0}'" in template:
-            template.replace("{0}", "'{0}'")
-
-        return super(ArgumentParserWrapper, self) \
-            .add_argument(*args, help=help + template.format(default), **kwargs)
 
 
 if __name__ == '__main__':
