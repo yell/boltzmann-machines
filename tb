@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 logdir='logs/'
 [[ -z $1 ]] || logdir=$1
-echo 'tensorboard --logdir=${logdir}'
+echo 'tensorboard --logdir='${logdir}
 tensorboard --logdir=${logdir}
