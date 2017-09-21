@@ -11,7 +11,8 @@ _t = tqdm_notebook if _is_in_ipython() else tqdm
 
 class Stopwatch(object):
     """
-    Simple class encapsulating stopwatch.
+    A simple cross-platform
+    class encapsulating stopwatch.
 
     Examples
     --------
@@ -21,18 +22,18 @@ class Stopwatch(object):
     Elapsed time: 0.10... sec
     >>> with Stopwatch(verbose=False) as s:
     ...     time.sleep(0.1)
-    >>> np.abs(s.elapsed() - 0.1) < 0.05
+    >>> import math
+    >>> math.fabs(s.elapsed() - 0.1) < 0.05
     True
     """
-
     def __init__(self, verbose=False):
         self.verbose = verbose
         if sys.platform == "win32":
             # on Windows, the best timer is time.clock()
-            self.timerfunc = time.clock
+            self.timer_func = time.clock
         else:
             # on most other platforms, the best timer is time.time()
-            self.timerfunc = time.time
+            self.timer_func = time.time
         self.start_ = None
         self.elapsed_ = None
 
@@ -45,19 +46,19 @@ class Stopwatch(object):
             print "Elapsed time: {0:.3f} sec".format(elapsed)
 
     def start(self):
-        self.start_ = self.timerfunc()
+        self.start_ = self.timer_func()
         self.elapsed_ = None
         return self
 
     def stop(self):
-        self.elapsed_ = self.timerfunc() - self.start_
+        self.elapsed_ = self.timer_func() - self.start_
         self.start_ = None
         return self
 
     def elapsed(self):
         if self.start_ is None:
             return self.elapsed_
-        return self.timerfunc() - self.start_
+        return self.timer_func() - self.start_
 
 
 def print_inline(s):
