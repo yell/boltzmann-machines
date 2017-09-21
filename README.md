@@ -23,7 +23,7 @@ By default, the following commands install (among others) **tensorflow-gpu~=1.3.
 ```bash
 git clone https://github.com/monsta-hd/hd-models
 cd hd-models/
-sudo pip install -r requirements.txt
+pip install -r requirements.txt
 ```
 After installation, tests can be run with:
 ```bash
