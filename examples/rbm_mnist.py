@@ -38,17 +38,17 @@ def main():
                         help='initialize visible biases as logit of mean values of features')
     parser.add_argument('--n_gibbs_steps', type=int, default=1, metavar='N',
                         help='number of Gibbs steps per weight update')
-    parser.add_argument('--lr', type=float, default=0.01,
-                        metavar='LR', nargs='+', help='initial learning rates')
+    parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
+                        help='initial learning rates')
     parser.add_argument('--epochs', type=int, default=100, metavar='N',
                         help='number of epochs to train')
     parser.add_argument('--batch-size', type=int, default=10, metavar='N',
                         help='input batch size for training')
-    parser.add_argument('--l2', type=float, default=1e-5,
-                        metavar='L2', nargs='+', help='L2 weight decay')
+    parser.add_argument('--l2', type=float, default=1e-5, metavar='L2',
+                        help='L2 weight decay')
     parser.add_argument('--sample_v_states', action='store_true',
                         help='sample visible states, otherwise use probabilities w/o sampling')
-    parser.add_argument('--dtype', type=str, default='float32',
+    parser.add_argument('--dtype', type=str, default='float32', metavar='D',
                         help="datatype precision to use, {'float32', 'float64'}")
     args = parser.parse_args()
 
