@@ -5,7 +5,7 @@
 * Easy to add new type of RBM (implement new type of stochastic units or create new RBM from existing types of units)
 * DBM with arbitrary number of layers of any types
 
-## eatures
+## Features
 #### General
 * Serialization (tf saver + python class hyperparams + RNG state)
 * Reproducible (random seeds)
@@ -31,7 +31,14 @@ git clone https://github.com/monsta-hd/hd-models
 cd hd-models/
 pip install -r requirements.txt
 ```
+To install using virtual environment, see [here](docs/virtualenv.md).
+
 After installation, tests can be run with:
 ```bash
 make test
 ```
+All the necessary data can be downloaded with:
+```bash
+make data
+```
+
