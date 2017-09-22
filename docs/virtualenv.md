@@ -1,4 +1,4 @@
-# Install using virtual environment
+# Run in a virtual environment
 Clone the repository
 ```bash
 git clone https://github.com/monsta-hd/hd-models
