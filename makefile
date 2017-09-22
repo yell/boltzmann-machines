@@ -11,4 +11,10 @@ clean:
 	rm -f 'random_state.json'
 	rm -f 'hdm/utils/random_state.json'
 
-.PHONY: test clean
+data:
+	./data/fetch_mnist.sh
+	mv mnist data
+	./data/fetch_cifar10.sh
+	mv cifar-10-batches-py data
+
+.PHONY: test clean data
