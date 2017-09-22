@@ -1,7 +1,8 @@
-.idea/*
-.ipynb_checkpoints/*
 *.pyc
 *.json
+.idea/*
+.ipynb_checkpoints/*
+.venv/*
 data/*.npy
 data/*idx1-ubyte
 data/*idx3-ubyte
