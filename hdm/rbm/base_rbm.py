@@ -478,6 +478,7 @@ class BaseRBM(TensorFlowModel):
             H_b = self._transform_op.eval(feed_dict=self._make_tf_feed_dict(X_b))
             H[start:(start + self.batch_size)] = H_b
             start += self.batch_size
+        # TODO: more elegantly handle Multinomial case
         if hasattr(self, 'n_samples'):
             H /= self.n_samples
         return H
