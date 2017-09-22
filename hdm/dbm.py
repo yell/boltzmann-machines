@@ -4,7 +4,7 @@ from tensorflow.core.framework import summary_pb2
 
 from base import TensorFlowModel, run_in_tf_session
 from utils import (batch_iter, epoch_iter,
-                   make_inf_generator, print_inline)
+                   make_inf_generator, write_during_training)
 
 
 class DBM(TensorFlowModel):
@@ -554,7 +554,7 @@ class DBM(TensorFlowModel):
                     s += "; val.msre: {0:.5f}".format(val_msre)
                 if val_n_mf_updates:
                     s += "; val.n_mf_upds: {0:.2f}".format(val_n_mf_updates)
-                print_inline(s + '\n')
+                write_during_training(s + '\n')
 
             # save if needed
             if self.save_after_each_epoch:
