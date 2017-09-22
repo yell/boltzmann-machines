@@ -355,7 +355,8 @@ class BaseRBM(TensorFlowModel):
         self.momentum = next(self._momentum_gen)
 
         results = [[] for _ in xrange(len(self._train_metrics_map))]
-        for X_batch in batch_iter(X, self.batch_size, verbose=self.verbose):
+        for X_batch in batch_iter(X, self.batch_size,
+                                  verbose=self.verbose):
             self.iter += 1
             if self.iter % self.metrics_config['train_metrics_every_iter'] == 0:
                 run_ops = [v for _, v in sorted(self._train_metrics_map.items())]
@@ -474,7 +475,8 @@ class BaseRBM(TensorFlowModel):
         self._transform_op = tf.get_collection('transform_op')[0]
         H = np.zeros((len(X), self.n_hidden))
         start = 0
-        for X_b in batch_iter(X, batch_size=self.batch_size):
+        for X_b in batch_iter(X, batch_size=self.batch_size,
+                              verbose=self.verbose):
             H_b = self._transform_op.eval(feed_dict=self._make_tf_feed_dict(X_b))
             H[start:(start + self.batch_size)] = H_b
             start += self.batch_size
