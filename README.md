@@ -35,3 +35,8 @@ After installation, tests can be run with:
 ```bash
 make test
 ```
+All the necessary data can be downloaded with:
+```bash
+make data
+```
+
