@@ -2,6 +2,7 @@
 Clone the repository
 ```bash
 git clone https://github.com/monsta-hd/hd-models
+cd hd-models/
 ```
 Install virtualenv if needed
 ```bash
@@ -9,7 +10,6 @@ pip install virtualenv
 ```
 Create virtual environment for the project
 ```bash
-cd hd-models/
 virtualenv .venv
 ```
 Activate virtual environment
