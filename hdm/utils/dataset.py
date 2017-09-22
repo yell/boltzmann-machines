@@ -18,13 +18,13 @@ def load_mnist(mode='train', path='.'):
     target : (n_samples,) np.ndarray
         Labels vector (zero-based integers).
     """
-
+    dirpath = os.path.join(path, 'mnist/')
     if mode == 'train':
-        fname_data = os.path.join(path, 'train-images-idx3-ubyte')
-        fname_target = os.path.join(path, 'train-labels-idx1-ubyte')
+        fname_data = os.path.join(dirpath, 'train-images-idx3-ubyte')
+        fname_target = os.path.join(dirpath, 'train-labels-idx1-ubyte')
     elif mode == 'test':
-        fname_data = os.path.join(path, 't10k-images-idx3-ubyte')
-        fname_target = os.path.join(path, 't10k-labels-idx1-ubyte')
+        fname_data = os.path.join(dirpath, 't10k-images-idx3-ubyte')
+        fname_target = os.path.join(dirpath, 't10k-labels-idx1-ubyte')
     else:
         raise ValueError("`mode` must be 'train' or 'test'")
 
