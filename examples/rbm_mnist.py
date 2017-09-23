@@ -34,8 +34,9 @@ def main():
                         help='number of validation examples')
     parser.add_argument('--n_hidden', type=int, default=1024, metavar='N',
                         help='number of hidden units')
-    parser.add_argument('--vb_init', action='store_true',
-                        help='initialize visible biases as logit of mean values of features')
+    parser.add_argument('--vb_init', action='store_false',
+                        help='initialize visible biases as logit of mean values of features'+\
+                             ', otherwise zero init')
     parser.add_argument('--n_gibbs_steps', type=int, default=1, metavar='N',
                         help='number of Gibbs steps per weight update')
     parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
