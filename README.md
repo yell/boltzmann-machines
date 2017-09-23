@@ -1,12 +1,12 @@
 # Hierarchical Deep Models
 
 ## Examples
-### RBM MNIST ([script](examples/rbm_mnist.py), [notebook]())
-### DBM MNIST ([script](), [notebook]())
-### DBM CIFAR-10 Naïve ([script](), [notebook]())
-### DBM CIFAR-10 ([script](), [notebook]())
-### HDP ([script](), [notebook]())
-### HDP-DBM ([script](), [notebook]())
+### RBM MNIST ([script](examples/rbm_mnist.py), ~~[notebook]()~~)
+### DBM MNIST (~~[script]()~~, ~~[notebook]()~~)
+### DBM CIFAR-10 Naïve (~~[script]()~~, ~~[notebook]()~~)
+### DBM CIFAR-10 (~~[script]()~~, ~~[notebook]()~~)
+### HDP (~~[script]()~~, ~~[notebook]()~~)
+### HDP-DBM (~~[script]()~~, ~~[notebook]()~~)
 
 ## Models
 * RBM (Bernoulli, Multinomial, Gaussian)
