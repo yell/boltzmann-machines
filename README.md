@@ -85,9 +85,9 @@ git clone https://github.com/monsta-hd/hd-models
 cd hd-models/
 pip install -r requirements.txt
 ```
-See [here](docs/virtualenv.md) how to run in a ***virtual environment***.
+See [here](docs/virtualenv.md) how to run from a ***virtual environment***.
 </br>
-See [here](docs/docker.md) how to run in a GPU-supported ***docker container***.
+See [here](docs/docker.md) how to run from a ***docker container***.
 
 After installation, tests can be run with:
 ```bash
