@@ -39,7 +39,15 @@ optional arguments:
 or download pretrained ones with default parameters using `models/fetch_models.sh`, 
 </br>
 and check **notebook**s for corresponding testing / visualization etc.
-### RBM MNIST ([script](examples/rbm_mnist.py), ~~[notebook]()~~)
+### RBM MNIST ([script](examples/rbm_mnist.py), *[notebook](notebooks/rbm_mnist.ipynb)*)
+Train RBM on MNIST dataset and use it for classification.
+
+| <div align="center">Algorithm</div> | Test Accuracy, % |
+| :--- | :---: |
+| RBM features + Logistic Regression | **97.26** |
+| RBM features + k-NN | **96.90** |
+| RBM + discriminative finetuning | **98.49** |
+
 ### DBM MNIST (~~[script]()~~, ~~[notebook]()~~)
 ### DBM CIFAR-10 Naïve (~~[script]()~~, ~~[notebook]()~~)
 ### DBM CIFAR-10 (~~[script]()~~, ~~[notebook]()~~)
