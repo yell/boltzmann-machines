@@ -1,4 +1,4 @@
-# Run within a Docker container
+# Run from a Docker container
 ## Python container
 This container assumes python2 (and CUDA if needed) installed, and simply install all repo's dependencies and launch bash session.
 
