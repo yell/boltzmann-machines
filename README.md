@@ -1,5 +1,28 @@
 # Hierarchical Deep Models
 
+## Features
+### Restricted Boltzmann Machine (RBM)
+* *k-step Contrastive Divergence*: momentum, L2 weight decay, maxnorm, ***TODO***: rest, ***TODO***: dropout, ***TODO***: sparsity targets
+* *different types of RBMs*: Bernoulli, Multinomial, Gaussian;
+* *easy to add new type of RBM*: implement new type of stochastic units or create new RBM from existing types of units
+* *visualization in Tensorboard*: learning curves (reconstruction RMSE, pseudo log-likelihood, free energy gap), distribution of weights and weights updates in TensorBoard ***TODO***: hidden activations and weight filters
+
+### Deep Boltzmann Machine (DBM)
+* arbitrary number of layers of any types
+* initialize from greedy layer-wise pretrained RBMs and jointly fine-tune using PCD + mean-field approximation
+
+### Hierarchical Dirichlet Prior (HDP)
+***TODO***
+
+### Stick-breaking Variational Autoencoder (SB-VAE)
+***TODO***
+
+### General
+* serialization (tf saver + python class hyperparams + RNG state)
+* reproducible (random seeds)
+* all models support both `float32` and `float64` precision
+* *visualization*: python routines to display images, learned filters, confusion matrices etc.
+
 ## Examples
 Use **script**s for training models from scratch, for instance
 ```bash
@@ -53,30 +76,6 @@ Train RBM on MNIST dataset and use it for classification.
 ### DBM CIFAR-10 (~~[script]()~~, ~~[notebook]()~~)
 ### HDP (~~[script]()~~, ~~[notebook]()~~)
 ### HDP-DBM (~~[script]()~~, ~~[notebook]()~~)
-
-## Models
-* RBM (Bernoulli, Multinomial, Gaussian)
-* Easy to add new type of RBM (implement new type of stochastic units or create new RBM from existing types of units)
-* DBM with arbitrary number of layers of any types
-
-## Features
-#### General
-* Serialization (tf saver + python class hyperparams + RNG state)
-* Reproducible (random seeds)
-* All models support both `float32` and `float64` precision
-
-### RBM and DBM features
-* momentum
-* L2 weight decay
-* maxnorm weight decay
-* ***TODO***: rest
-* ***TODO***: sparsity targets
-* ***TODO***: dropout
-
-### Visualization
-* Learning curves in TensorBoard (reconstruction RMSE, pseudo log-likelihood, free energy gap)
-* Distribution of weights and weights updates in TensorBoard
-* Routines to display images and learned filters
 
 ## How to install
 By default, the following commands install (among others) **tensorflow-gpu~=1.3.0**. If you want to install tensorflow without GPU support, replace corresponding line in [requirements.txt](requirements.txt). If you have already tensorflow installed, comment that line but note that for [edward](http://edwardlib.org/) to work correctly, you must have tf>=1.2.0rc installed.
