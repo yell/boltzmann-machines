@@ -24,6 +24,22 @@
 * *visualization*: python routines to display images, learned filters, confusion matrices etc.
 
 ## Examples
+### RBM MNIST ([script](examples/rbm_mnist.py), *[notebook](notebooks/rbm_mnist.ipynb)*)
+Train RBM on MNIST dataset and use it for classification.
+
+| <div align="center">Algorithm</div> | Test Accuracy, % |
+| :--- | :---: |
+| RBM features + Logistic Regression | **97.26** |
+| RBM features + k-NN | **96.90** |
+| RBM + discriminative finetuning | **98.49** |
+
+### DBM MNIST (~~[script]()~~, ~~[notebook]()~~)
+### DBM CIFAR-10 Naïve (~~[script]()~~, ~~[notebook]()~~)
+### DBM CIFAR-10 (~~[script]()~~, ~~[notebook]()~~)
+### HDP (~~[script]()~~, ~~[notebook]()~~)
+### HDP-DBM (~~[script]()~~, ~~[notebook]()~~)
+### SB-VAE (~~[script]()~~, ~~[notebook]()~~)
+### Usage
 Use **script**s for training models from scratch, for instance
 ```bash
 $ python rbm_mnist.py -h
@@ -62,20 +78,6 @@ optional arguments:
 or download pretrained ones with default parameters using `models/fetch_models.sh`, 
 </br>
 and check **notebook**s for corresponding testing / visualization etc.
-### RBM MNIST ([script](examples/rbm_mnist.py), *[notebook](notebooks/rbm_mnist.ipynb)*)
-Train RBM on MNIST dataset and use it for classification.
-
-| <div align="center">Algorithm</div> | Test Accuracy, % |
-| :--- | :---: |
-| RBM features + Logistic Regression | **97.26** |
-| RBM features + k-NN | **96.90** |
-| RBM + discriminative finetuning | **98.49** |
-
-### DBM MNIST (~~[script]()~~, ~~[notebook]()~~)
-### DBM CIFAR-10 Naïve (~~[script]()~~, ~~[notebook]()~~)
-### DBM CIFAR-10 (~~[script]()~~, ~~[notebook]()~~)
-### HDP (~~[script]()~~, ~~[notebook]()~~)
-### HDP-DBM (~~[script]()~~, ~~[notebook]()~~)
 
 ## How to install
 By default, the following commands install (among others) **tensorflow-gpu~=1.3.0**. If you want to install tensorflow without GPU support, replace corresponding line in [requirements.txt](requirements.txt). If you have already tensorflow installed, comment that line but note that for [edward](http://edwardlib.org/) to work correctly, you must have tf>=1.2.0rc installed.
