@@ -23,7 +23,7 @@
 * all models support both `float32` and `float64` precision
 * *visualization*: python routines to display images, learned filters, confusion matrices etc.
 
-## Examples (***TODO*** add demo images)
+## Examples (***TODO*** add demo images, download models)
 ### RBM MNIST ([script](examples/rbm_mnist.py), *[notebook](notebooks/rbm_mnist.ipynb)*)
 Train RBM on MNIST dataset and use it for classification.
 
