@@ -2,7 +2,7 @@
 
 ## Features
 ### Restricted Boltzmann Machine (RBM)
-* *k-step Contrastive Divergence*: momentum, L2 weight decay, maxnorm, ***TODO***: rest, ***TODO***: dropout, ***TODO***: sparsity targets
+* *k-step Contrastive Divergence*: *variable* learning rate and momentum, L2 weight decay, maxnorm, ***TODO***: rest, ***TODO***: dropout, ***TODO***: sparsity targets
 * *different types of RBMs*: Bernoulli, Multinomial, Gaussian;
 * *easy to add new type of RBM*: implement new type of stochastic units or create new RBM from existing types of units
 * *visualization in Tensorboard*: learning curves (reconstruction RMSE, pseudo log-likelihood, free energy gap, L2 loss), distribution of weights and weights updates in TensorBoard ***TODO***: hidden activations and weight filters
