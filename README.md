@@ -6,6 +6,7 @@
 * *different types of RBMs*: Bernoulli, Multinomial, Gaussian;
 * *easy to add new type of RBM*: implement new type of stochastic units or create new RBM from existing types of units
 * *visualization in Tensorboard*: learning curves (reconstruction RMSE, pseudo log-likelihood, free energy gap, L2 loss), distribution of weights and weights updates in TensorBoard ***TODO***: hidden activations and weight filters
+* variable number of Gibbs steps withing training is not yet supported, but possible (need to implement `tf.while_loop` with variable number of steps)
 
 ### Deep Boltzmann Machine (DBM)
 * arbitrary number of layers of any types
@@ -18,9 +19,10 @@
 ***TODO***
 
 ### General
-* serialization (tf saver + python class hyperparams + RNG state)
+* serialization (tf saver + python class hyperparams + RNG state), easy to save and to load
 * reproducible (random seeds)
 * all models support both `float32` and `float64` precision
+* easy to resume training (note that changing parameters other that placeholders such as batch size, learning rate, momentum have no effect as this would require altering computation graph, which is not yet supported)
 * *visualization*: python routines to display images, learned filters, confusion matrices etc.
 
 ## Examples (***TODO*** add demo images, download models)
@@ -101,3 +103,6 @@ make data
 ## Common installation issues
 **ImportError: libcudnn.so.6: cannot open shared object file: No such file or directory**.<br/>
 TensorFlow 1.3.0 assumes cuDNN v6.0 by default. If you have different one installed, you can create symlink to `libcudnn.so.6` in `/usr/local/cuda/lib64` or `/usr/local/cuda-8.0/lib64`. More details [here](https://stackoverflow.com/questions/42013316/after-building-tensorflow-from-source-seeing-libcudart-so-and-libcudnn-errors).
+
+## Contributing
+***TODO***
