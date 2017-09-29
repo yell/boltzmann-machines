@@ -18,7 +18,7 @@ class BaseRBM(TensorFlowModel):
         Number of Gibbs sweeps per iteration.
     learning_rate, momentum : float, iterable, or generator
         Gradient descent parameters. Values are updated after each epoch.
-    w_init : float or (n_visible, n_hidden) iterable
+    W_init : float or (n_visible, n_hidden) iterable
         Weight matrix initialization. If float, initialize from zero-centered
         Gaussian with this standard deviation. If iterable, initialize from it.
     vb_init : float or iterable
@@ -57,7 +57,7 @@ class BaseRBM(TensorFlowModel):
     def __init__(self,
                  v_layer_cls=None, v_layer_params=None, n_visible=784,
                  h_layer_cls=None, h_layer_params=None, n_hidden=256,
-                 w_init=0.01, vb_init=0., hb_init=0., n_gibbs_steps=1,
+                 W_init=0.01, vb_init=0., hb_init=0., n_gibbs_steps=1,
                  learning_rate=0.01, momentum=0.9, max_epoch=10, batch_size=10, L2=1e-4,
                  sample_v_states=False, sample_h_states=True,
                  metrics_config=None, verbose=False, save_after_each_epoch=True,
@@ -77,12 +77,12 @@ class BaseRBM(TensorFlowModel):
         self._v_layer = v_layer_cls(**v_layer_params)
         self._h_layer = h_layer_cls(**h_layer_params)
 
-        self.w_init = w_init
-        if hasattr(self.w_init, '__iter__'):
-            self.w_init = np.asarray(self.w_init)
-            if self.w_init.shape != (self.n_visible, self.n_hidden):
-                raise ValueError('`w_init` has invalid shape {0} != {1}'.\
-                                 format(self.w_init.shape, (self.n_visible, self.n_hidden)))
+        self.W_init = W_init
+        if hasattr(self.W_init, '__iter__'):
+            self.W_init = np.asarray(self.W_init)
+            if self.W_init.shape != (self.n_visible, self.n_hidden):
+                raise ValueError('`W_init` has invalid shape {0} != {1}'.\
+                                 format(self.W_init.shape, (self.n_visible, self.n_hidden)))
 
         self.hb_init = hb_init
         # Visible biases can be initialized with list of values,
@@ -146,9 +146,9 @@ class BaseRBM(TensorFlowModel):
         self.iter = 0
 
         # tf constants
+        self._n_visible = None
+        self._n_hidden = None
         self._L2 = None
-        self._hb_init = None
-        self._vb_init = None
 
         # tf input data
         self._X_batch = None
@@ -173,9 +173,9 @@ class BaseRBM(TensorFlowModel):
 
     def _make_constants(self):
         with tf.name_scope('constants'):
+            self._n_visible = tf.constant(self.n_visible, dtype=tf.int32, name='n_visible')
+            self._n_hidden = tf.constant(self.n_hidden, dtype=tf.int32, name='n_hidden')
             self._L2 = tf.constant(self.L2, dtype=self._tf_dtype, name='L2_coef')
-            self._hb_init = tf.constant(self.hb_init, dtype=self._tf_dtype, name='hb_init')
-            self._vb_init = tf.constant(self._vb_init_tmp, dtype=self._tf_dtype, name='vb_init')
 
     def _make_placeholders(self):
         with tf.name_scope('input_data'):
@@ -185,26 +185,29 @@ class BaseRBM(TensorFlowModel):
 
     def _make_vars(self):
         with tf.name_scope('weights'):
-            if hasattr(self.w_init, '__iter__'):
-                W_tensor = tf.constant(self.w_init, dtype=self._tf_dtype)
+            if hasattr(self.W_init, '__iter__'):
+                W_init = tf.constant(self.W_init, dtype=self._tf_dtype)
             else:
-                W_tensor = tf.random_normal([self.n_visible, self.n_hidden],
-                                            mean=0.0, stddev=self.w_init,
+                W_init = tf.random_normal([self._n_visible, self._n_hidden],
+                                            mean=0.0, stddev=self.W_init,
                                             seed=self.random_seed, dtype=self._tf_dtype)
-            self._W = tf.Variable(W_tensor, dtype=self._tf_dtype, name='W')
-            self._hb = tf.Variable(self._hb_init * tf.ones((self.n_hidden,), dtype=self._tf_dtype), name='hb')
-            self._vb = tf.Variable(self._vb_init, dtype=self._tf_dtype, name='vb')
+            W_init = tf.identity(W_init, name='W_init')
+            vb_init = tf.constant(self._vb_init_tmp, dtype=self._tf_dtype, name='vb_init')
+            hb_init = tf.constant(self.hb_init, dtype=self._tf_dtype, name='hb_init')
+            self._W = tf.Variable(W_init, dtype=self._tf_dtype, name='W')
+            self._vb = tf.Variable(vb_init, dtype=self._tf_dtype, name='vb')
+            self._hb = tf.Variable(hb_init * tf.ones([self._n_hidden], dtype=self._tf_dtype), name='hb')
             tf.summary.histogram('W', self._W)
-            tf.summary.histogram('hb', self._hb)
             tf.summary.histogram('vb', self._vb)
+            tf.summary.histogram('hb', self._hb)
 
         with tf.name_scope('weights_updates'):
-            self._dW = tf.Variable(tf.zeros([self.n_visible, self.n_hidden], dtype=self._tf_dtype), name='dW')
-            self._dhb = tf.Variable(tf.zeros([self.n_hidden], dtype=self._tf_dtype), name='dhb')
-            self._dvb = tf.Variable(tf.zeros([self.n_visible], dtype=self._tf_dtype), name='dvb')
+            self._dW = tf.Variable(tf.zeros([self._n_visible, self._n_hidden], dtype=self._tf_dtype), name='dW')
+            self._dvb = tf.Variable(tf.zeros([self._n_visible], dtype=self._tf_dtype), name='dvb')
+            self._dhb = tf.Variable(tf.zeros([self._n_hidden], dtype=self._tf_dtype), name='dhb')
             tf.summary.histogram('dW', self._dW)
-            tf.summary.histogram('dhb', self._dhb)
             tf.summary.histogram('dvb', self._dvb)
+            tf.summary.histogram('dhb', self._dhb)
 
     def _propup(self, v):
         with tf.name_scope('prop_up'):
@@ -272,31 +275,32 @@ class BaseRBM(TensorFlowModel):
 
         # compute gradients estimates (= positive - negative associations)
         with tf.name_scope('grads_estimates'):
+            # number of training examples might not be divisible by batch size
             N = tf.cast(tf.shape(self._X_batch)[0], dtype=self._tf_dtype)
             with tf.name_scope('dW'):
                 dW_positive = tf.matmul(self._X_batch, h0_means, transpose_a=True)
                 dW_negative = tf.matmul(v_states, h_means, transpose_a=True)
                 dW = (dW_positive - dW_negative) / N - self._L2 * self._W
-            with tf.name_scope('dhb'):
-                dhb = tf.reduce_mean(h0_means - h_means, axis=0) # == sum / N
             with tf.name_scope('dvb'):
                 dvb = tf.reduce_mean(self._X_batch - v_states, axis=0) # == sum / N
+            with tf.name_scope('dhb'):
+                dhb = tf.reduce_mean(h0_means - h_means, axis=0) # == sum / N
 
         # update parameters
         with tf.name_scope('momentum_updates'):
             with tf.name_scope('dW'):
                 dW_update = self._dW.assign(self._learning_rate * (self._momentum * self._dW + dW))
                 W_update = self._W.assign_add(dW_update)
-            with tf.name_scope('dhb'):
-                dhb_update = self._dhb.assign(self._learning_rate * (self._momentum * self._dhb + dhb))
-                hb_update = self._hb.assign_add(dhb_update)
             with tf.name_scope('dvb'):
                 dvb_update = self._dvb.assign(self._learning_rate * (self._momentum * self._dvb + dvb))
                 vb_update = self._vb.assign_add(dvb_update)
+            with tf.name_scope('dhb'):
+                dhb_update = self._dhb.assign(self._learning_rate * (self._momentum * self._dhb + dhb))
+                hb_update = self._hb.assign_add(dhb_update)
 
         # assemble train_op
         with tf.name_scope('training_step'):
-            train_op = tf.group(W_update, hb_update, vb_update)
+            train_op = tf.group(W_update, vb_update, hb_update)
             tf.add_to_collection('train_op', train_op)
 
         # compute metrics
@@ -319,7 +323,7 @@ class BaseRBM(TensorFlowModel):
             # randomly corrupt one feature in each sample
             x_ = tf.identity(x)
             batch_size = tf.shape(x)[0]
-            pll_rand = tf.random_uniform([batch_size], minval=0, maxval=self.n_visible,
+            pll_rand = tf.random_uniform([batch_size], minval=0, maxval=self._n_visible,
                                          dtype=tf.int32, seed=self.make_random_seed())
             ind = tf.transpose([tf.range(batch_size), pll_rand])
             m = tf.SparseTensor(indices=tf.to_int64(ind),
@@ -329,7 +333,7 @@ class BaseRBM(TensorFlowModel):
             x_ = tf.sparse_add(x_, m)
             x_ = tf.identity(x_, name='x_corrupted')
 
-            pll = tf.constant(self.n_visible, dtype=self._tf_dtype) *\
+            pll = tf.cast(self._n_visible, dtype=self._tf_dtype) *\
                   tf.log_sigmoid(self._free_energy(x_)-self._free_energy(x))
             tf.add_to_collection('pll', pll)
 
@@ -338,10 +342,10 @@ class BaseRBM(TensorFlowModel):
         tf.add_to_collection('free_energy_op', free_energy_op)
 
         # collect summaries
-        if self.metrics_config['msre']:
-            tf.summary.scalar(self._metrics_names_map['msre'], msre)
         if self.metrics_config['l2_loss']:
             tf.summary.scalar(self._metrics_names_map['l2_loss'], l2_loss)
+        if self.metrics_config['msre']:
+            tf.summary.scalar(self._metrics_names_map['msre'], msre)
         if self.metrics_config['pll']:
             tf.summary.scalar(self._metrics_names_map['pll'], pll)
 
