@@ -1,7 +1,9 @@
 import os
+import numpy as np
 from shutil import rmtree
 from numpy.testing import (assert_allclose,
-                           assert_almost_equal)
+                           assert_almost_equal,
+                           assert_raises)
 
 from hdm.utils import RNG
 from hdm.rbm import BernoulliRBM, MultinomialRBM, GaussianRBM
@@ -21,6 +23,14 @@ class TestRBM(object):
         for d in ('test_rbm_1/', 'test_rbm_2/', 'test_rbm_3/'):
             if os.path.exists(d):
                 rmtree(d)
+
+    def test_w_init(self):
+        assert_raises(ValueError, lambda: BernoulliRBM(n_visible=4, n_hidden=3, w_init=np.zeros((4, 2))))
+        assert_raises(ValueError, lambda: BernoulliRBM(n_visible=4, n_hidden=3, w_init=np.zeros((3, 3))))
+        assert_raises(ValueError, lambda: BernoulliRBM(n_visible=4, n_hidden=3, w_init=np.zeros((3, 2))))
+        BernoulliRBM(n_visible=4, n_hidden=3, w_init=np.zeros((4, 3)))
+        BernoulliRBM(n_visible=3, n_hidden=3, w_init=np.zeros((3, 3)))
+        BernoulliRBM(n_visible=1, n_hidden=1, w_init=np.zeros((1, 1)))
 
     def test_fit_consistency(self):
         for C, dtype in (

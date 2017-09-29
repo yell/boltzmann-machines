@@ -18,9 +18,12 @@ class BaseRBM(TensorFlowModel):
         Number of Gibbs sweeps per iteration.
     learning_rate, momentum : float, iterable, or generator
         Gradient descent parameters. Values are updated after each epoch.
+    w_init : float or (n_visible, n_hidden) iterable
+        Weight matrix initialization. If float, initialize from zero-centered
+        Gaussian with this standard deviation. If iterable, initialize from it.
     vb_init : float or iterable
-        Visible unit bias.
-    hb_init : float or iterable
+        Visible unit bias(es).
+    hb_init : float
         Hidden unit bias.
     metrics_config : dict
         Parameters that controls which metrics and how often they are computed.
@@ -54,7 +57,7 @@ class BaseRBM(TensorFlowModel):
     def __init__(self,
                  v_layer_cls=None, v_layer_params=None, n_visible=784,
                  h_layer_cls=None, h_layer_params=None, n_hidden=256,
-                 n_gibbs_steps=1, w_std=0.01, vb_init=0., hb_init=0.,
+                 w_init=0.01, vb_init=0., hb_init=0., n_gibbs_steps=1,
                  learning_rate=0.01, momentum=0.9, max_epoch=10, batch_size=10, L2=1e-4,
                  sample_v_states=False, sample_h_states=True,
                  metrics_config=None, verbose=False, save_after_each_epoch=True,
@@ -73,10 +76,15 @@ class BaseRBM(TensorFlowModel):
         self._v_layer = v_layer_cls(**v_layer_params)
         self._h_layer = h_layer_cls(**h_layer_params)
 
-        self.n_gibbs_steps = n_gibbs_steps
-        self.w_std = w_std
-        self.hb_init = hb_init
+        self.w_init = w_init
+        if hasattr(self.w_init, '__iter__'):
+            self.w_init = np.asarray(self.w_init)
+            if self.w_init.shape != (self.n_visible, self.n_hidden):
+                raise ValueError('`w_init` has invalid shape {0} != {1}'.\
+                                 format(self.w_init.shape, (self.n_visible, self.n_hidden)))
+            self.w_init = self.w_init.tolist()
 
+        self.hb_init = hb_init
         # Visible biases can be initialized with list of values,
         # because it is often helpful to initialize i-th visible bias
         # with value log(p_i / (1 - p_i)), p_i = fraction of training
@@ -87,6 +95,7 @@ class BaseRBM(TensorFlowModel):
         else:
             self._vb_init_tmp = [self.vb_init] * self.n_visible
 
+        self.n_gibbs_steps = n_gibbs_steps
         self.learning_rate = learning_rate
         self._learning_rate_gen = None
         self.momentum = momentum
@@ -176,8 +185,12 @@ class BaseRBM(TensorFlowModel):
 
     def _make_vars(self):
         with tf.name_scope('weights'):
-            W_tensor = tf.random_normal([self.n_visible, self.n_hidden],
-                                        mean=0.0, stddev=self.w_std, seed=self.random_seed, dtype=self._tf_dtype)
+            if hasattr(self.w_init, '__iter__'):
+                W_tensor = tf.constant(self.w_init, dtype=self._tf_dtype)
+            else:
+                W_tensor = tf.random_normal([self.n_visible, self.n_hidden],
+                                            mean=0.0, stddev=self.w_init,
+                                            seed=self.random_seed, dtype=self._tf_dtype)
             self._W = tf.Variable(W_tensor, dtype=self._tf_dtype, name='W')
             self._hb = tf.Variable(self._hb_init * tf.ones((self.n_hidden,), dtype=self._tf_dtype), name='hb')
             self._vb = tf.Variable(self._vb_init, dtype=self._tf_dtype, name='vb')
