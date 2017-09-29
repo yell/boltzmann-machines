@@ -120,6 +120,7 @@ class TensorFlowModel(BaseModel):
 
         # save params
         params = self.get_params(deep=False)
+        params = self._serialize(params)
         params['__class_name__'] = self.__class__.__name__
         with open(self._params_filepath, 'w') as params_file:
             json.dump(params, params_file, **self.json_params)
@@ -146,6 +147,7 @@ class TensorFlowModel(BaseModel):
         if class_name != cls.__name__:
             raise RuntimeError("attempt to open {0}'s data with class {1}".format(class_name, cls.__name__))
         model = cls(paths=paths, **params)
+        params = model._deserialize(params)
         model.set_params(**params) # set params which are not among ctor params
 
         # restore random state if needed

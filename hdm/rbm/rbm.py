@@ -75,9 +75,9 @@ class GaussianRBM(BaseRBM):
                                           learning_rate=learning_rate,
                                           model_path=model_path, *args, **kwargs)
         if hasattr(self.sigma, '__iter__'):
-            self._sigma_tmp = self.sigma = list(self.sigma)
+            self._sigma_tmp = self.sigma = np.asarray(self.sigma)
         else:
-            self._sigma_tmp = [self.sigma] * self.n_visible
+            self._sigma_tmp = np.repeat(self.sigma, self.n_visible)
 
     def _make_placeholders(self):
         super(GaussianRBM, self)._make_placeholders()

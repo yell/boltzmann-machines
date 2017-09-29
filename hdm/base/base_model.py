@@ -57,3 +57,11 @@ class BaseModel(SeedMixin):
             else:
                 raise ValueError("invalid param name '{0}'".format(key))
         return self
+
+    def _serialize(self, params):
+        """Class-specific parameters serialization routine."""
+        return params
+
+    def _deserialize(self, params):
+        """Class-specific parameters deserialization routine."""
+        return params

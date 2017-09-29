@@ -65,6 +65,7 @@ class BaseRBM(TensorFlowModel):
         super(BaseRBM, self).__init__(model_path=model_path, *args, **kwargs)
         self.n_visible = n_visible
         self.n_hidden = n_hidden
+
         v_layer_params = v_layer_params or {}
         v_layer_params.setdefault('n_units', self.n_visible)
         v_layer_params.setdefault('tf_dtype', self._tf_dtype)
@@ -82,7 +83,6 @@ class BaseRBM(TensorFlowModel):
             if self.w_init.shape != (self.n_visible, self.n_hidden):
                 raise ValueError('`w_init` has invalid shape {0} != {1}'.\
                                  format(self.w_init.shape, (self.n_visible, self.n_hidden)))
-            self.w_init = self.w_init.tolist()
 
         self.hb_init = hb_init
         # Visible biases can be initialized with list of values,
@@ -91,9 +91,9 @@ class BaseRBM(TensorFlowModel):
         # vectors where i-th unit is on, as proposed in [2]
         self.vb_init = vb_init
         if hasattr(self.vb_init, '__iter__'):
-            self._vb_init_tmp = self.vb_init = list(self.vb_init)
+            self._vb_init_tmp = self.vb_init = np.asarray(self.vb_init)
         else:
-            self._vb_init_tmp = [self.vb_init] * self.n_visible
+            self._vb_init_tmp = np.repeat(self.vb_init, self.n_visible)
 
         self.n_gibbs_steps = n_gibbs_steps
         self.learning_rate = learning_rate
@@ -497,3 +497,10 @@ class BaseRBM(TensorFlowModel):
         if hasattr(self, 'n_samples'):
             H /= self.n_samples
         return H
+
+    def _serialize(self, params):
+        for k, v in params.items():
+            if isinstance(v, np.ndarray):
+                # noinspection PyUnresolvedReferences
+                params[k] = v.tolist()
+        return params
