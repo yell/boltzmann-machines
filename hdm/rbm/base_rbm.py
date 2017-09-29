@@ -185,7 +185,7 @@ class BaseRBM(TensorFlowModel):
             tf.summary.histogram('hb', self._hb)
             tf.summary.histogram('vb', self._vb)
 
-        with tf.name_scope('grads'):
+        with tf.name_scope('weights_updates'):
             self._dW = tf.Variable(tf.zeros([self.n_visible, self.n_hidden], dtype=self._tf_dtype), name='dW')
             self._dhb = tf.Variable(tf.zeros([self.n_hidden], dtype=self._tf_dtype), name='dhb')
             self._dvb = tf.Variable(tf.zeros([self.n_visible], dtype=self._tf_dtype), name='dvb')

@@ -21,7 +21,6 @@ class DBM(TensorFlowModel):
         Maximum number of mean-field to perform on each iteration.
     mf_tol : float
 
-
     References
     ----------
     [1] Salakhutdinov, R. and Hinton, G. (2009). Deep Boltzmann machines.
@@ -154,7 +153,6 @@ class DBM(TensorFlowModel):
 
     def _make_constants(self):
         with tf.name_scope('constants'):
-
             self._n_particles = tf.constant(self.n_particles, dtype=tf.int32, name='n_particles')
             self._n_particles_updates_per_iter = \
                 tf.constant(self.n_particles_updates_per_iter, dtype=tf.int32, name='n_particles_updates_per_iter')
@@ -213,7 +211,7 @@ class DBM(TensorFlowModel):
                 tf.summary.histogram('hb_hist', hb)
 
         # initialize grads accumulators
-        with tf.name_scope('grads'):
+        with tf.name_scope('weights_updates'):
             t = tf.zeros(vb_init.shape, dtype=self._tf_dtype, name='dvb_init')
             self._dvb = tf.Variable(t, name='dvb')
             tf.summary.histogram('dvb_hist', self._dvb)
@@ -308,7 +306,7 @@ class DBM(TensorFlowModel):
         return v, H, v_new, H_new
 
     def _make_mf(self):
-        """Run mean-files updates for current mini-batch"""
+        """Run mean-field updates for current mini-batch"""
         with tf.name_scope('mean_field'):
             # randomly initialize mu_new
             init_ops = []
