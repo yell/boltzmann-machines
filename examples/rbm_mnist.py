@@ -28,16 +28,16 @@ def momentum():
 def main():
     # training settings
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--n_train', type=int, default=55000, metavar='N',
+    parser.add_argument('--n-train', type=int, default=55000, metavar='N',
                         help='number of training examples')
-    parser.add_argument('--n_val', type=int, default=5000, metavar='N',
+    parser.add_argument('--n-val', type=int, default=5000, metavar='N',
                         help='number of validation examples')
-    parser.add_argument('--n_hidden', type=int, default=1024, metavar='N',
+    parser.add_argument('--n-hidden', type=int, default=1024, metavar='N',
                         help='number of hidden units')
-    parser.add_argument('--vb_init', action='store_false',
+    parser.add_argument('--vb-init', action='store_false',
                         help='initialize visible biases as logit of mean values of features'+\
                              ', otherwise zero init')
-    parser.add_argument('--n_gibbs_steps', type=int, default=1, metavar='N',
+    parser.add_argument('--n-gibbs-steps', type=int, default=1, metavar='N',
                         help='number of Gibbs steps per weight update')
     parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
                         help='initial learning rates')
@@ -47,11 +47,11 @@ def main():
                         help='input batch size for training')
     parser.add_argument('--l2', type=float, default=1e-5, metavar='L2',
                         help='L2 weight decay')
-    parser.add_argument('--sample_v_states', action='store_true',
+    parser.add_argument('--sample-v-states', action='store_true',
                         help='sample visible states, otherwise use probabilities w/o sampling')
     parser.add_argument('--dtype', type=str, default='float32', metavar='D',
                         help="datatype precision to use, {'float32', 'float64'}")
-    parser.add_argument('--model_dirpath', type=str, default='../models/rbm_mnist/', metavar='DIRPATH',
+    parser.add_argument('--model-dirpath', type=str, default='../models/rbm_mnist/', metavar='DIRPATH',
                         help='directory path to save the model')
     args = parser.parse_args()
 

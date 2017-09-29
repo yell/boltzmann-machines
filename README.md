@@ -52,28 +52,28 @@ Momentum is initially 0.5 and gradually increases to 0.9.
 Training time is approx. 2.5 times faster using single-precision rather than double
 with negligible difference in reconstruction error, pseudo log-lik is more noisy though.
 
-usage: rbm_mnist.py [-h] [--n_train N] [--n_val N] [--n_hidden N] [--vb_init]
-                    [--n_gibbs_steps N] [--lr LR] [--epochs N]
-                    [--batch-size N] [--l2 L2] [--sample_v_states] [--dtype D]
-                    [--model_dirpath DIRPATH]
+usage: rbm_mnist.py [-h] [--n-train N] [--n-val N] [--n-hidden N] [--vb-init]
+                    [--n-gibbs-steps N] [--lr LR] [--epochs N]
+                    [--batch-size N] [--l2 L2] [--sample-v-states] [--dtype D]
+                    [--model-dirpath DIRPATH]
 
 optional arguments:
   -h, --help            show this help message and exit
-  --n_train N           number of training examples (default: 55000)
-  --n_val N             number of validation examples (default: 5000)
-  --n_hidden N          number of hidden units (default: 1024)
-  --vb_init             initialize visible biases as logit of mean values of
+  --n-train N           number of training examples (default: 55000)
+  --n-val N             number of validation examples (default: 5000)
+  --n-hidden N          number of hidden units (default: 1024)
+  --vb-init             initialize visible biases as logit of mean values of
                         features, otherwise zero init (default: True)
-  --n_gibbs_steps N     number of Gibbs steps per weight update (default: 1)
+  --n-gibbs-steps N     number of Gibbs steps per weight update (default: 1)
   --lr LR               initial learning rates (default: 0.01)
   --epochs N            number of epochs to train (default: 100)
   --batch-size N        input batch size for training (default: 10)
   --l2 L2               L2 weight decay (default: 1e-05)
-  --sample_v_states     sample visible states, otherwise use probabilities w/o
+  --sample-v-states     sample visible states, otherwise use probabilities w/o
                         sampling (default: False)
   --dtype D             datatype precision to use, {'float32', 'float64'}
                         (default: float32)
-  --model_dirpath DIRPATH
+  --model-dirpath DIRPATH
                         directory path to save the model (default:
                         ../models/rbm_mnist/)
 ```
