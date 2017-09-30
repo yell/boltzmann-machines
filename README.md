@@ -19,6 +19,7 @@
 ***TODO***
 
 ### General
+* easy to use `sklearn`-like interface
 * serialization (tf saver + python class hyperparams + RNG state), easy to save and to load
 * reproducible (random seeds)
 * all models support both `float32` and `float64` precision
