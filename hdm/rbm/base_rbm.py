@@ -18,7 +18,7 @@ class BaseRBM(TensorFlowModel):
         Number of Gibbs sweeps per iteration.
     learning_rate, momentum : float, iterable, or generator
         Gradient descent parameters. Values are updated after each epoch.
-    W_init : float or (n_visible, n_hidden) iterable
+    w_init : float or (n_visible, n_hidden) iterable
         Weight matrix initialization. If float, initialize from zero-centered
         Gaussian with this standard deviation. If iterable, initialize from it.
     vb_init : float or iterable
@@ -57,7 +57,7 @@ class BaseRBM(TensorFlowModel):
     def __init__(self,
                  v_layer_cls=None, v_layer_params=None, n_visible=784,
                  h_layer_cls=None, h_layer_params=None, n_hidden=256,
-                 W_init=0.01, vb_init=0., hb_init=0., n_gibbs_steps=1,
+                 w_init=0.01, vb_init=0., hb_init=0., n_gibbs_steps=1,
                  learning_rate=0.01, momentum=0.9, max_epoch=10, batch_size=10, L2=1e-4,
                  sample_v_states=False, sample_h_states=True,
                  metrics_config=None, verbose=False, save_after_each_epoch=True,
@@ -77,12 +77,12 @@ class BaseRBM(TensorFlowModel):
         self._v_layer = v_layer_cls(**v_layer_params)
         self._h_layer = h_layer_cls(**h_layer_params)
 
-        self.W_init = W_init
-        if hasattr(self.W_init, '__iter__'):
-            self.W_init = np.asarray(self.W_init)
-            if self.W_init.shape != (self.n_visible, self.n_hidden):
-                raise ValueError('`W_init` has invalid shape {0} != {1}'.\
-                                 format(self.W_init.shape, (self.n_visible, self.n_hidden)))
+        self.w_init = w_init
+        if hasattr(self.w_init, '__iter__'):
+            self.w_init = np.asarray(self.w_init)
+            if self.w_init.shape != (self.n_visible, self.n_hidden):
+                raise ValueError('`w_init` has invalid shape {0} != {1}'.\
+                                 format(self.w_init.shape, (self.n_visible, self.n_hidden)))
 
         self.hb_init = hb_init
         # Visible biases can be initialized with list of values,
@@ -185,16 +185,16 @@ class BaseRBM(TensorFlowModel):
 
     def _make_vars(self):
         with tf.name_scope('weights'):
-            if hasattr(self.W_init, '__iter__'):
-                W_init = tf.constant(self.W_init, dtype=self._tf_dtype)
+            if hasattr(self.w_init, '__iter__'):
+                w_init = tf.constant(self.w_init, dtype=self._tf_dtype)
             else:
-                W_init = tf.random_normal([self._n_visible, self._n_hidden],
-                                            mean=0.0, stddev=self.W_init,
+                w_init = tf.random_normal([self._n_visible, self._n_hidden],
+                                            mean=0.0, stddev=self.w_init,
                                             seed=self.random_seed, dtype=self._tf_dtype)
-            W_init = tf.identity(W_init, name='W_init')
+            w_init = tf.identity(w_init, name='w_init')
             vb_init = tf.constant(self._vb_init_tmp, dtype=self._tf_dtype, name='vb_init')
             hb_init = tf.constant(self.hb_init, dtype=self._tf_dtype, name='hb_init')
-            self._W = tf.Variable(W_init, dtype=self._tf_dtype, name='W')
+            self._W = tf.Variable(w_init, dtype=self._tf_dtype, name='W')
             self._vb = tf.Variable(vb_init, dtype=self._tf_dtype, name='vb')
             self._hb = tf.Variable(hb_init * tf.ones([self._n_hidden], dtype=self._tf_dtype), name='hb')
             tf.summary.histogram('W', self._W)
