@@ -11,19 +11,13 @@ print(__doc__)
 
 
 import argparse
+import numpy as np
 
 import env
 from hdm.rbm import BernoulliRBM, logit_mean
 from hdm.utils import RNG
 from hdm.utils.dataset import load_mnist
 
-
-def momentum():
-    """A momentum generator function."""
-    m = 0.5
-    while True:
-        yield min(m, 0.9)
-        m *= 1.08
 
 def main():
     # training settings
@@ -68,7 +62,7 @@ def main():
                        vb_init=logit_mean(X_train) if args.vb_init else 0.,
                        n_gibbs_steps=args.n_gibbs_steps,
                        learning_rate=args.lr,
-                       momentum=momentum(),
+                       momentum=np.geomspace(0.5, 0.9, 8),
                        max_epoch=args.epochs,
                        batch_size=args.batch_size,
                        L2=args.l2,

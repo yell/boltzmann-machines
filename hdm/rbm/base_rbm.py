@@ -4,7 +4,7 @@ from tensorflow.core.framework import summary_pb2
 
 from hdm.base import TensorFlowModel, run_in_tf_session
 from hdm.utils import (batch_iter, epoch_iter,
-                       make_inf_generator, write_during_training)
+                       write_during_training)
 
 
 class BaseRBM(TensorFlowModel):
@@ -16,7 +16,7 @@ class BaseRBM(TensorFlowModel):
     ----------
     n_gibbs_steps : int
         Number of Gibbs sweeps per iteration.
-    learning_rate, momentum : float, iterable, or generator
+    learning_rate, momentum : float or iterable
         Gradient descent parameters. Values are updated after each epoch.
     w_init : float or (n_visible, n_hidden) iterable
         Weight matrix initialization. If float, initialize from zero-centered
@@ -83,7 +83,6 @@ class BaseRBM(TensorFlowModel):
             if self.w_init.shape != (self.n_visible, self.n_hidden):
                 raise ValueError('`w_init` has invalid shape {0} != {1}'.\
                                  format(self.w_init.shape, (self.n_visible, self.n_hidden)))
-
         self.hb_init = hb_init
         # Visible biases can be initialized with list of values,
         # because it is often helpful to initialize i-th visible bias
@@ -96,10 +95,11 @@ class BaseRBM(TensorFlowModel):
             self._vb_init_tmp = np.repeat(self.vb_init, self.n_visible)
 
         self.n_gibbs_steps = n_gibbs_steps
-        self.learning_rate = learning_rate
-        self._learning_rate_gen = None
-        self.momentum = momentum
-        self._momentum_gen = None
+
+        self.learning_rate = [learning_rate] if not hasattr(learning_rate, '__iter__')\
+                             else list(learning_rate)
+        self.momentum = [momentum] if not hasattr(momentum, '__iter__')\
+                        else list(momentum)
         self.max_epoch = max_epoch
         self.batch_size = batch_size
         self.L2 = L2
@@ -358,8 +358,8 @@ class BaseRBM(TensorFlowModel):
     def _make_tf_feed_dict(self, X_batch):
         d = {}
         d['X_batch'] = X_batch
-        d['learning_rate'] = self.learning_rate
-        d['momentum'] = self.momentum
+        d['learning_rate'] = self.learning_rate[min(self.epoch, len(self.learning_rate) - 1)]
+        d['momentum'] = self.momentum[min(self.epoch, len(self.momentum) - 1)]
         # prepend name of the scope, and append ':0'
         feed_dict = {}
         for k, v in d.items():
@@ -367,10 +367,6 @@ class BaseRBM(TensorFlowModel):
         return feed_dict
 
     def _train_epoch(self, X):
-        # updates hyper-parameters if needed
-        self.learning_rate = next(self._learning_rate_gen)
-        self.momentum = next(self._momentum_gen)
-
         results = [[] for _ in xrange(len(self._train_metrics_map))]
         for X_batch in batch_iter(X, self.batch_size,
                                   verbose=self.verbose):
@@ -441,10 +437,6 @@ class BaseRBM(TensorFlowModel):
         return feg
 
     def _fit(self, X, X_val=None):
-        # init generators
-        self._learning_rate_gen = make_inf_generator(self.learning_rate)
-        self._momentum_gen = make_inf_generator(self.momentum)
-
         # load ops requested
         self._train_op = tf.get_collection('train_op')[0]
         self._train_metrics_map = {}
