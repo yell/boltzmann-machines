@@ -61,6 +61,7 @@ class BaseRBM(TensorFlowModel):
                  learning_rate=0.01, momentum=0.9, max_epoch=10, batch_size=10, L2=1e-4,
                  sample_v_states=False, sample_h_states=True,
                  metrics_config=None, verbose=False, save_after_each_epoch=True,
+                 visualize_filters=True, filter_shape=(28, 28), max_filters=30,
                  model_path='rbm_model/', *args, **kwargs):
         super(BaseRBM, self).__init__(model_path=model_path, *args, **kwargs)
         self.n_visible = n_visible
@@ -141,6 +142,10 @@ class BaseRBM(TensorFlowModel):
         self.verbose = verbose
         self.save_after_each_epoch = save_after_each_epoch
 
+        self.visualize_filters = visualize_filters
+        self.filter_shape = filter_shape
+        self.max_filters = max_filters
+
         # current epoch and iteration
         self.epoch = 0
         self.iter = 0
@@ -194,17 +199,27 @@ class BaseRBM(TensorFlowModel):
             w_init = tf.identity(w_init, name='w_init')
             vb_init = tf.constant(self._vb_init_tmp, dtype=self._tf_dtype, name='vb_init')
             hb_init = tf.constant(self.hb_init, dtype=self._tf_dtype, name='hb_init')
+
             self._W = tf.Variable(w_init, dtype=self._tf_dtype, name='W')
             self._vb = tf.Variable(vb_init, dtype=self._tf_dtype, name='vb')
             self._hb = tf.Variable(hb_init * tf.ones([self._n_hidden], dtype=self._tf_dtype), name='hb')
+
             tf.summary.histogram('W', self._W)
             tf.summary.histogram('vb', self._vb)
             tf.summary.histogram('hb', self._hb)
+
+            # visualize filters
+            if self.visualize_filters:
+                W_filters = tf.reshape(self._W, [self.filter_shape[0],
+                                                 self.filter_shape[1], self.n_hidden, 1])
+                W_filters = tf.transpose(W_filters, [2, 0, 1, 3])
+                tf.summary.image('W_filters', W_filters, max_outputs=self.max_filters)
 
         with tf.name_scope('weights_updates'):
             self._dW = tf.Variable(tf.zeros([self._n_visible, self._n_hidden], dtype=self._tf_dtype), name='dW')
             self._dvb = tf.Variable(tf.zeros([self._n_visible], dtype=self._tf_dtype), name='dvb')
             self._dhb = tf.Variable(tf.zeros([self._n_hidden], dtype=self._tf_dtype), name='dhb')
+
             tf.summary.histogram('dW', self._dW)
             tf.summary.histogram('dvb', self._dvb)
             tf.summary.histogram('dhb', self._dhb)
