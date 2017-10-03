@@ -210,10 +210,11 @@ class BaseRBM(TensorFlowModel):
 
             # visualize filters
             if self.visualize_filters:
-                W_filters = tf.reshape(self._W, [self.filter_shape[0],
-                                                 self.filter_shape[1], self.n_hidden, 1])
-                W_filters = tf.transpose(W_filters, [2, 0, 1, 3])
-                tf.summary.image('W_filters', W_filters, max_outputs=self.max_filters)
+                with tf.name_scope('filters_visualization'):
+                    W_display = tf.reshape(self._W, [self.filter_shape[0],
+                                                     self.filter_shape[1], self.n_hidden, 1])
+                    W_display = tf.transpose(W_display, [2, 0, 1, 3])
+                    tf.summary.image('W_filters', W_display, max_outputs=self.max_filters)
 
         with tf.name_scope('weights_updates'):
             self._dW = tf.Variable(tf.zeros([self._n_visible, self._n_hidden], dtype=self._tf_dtype), name='dW')
