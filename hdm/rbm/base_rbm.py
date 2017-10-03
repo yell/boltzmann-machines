@@ -62,6 +62,7 @@ class BaseRBM(TensorFlowModel):
                  sample_v_states=False, sample_h_states=True,
                  metrics_config=None, verbose=False, save_after_each_epoch=True,
                  visualize_filters=True, filter_shape=(28, 28), max_filters=30,
+                 visualize_hidden_activities=True, max_hidden=25,
                  model_path='rbm_model/', *args, **kwargs):
         super(BaseRBM, self).__init__(model_path=model_path, *args, **kwargs)
         self.n_visible = n_visible
@@ -96,7 +97,6 @@ class BaseRBM(TensorFlowModel):
             self._vb_init_tmp = np.repeat(self.vb_init, self.n_visible)
 
         self.n_gibbs_steps = n_gibbs_steps
-
         self.learning_rate = [learning_rate] if not hasattr(learning_rate, '__iter__')\
                              else list(learning_rate)
         self.momentum = [momentum] if not hasattr(momentum, '__iter__')\
@@ -145,6 +145,9 @@ class BaseRBM(TensorFlowModel):
         self.visualize_filters = visualize_filters
         self.filter_shape = filter_shape
         self.max_filters = max_filters
+
+        self.visualize_hidden_activities = visualize_hidden_activities
+        self.max_hidden = max_hidden
 
         # current epoch and iteration
         self.epoch = 0
@@ -283,6 +286,14 @@ class BaseRBM(TensorFlowModel):
                     h_states = h_means = self._means_h_given_v(v_states)
                     if self.sample_h_states:
                         h_states = self._sample_h_given_v(h_means)
+
+        # visualize hidden activation means
+        if self.visualize_hidden_activities:
+            with tf.name_scope('hidden_activations_visualization'):
+                h_means_display = h_means[:, :self.max_hidden]
+                h_means_display = tf.expand_dims(h_means_display, 0)
+                h_means_display = tf.expand_dims(h_means_display, -1)
+                tf.summary.image('hidden_activation_means', h_means_display)
 
         # encoded data, used by the transform method
         with tf.name_scope('transform'):
