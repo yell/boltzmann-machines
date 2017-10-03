@@ -25,6 +25,8 @@ class BaseRBM(TensorFlowModel):
         Visible unit bias(es).
     hb_init : float
         Hidden unit bias.
+    dropout : None or float
+        If float, interpreted as probability of being on.
     metrics_config : dict
         Parameters that controls which metrics and how often they are computed.
         Possible (optional) commands:
@@ -60,6 +62,7 @@ class BaseRBM(TensorFlowModel):
                  w_init=0.01, vb_init=0., hb_init=0., n_gibbs_steps=1,
                  learning_rate=0.01, momentum=0.9, max_epoch=10, batch_size=10, L2=1e-4,
                  sample_v_states=False, sample_h_states=True,
+                 dropout=None,
                  metrics_config=None, verbose=False, save_after_each_epoch=True,
                  visualize_filters=True, filter_shape=(28, 28), max_filters=30,
                  visualize_hidden_activities=True, max_hidden=25,
@@ -112,6 +115,7 @@ class BaseRBM(TensorFlowModel):
         # probabilities/means of hidden units.
         self.sample_h_states = sample_h_states
         self.sample_v_states = sample_v_states
+        self.dropout = dropout
 
         self.metrics_config = metrics_config or {}
         self.metrics_config.setdefault('l2_loss', False)
@@ -267,6 +271,10 @@ class BaseRBM(TensorFlowModel):
         raise NotImplementedError('`free_energy` is not implemented')
 
     def _make_train_op(self):
+        # apply dropout if necessary
+        if self.dropout is not None:
+            self._X_batch = tf.nn.dropout(self._X_batch, keep_prob=self.dropout)
+
         # Run Gibbs chain for specified number of steps.
         with tf.name_scope('gibbs_chain'):
             h0_means = self._means_h_given_v(self._X_batch)

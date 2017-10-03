@@ -43,7 +43,9 @@ def main():
                         help='L2 weight decay')
     parser.add_argument('--sample-v-states', action='store_true',
                         help='sample visible states, otherwise use probabilities w/o sampling')
-    parser.add_argument('--dtype', type=str, default='float32', metavar='D',
+    parser.add_argument('--dropout', type=float, metavar='P',
+                        help='probability of input units being on')
+    parser.add_argument('--dtype', type=str, default='float32', metavar='T',
                         help="datatype precision to use, {'float32', 'float64'}")
     parser.add_argument('--model-dirpath', type=str, default='../models/rbm_mnist/', metavar='DIRPATH',
                         help='directory path to save the model')
@@ -68,6 +70,7 @@ def main():
                        L2=args.l2,
                        sample_h_states=True,
                        sample_v_states=args.sample_v_states,
+                       dropout=args.dropout,
                        metrics_config=dict(
                            msre=True,
                            pll=True,

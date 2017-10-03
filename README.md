@@ -72,7 +72,8 @@ optional arguments:
   --l2 L2               L2 weight decay (default: 1e-05)
   --sample-v-states     sample visible states, otherwise use probabilities w/o
                         sampling (default: False)
-  --dtype D             datatype precision to use, {'float32', 'float64'}
+  --dropout P           probability of input units being on (default: None)
+  --dtype T             datatype precision to use, {'float32', 'float64'}
                         (default: float32)
   --model-dirpath DIRPATH
                         directory path to save the model (default:
