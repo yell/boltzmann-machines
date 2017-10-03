@@ -290,7 +290,7 @@ class BaseRBM(TensorFlowModel):
         # visualize hidden activation means
         if self.visualize_hidden_activities:
             with tf.name_scope('hidden_activations_visualization'):
-                h_means_display = h_means[:, :self.max_hidden]
+                h_means_display = tf.cast(h_means[:, :self.max_hidden], tf.float32)
                 h_means_display = tf.expand_dims(h_means_display, 0)
                 h_means_display = tf.expand_dims(h_means_display, -1)
                 tf.summary.image('hidden_activation_means', h_means_display)
