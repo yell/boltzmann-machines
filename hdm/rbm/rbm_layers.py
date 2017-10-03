@@ -5,10 +5,10 @@ from tensorflow.contrib.distributions import Bernoulli, Multinomial, Normal
 from hdm.base import SeedMixin
 
 
-class BaseLayer(SeedMixin):
+class BaseLayer(object):
     """Helper class that encapsulates one layer of stochastic units in RBM/DBM."""
-    def __init__(self, n_units, tf_dtype=tf.float32, *args, **kwargs):
-        super(BaseLayer, self).__init__(*args, **kwargs)
+    def __init__(self, n_units, tf_dtype=tf.float32):
+        super(BaseLayer, self).__init__()
         self.n_units = n_units
         self.tf_dtype = tf_dtype
 
@@ -17,12 +17,14 @@ class BaseLayer(SeedMixin):
         raise NotImplementedError('`init` is not implemented')
 
     def activation(self, x, b):
-        """Compute activation of states according to the distribution.
+        """Compute activation of states according to the layer's distribution.
 
         Parameters
         ----------
-        x - total input received (incl. bias)
-        b - bias
+        x : (n_units,) tf.Tensor
+            Total input received (excluding bias).
+        b : (n_units,) tf.Tensor
+            Bias.
         """
         raise NotImplementedError('`activation` is not implemented')
 
@@ -31,7 +33,7 @@ class BaseLayer(SeedMixin):
         raise NotImplementedError('`sample` is not implemented')
 
     def sample(self, means):
-        T = self._sample(means).sample(seed=self.make_random_seed())
+        T = self._sample(means).sample()
         return tf.cast(T, dtype=self.tf_dtype)
 
 
@@ -39,10 +41,9 @@ class BernoulliLayer(BaseLayer):
     def __init__(self, *args, **kwargs):
         super(BernoulliLayer, self).__init__(*args, **kwargs)
 
-    def init(self, batch_size):
+    def init(self, batch_size, random_seed=None):
         return tf.random_uniform([batch_size, self.n_units], minval=0., maxval=1.,
-                                 dtype=self.tf_dtype, seed=self.make_random_seed(),
-                                 name='bernoulli_init')
+                                 dtype=self.tf_dtype, seed=random_seed, name='bernoulli_init')
 
     def activation(self, x, b):
         return tf.nn.sigmoid(x + b)
@@ -59,7 +60,7 @@ class MultinomialLayer(BaseLayer):
 
     def init(self, batch_size, random_seed=None):
         t = tf.random_uniform([batch_size, self.n_units], minval=0., maxval=1.,
-                              dtype=self.tf_dtype, seed=self.make_random_seed())
+                              dtype=self.tf_dtype, seed=random_seed)
         t /= tf.reduce_sum(t)
         return tf.identity(t, name='multinomial_init')
 
@@ -83,8 +84,8 @@ class GaussianLayer(BaseLayer):
         self.sigma = np.asarray(sigma)
 
     def init(self, batch_size, random_seed=None):
-        t = tf.random_normal([batch_size, self.n_units], dtype=self.tf_dtype,
-                             seed=self.make_random_seed())
+        t = tf.random_normal([batch_size, self.n_units],
+                             dtype=self.tf_dtype, seed=random_seed)
         t = tf.multiply(t, self.sigma, name='gaussian_init')
         return t
 

@@ -16,123 +16,108 @@ class TestRBM(object):
         self.X = RNG(seed=1337).rand(16, self.n_visible)
         self.X_val = RNG(seed=42).rand(8, self.n_visible)
         self.rbm_config = dict(n_visible=self.n_visible, n_hidden=self.n_hidden,
-                               L2=0., sample_h_states=False,
-                               verbose=False, random_seed=1337)
+                               sample_v_states=True, sample_h_states=True,
+                               verbose=False, visualize_filters=False,
+                               random_seed=1337)
 
     def cleanup(self):
-        for d in ('test_rbm_1/', 'test_rbm_2/', 'test_rbm_3/'):
+        for d in ('test_rbm_1/', 'test_rbm_2/'):
             if os.path.exists(d):
                 rmtree(d)
 
     def test_w_init(self):
-        assert_raises(ValueError, lambda: BernoulliRBM(n_visible=4, n_hidden=3, w_init=np.zeros((4, 2))))
-        assert_raises(ValueError, lambda: BernoulliRBM(n_visible=4, n_hidden=3, w_init=np.zeros((3, 3))))
-        assert_raises(ValueError, lambda: BernoulliRBM(n_visible=4, n_hidden=3, w_init=np.zeros((3, 2))))
-        BernoulliRBM(n_visible=4, n_hidden=3, w_init=np.zeros((4, 3)))
-        BernoulliRBM(n_visible=3, n_hidden=3, w_init=np.zeros((3, 3)))
-        BernoulliRBM(n_visible=1, n_hidden=1, w_init=np.zeros((1, 1)))
+        for C in (BernoulliRBM, MultinomialRBM, GaussianRBM):
+            assert_raises(ValueError, lambda: C(n_visible=4, n_hidden=3, w_init=np.zeros((4, 2))))
+            assert_raises(ValueError, lambda: C(n_visible=4, n_hidden=3, w_init=np.zeros((3, 3))))
+            assert_raises(ValueError, lambda: C(n_visible=4, n_hidden=3, w_init=np.zeros((3, 2))))
+            C(n_visible=4, n_hidden=3, w_init=np.zeros((4, 3)))
+            C(n_visible=3, n_hidden=3, w_init=np.zeros((3, 3)))
+            C(n_visible=1, n_hidden=1, w_init=np.zeros((1, 1)))
 
-    def test_fit_consistency(self):
+    def check_weights(self, rbm1, rbm2):
+        rbm1_weights = rbm1.get_tf_params(scope='weights')
+        rbm2_weights = rbm2.get_tf_params(scope='weights')
+        assert_allclose(rbm1_weights['W'], rbm2_weights['W'])
+        assert_allclose(rbm1_weights['hb'], rbm2_weights['hb'])
+        assert_allclose(rbm1_weights['vb'], rbm2_weights['vb'])
+
+    def check_transforms(self, rbm1, rbm2):
+        H1 = rbm1.transform(self.X_val)
+        H2 = rbm2.transform(self.X_val)
+        assert H1.shape == (len(self.X_val), self.n_hidden)
+        assert H1.shape == H2.shape
+        assert_allclose(H1, H2)
+
+    def test_consistency(self):
         for C, dtype in (
             (BernoulliRBM, 'float32'),
             (BernoulliRBM, 'float64'),
             (MultinomialRBM, 'float32'),
             (GaussianRBM, 'float32'),
         ):
-            # 1) train for 2 epochs, then for 3 more
-            rbm = C(max_epoch=2,
+            rbm1 = C(max_epoch=2,
                     model_path='test_rbm_1/',
                     tf_dtype=dtype,
                     **self.rbm_config)
 
-            if dtype == 'float32': assert_almost_equal(rbm.get_tf_params(scope='weights')['W'][0][0], -0.0094548017)
-            if dtype == 'float64': assert_almost_equal(rbm.get_tf_params(scope='weights')['W'][0][0], -0.0077341544416)
-            rbm.fit(self.X)
-            rbm_weights = rbm.set_params(max_epoch=2 + 3) \
-                .fit(self.X) \
-                .get_tf_params(scope='weights')
+            # check initialization
+            if dtype == 'float32':
+                assert_almost_equal(rbm1.get_tf_params(scope='weights')['W'][0][0], -0.0094548017)
+            if dtype == 'float64':
+                assert_almost_equal(rbm1.get_tf_params(scope='weights')['W'][0][0], -0.0077341544416)
 
-            # 2) train for 2 epochs (+save), load and train for 3 more
+            # train 2 RBMs with same params for 2 epochs
             rbm2 = C(max_epoch=2,
                      model_path='test_rbm_2/',
                      tf_dtype=dtype,
                      **self.rbm_config)
+
+            rbm1.fit(self.X)
             rbm2.fit(self.X)
-            rbm2_weights = C.load_model('test_rbm_2/') \
-                .set_params(max_epoch=2 + 3) \
-                .fit(self.X) \
-                .get_tf_params(scope='weights')
-            assert_allclose(rbm_weights['W'], rbm2_weights['W'])
-            assert_allclose(rbm_weights['hb'], rbm2_weights['hb'])
-            assert_allclose(rbm_weights['vb'], rbm2_weights['vb'])
 
-            # train for 5 epochs
-            rbm3 = C(max_epoch=2 + 3,
-                     model_path='test_rbm_3/',
-                     tf_dtype=dtype,
-                     **self.rbm_config)
-            rbm3_weights = rbm3.fit(self.X) \
-                .get_tf_params(scope='weights')
-            assert_allclose(rbm2_weights['W'], rbm3_weights['W'])
-            assert_allclose(rbm2_weights['hb'], rbm3_weights['hb'])
-            assert_allclose(rbm2_weights['vb'], rbm3_weights['vb'])
+            self.check_weights(rbm1, rbm2)
+            self.check_transforms(rbm1, rbm2)
 
-            # cleanup
-            self.cleanup()
+            # train for 1 more epoch
+            rbm1.set_params(max_epoch=rbm1.max_epoch + 1).fit(self.X)
+            rbm2.set_params(max_epoch=rbm2.max_epoch + 1).fit(self.X)
 
-    def test_fit_consistency_val(self):
-        for C in (BernoulliRBM,):
+            self.check_weights(rbm1, rbm2)
+            self.check_transforms(rbm1, rbm2)
 
-            # 1) train for 2 epochs, then for 3 more
-            rbm = C(max_epoch=2,
-                    model_path='test_rbm_1/',
-                    **self.rbm_config)
+            # load from disk
+            rbm1 = C.load_model('test_rbm_1/')
+            rbm2 = C.load_model('test_rbm_2/')
 
-            rbm.fit(self.X, self.X_val)
-            rbm_weights = rbm.set_params(max_epoch=2 + 3) \
-                .fit(self.X, self.X_val) \
-                .get_tf_params(scope='weights')
+            self.check_weights(rbm1, rbm2)
+            self.check_transforms(rbm1, rbm2)
 
-            # 2) train for 2 epochs (+save), load and train for 3 more
-            rbm2 = C(max_epoch=2,
-                     model_path='test_rbm_2/',
-                     **self.rbm_config)
-            rbm2.fit(self.X, self.X_val)
-            rbm2_weights = C.load_model('test_rbm_2/') \
-                .set_params(max_epoch=2 + 3) \
-                .fit(self.X, self.X_val) \
-                .get_tf_params(scope='weights')
-            assert_allclose(rbm_weights['W'], rbm2_weights['W'])
-            assert_allclose(rbm_weights['hb'], rbm2_weights['hb'])
-            assert_allclose(rbm_weights['vb'], rbm2_weights['vb'])
+            # train for 1 more epoch
+            rbm1.set_params(max_epoch=rbm1.max_epoch + 1).fit(self.X)
+            rbm2.set_params(max_epoch=rbm2.max_epoch + 1).fit(self.X)
 
-            # train for 5 epochs
-            rbm3 = C(max_epoch=2 + 3,
-                     model_path='test_rbm_3/',
-                     **self.rbm_config)
-            rbm3_weights = rbm3.fit(self.X, self.X_val) \
-                .get_tf_params(scope='weights')
-            assert_allclose(rbm2_weights['W'], rbm3_weights['W'])
-            assert_allclose(rbm2_weights['hb'], rbm3_weights['hb'])
-            assert_allclose(rbm2_weights['vb'], rbm3_weights['vb'])
+            self.check_weights(rbm1, rbm2)
+            self.check_transforms(rbm1, rbm2)
 
             # cleanup
             self.cleanup()
 
-    def test_transform(self):
-        for C in (BernoulliRBM, MultinomialRBM, GaussianRBM):
-            rbm = C(max_epoch=2,
-                    model_path='test_rbm_1/',
-                    **self.rbm_config)
-            rbm.fit(self.X)
-            H = rbm.transform(self.X_val)
+    def test_consistency_val(self):
+        rbm1 = BernoulliRBM(max_epoch=2,
+                            model_path='test_rbm_1/',
+                            **self.rbm_config)
+        rbm2 = BernoulliRBM(max_epoch=2,
+                            model_path='test_rbm_2/',
+                            **self.rbm_config)
 
-            H_loaded = C.load_model('test_rbm_1/').transform(self.X_val)
-            assert H.shape == (len(self.X_val), self.n_hidden)
-            assert_allclose(H, H_loaded)
+        rbm1.fit(self.X, self.X_val)
+        rbm2.fit(self.X, self.X_val)
 
-            # cleanup
-            self.cleanup()
+        self.check_weights(rbm1, rbm2)
+        self.check_transforms(rbm1, rbm2)
+
+        # cleanup
+        self.cleanup()
 
     def tearDown(self):
         self.cleanup()

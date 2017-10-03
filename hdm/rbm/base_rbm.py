@@ -71,11 +71,9 @@ class BaseRBM(TensorFlowModel):
         v_layer_params = v_layer_params or {}
         v_layer_params.setdefault('n_units', self.n_visible)
         v_layer_params.setdefault('tf_dtype', self._tf_dtype)
-        v_layer_params.setdefault('random_seed', self.make_random_seed())
         h_layer_params = h_layer_params or {}
         h_layer_params.setdefault('n_units', self.n_hidden)
         h_layer_params.setdefault('tf_dtype', self._tf_dtype)
-        h_layer_params.setdefault('random_seed', self.make_random_seed())
         self._v_layer = v_layer_cls(**v_layer_params)
         self._h_layer = h_layer_cls(**h_layer_params)
 
@@ -197,8 +195,8 @@ class BaseRBM(TensorFlowModel):
                 w_init = tf.constant(self.w_init, dtype=self._tf_dtype)
             else:
                 w_init = tf.random_normal([self._n_visible, self._n_hidden],
-                                            mean=0.0, stddev=self.w_init,
-                                            seed=self.random_seed, dtype=self._tf_dtype)
+                                           mean=0.0, stddev=self.w_init,
+                                           seed=self.random_seed, dtype=self._tf_dtype)
             w_init = tf.identity(w_init, name='w_init')
             vb_init = tf.constant(self._vb_init_tmp, dtype=self._tf_dtype, name='vb_init')
             hb_init = tf.constant(self.hb_init, dtype=self._tf_dtype, name='hb_init')
@@ -351,7 +349,7 @@ class BaseRBM(TensorFlowModel):
             x_ = tf.identity(x)
             batch_size = tf.shape(x)[0]
             pll_rand = tf.random_uniform([batch_size], minval=0, maxval=self._n_visible,
-                                         dtype=tf.int32, seed=self.make_random_seed())
+                                         dtype=tf.int32)
             ind = tf.transpose([tf.range(batch_size), pll_rand])
             m = tf.SparseTensor(indices=tf.to_int64(ind),
                                 values=tf.ones_like(pll_rand, dtype=self._tf_dtype),
@@ -505,7 +503,7 @@ class BaseRBM(TensorFlowModel):
             if self.save_after_each_epoch:
                 self._save_model(global_step=self.epoch)
 
-    @run_in_tf_session
+    @run_in_tf_session(update_seed=True)
     def transform(self, X):
         """Compute hidden units' activation probabilities."""
         self._transform_op = tf.get_collection('transform_op')[0]

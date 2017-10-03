@@ -10,31 +10,35 @@ def is_weight_name(name):
     return not name.startswith('_') and name.endswith('_')
 
 
-def run_in_tf_session(f):
+def run_in_tf_session(update_seed=False):
     """Decorator function that takes care to load appropriate graph/session,
     depending on whether model can be loaded from disk or is just created,
     and to execute `f` inside this session.
     """
-    @wraps(f)  # preserve bound method properties
-    def wrapped(model, *args, **kwargs):
-        tf.reset_default_graph()
-        model._tf_graph = tf.get_default_graph()
-        if model.called_fit: # model should be loaded from disk
-            model._tf_saver = tf.train.import_meta_graph(model._tf_meta_graph_filepath)
-            with model._tf_graph.as_default():
-                with tf.Session(config=model._tf_session_config) as model._tf_session:
-                    model._tf_saver.restore(model._tf_session, model._model_filepath)
-                    model._init_tf_writers()
-                    res = f(model, *args, **kwargs)
-        else:
-            with model._tf_graph.as_default():
-                with tf.Session(config=model._tf_session_config) as model._tf_session:
-                    model._make_tf_model()
-                    model._init_tf_ops()
-                    model._init_tf_writers()
-                    res = f(model, *args, **kwargs)
-        return res
-    return wrapped
+    def wrap(f):
+        @wraps(f)  # preserve bound method properties
+        def wrapped_f(model, *args, **kwargs):
+            tf.reset_default_graph()
+            model._tf_graph = tf.get_default_graph()
+            if update_seed:
+                tf.set_random_seed(model.make_random_seed())
+            if model.called_fit: # model should be loaded from disk
+                model._tf_saver = tf.train.import_meta_graph(model._tf_meta_graph_filepath)
+                with model._tf_graph.as_default():
+                    with tf.Session(config=model._tf_session_config) as model._tf_session:
+                        model._tf_saver.restore(model._tf_session, model._model_filepath)
+                        model._init_tf_writers()
+                        res = f(model, *args, **kwargs)
+            else:
+                with model._tf_graph.as_default():
+                    with tf.Session(config=model._tf_session_config) as model._tf_session:
+                        model._make_tf_model()
+                        model._init_tf_ops()
+                        model._init_tf_writers()
+                        res = f(model, *args, **kwargs)
+            return res
+        return wrapped_f
+    return wrap
 
 
 class TensorFlowModel(BaseModel):
@@ -163,7 +167,7 @@ class TensorFlowModel(BaseModel):
         """Class-specific `fit` routine."""
         raise NotImplementedError('`fit` is not implemented')
 
-    @run_in_tf_session
+    @run_in_tf_session(update_seed=True)
     def fit(self, X, X_val=None):
         """Fit the model according to the given training data."""
         self.called_fit = True
@@ -171,7 +175,7 @@ class TensorFlowModel(BaseModel):
         self._save_model()
         return self
 
-    @run_in_tf_session
+    @run_in_tf_session()
     def get_tf_params(self, scope=None):
         """Get tf params of the model.
 
