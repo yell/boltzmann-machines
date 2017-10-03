@@ -33,7 +33,7 @@ def main():
                              ', otherwise zero init')
     parser.add_argument('--n-gibbs-steps', type=int, default=1, metavar='N',
                         help='number of Gibbs steps per weight update')
-    parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
+    parser.add_argument('--lr', type=float, default=0.05, metavar='LR',
                         help='initial learning rates')
     parser.add_argument('--epochs', type=int, default=100, metavar='N',
                         help='number of epochs to train')

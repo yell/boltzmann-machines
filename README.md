@@ -66,7 +66,7 @@ optional arguments:
   --vb-init             initialize visible biases as logit of mean values of
                         features, otherwise zero init (default: True)
   --n-gibbs-steps N     number of Gibbs steps per weight update (default: 1)
-  --lr LR               initial learning rates (default: 0.01)
+  --lr LR               initial learning rates (default: 0.05)
   --epochs N            number of epochs to train (default: 100)
   --batch-size N        input batch size for training (default: 10)
   --l2 L2               L2 weight decay (default: 1e-05)
