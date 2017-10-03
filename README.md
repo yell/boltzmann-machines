@@ -32,9 +32,9 @@ Train RBM on MNIST dataset and use it for classification.
 
 | <div align="center">Algorithm</div> | Test Accuracy, % |
 | :--- | :---: |
-| RBM features + Logistic Regression | **97.26** |
-| RBM features + k-NN | **96.90** |
-| RBM + discriminative finetuning | **98.49** |
+| RBM features + Logistic Regression | **98.01** |
+| RBM features + k-NN | **96.89** |
+| RBM + discriminative finetuning | **98.82** |
 
 ### DBM MNIST (~~[script]()~~, ~~[notebook]()~~)
 ### DBM CIFAR-10 Naïve (~~[script]()~~, ~~[notebook]()~~)
