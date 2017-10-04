@@ -40,6 +40,7 @@ class MultinomialRBM(BaseRBM):
                                              h_layer_params=dict(n_samples=self.n_samples),
                                              model_path=model_path, *args, **kwargs)
 
+    # TODO: fix energy
     def _free_energy(self, v):
         with tf.name_scope('free_energy'):
             tv = -tf.einsum('ij,j->i', v, self._vb)
