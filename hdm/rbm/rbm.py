@@ -48,6 +48,11 @@ class MultinomialRBM(BaseRBM):
                  self.n_samples * (tf.reduce_mean(th, axis=0) - tf.reduce_sum(self._hb))
         return fe
 
+    def transform(self, X):
+        H = super(MultinomialRBM, self).transform(X)
+        H /= self.n_samples
+        return H
+
 
 class GaussianRBM(BaseRBM):
     """RBM with Gaussian visible and Bernoulli hidden units.

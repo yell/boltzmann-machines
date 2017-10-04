@@ -2,8 +2,6 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.contrib.distributions import Bernoulli, Multinomial, Normal
 
-from hdm.base import SeedMixin
-
 
 class BaseLayer(object):
     """Helper class that encapsulates one layer of stochastic units in RBM/DBM."""
