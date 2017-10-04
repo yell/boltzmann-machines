@@ -17,6 +17,7 @@ class TestRBM(object):
         self.X_val = RNG(seed=42).rand(8, self.n_visible)
         self.rbm_config = dict(n_visible=self.n_visible, n_hidden=self.n_hidden,
                                sample_v_states=True, sample_h_states=True,
+                               dropout=0.9,
                                verbose=False, visualize_filters=False,
                                random_seed=1337)
 
