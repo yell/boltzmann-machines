@@ -65,6 +65,7 @@ optional arguments:
   --n-hidden N          number of hidden units (default: 1024)
   --vb-init             initialize visible biases as logit of mean values of
                         features, otherwise zero init (default: True)
+  --hb-init HB          initial hidden bias (default: 0.0)
   --n-gibbs-steps N     number of Gibbs steps per weight update (default: 1)
   --lr LR               initial learning rates (default: 0.05)
   --epochs N            number of epochs to train (default: 100)

@@ -31,6 +31,8 @@ def main():
     parser.add_argument('--vb-init', action='store_false',
                         help='initialize visible biases as logit of mean values of features'+\
                              ', otherwise zero init')
+    parser.add_argument('--hb-init', type=float, default=0., metavar='HB',
+                        help='initial hidden bias')
     parser.add_argument('--n-gibbs-steps', type=int, default=1, metavar='N',
                         help='number of Gibbs steps per weight update')
     parser.add_argument('--lr', type=float, default=0.05, metavar='LR',
@@ -68,6 +70,7 @@ def main():
     rbm = BernoulliRBM(n_visible=784,
                        n_hidden=args.n_hidden,
                        vb_init=logit_mean(X_train) if args.vb_init else 0.,
+                       hb_init=args.hb_init,
                        n_gibbs_steps=args.n_gibbs_steps,
                        learning_rate=args.lr,
                        momentum=np.geomspace(0.5, 0.9, 8),
