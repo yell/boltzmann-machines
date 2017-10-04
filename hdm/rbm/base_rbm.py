@@ -61,8 +61,8 @@ class BaseRBM(TensorFlowModel):
                  h_layer_cls=None, h_layer_params=None, n_hidden=256,
                  w_init=0.01, vb_init=0., hb_init=0., n_gibbs_steps=1,
                  learning_rate=0.01, momentum=0.9, max_epoch=10, batch_size=10, L2=1e-4,
-                 sample_v_states=False, sample_h_states=True,
-                 dropout=None,
+                 sample_v_states=False, sample_h_states=True, dropout=None,
+                 sparsity_target=0.1, sparsity_cost=0.001, sparsity_damping=0.9,
                  metrics_config=None, verbose=False, save_after_each_epoch=True,
                  visualize_filters=True, filter_shape=(28, 28), max_filters=30,
                  visualize_hidden_activities=True, max_hidden=25,
@@ -117,6 +117,10 @@ class BaseRBM(TensorFlowModel):
         self.sample_v_states = sample_v_states
         self.dropout = dropout
 
+        self.sparsity_target = sparsity_target
+        self.sparsity_cost = sparsity_cost
+        self.sparsity_damping = sparsity_damping
+
         self.metrics_config = metrics_config or {}
         self.metrics_config.setdefault('l2_loss', False)
         self.metrics_config.setdefault('msre', False)
@@ -159,6 +163,7 @@ class BaseRBM(TensorFlowModel):
         self._n_visible = None
         self._n_hidden = None
         self._L2 = None
+        self._dropout = None
 
         # tf input data
         self._X_batch = None
@@ -186,6 +191,11 @@ class BaseRBM(TensorFlowModel):
             self._n_visible = tf.constant(self.n_visible, dtype=tf.int32, name='n_visible')
             self._n_hidden = tf.constant(self.n_hidden, dtype=tf.int32, name='n_hidden')
             self._L2 = tf.constant(self.L2, dtype=self._tf_dtype, name='L2_coef')
+            if self.dropout is not None:
+                self._dropout = tf.constant(self.dropout, dtype=self._tf_dtype, name='dropout_prob')
+            self._sparsity_target = tf.constant(self.sparsity_target, dtype=self._tf_dtype, name='sparsity_target')
+            self._sparsity_cost = tf.constant(self.sparsity_cost, dtype=self._tf_dtype, name='sparsity_cost')
+            self._sparsity_damping = tf.constant(self.sparsity_damping, dtype=self._tf_dtype, name='sparsity_damping')
 
     def _make_placeholders(self):
         with tf.name_scope('input_data'):
@@ -230,6 +240,9 @@ class BaseRBM(TensorFlowModel):
             tf.summary.histogram('dvb', self._dvb)
             tf.summary.histogram('dhb', self._dhb)
 
+        with tf.name_scope('hidden_activations_probs'):
+            self._q_means = tf.Variable(tf.zeros([self._n_hidden], dtype=self._tf_dtype), name='q_means')
+
     def _propup(self, v):
         with tf.name_scope('prop_up'):
             t = tf.matmul(v, self._W)
@@ -273,7 +286,7 @@ class BaseRBM(TensorFlowModel):
     def _make_train_op(self):
         # apply dropout if necessary
         if self.dropout is not None:
-            self._X_batch = tf.nn.dropout(self._X_batch, keep_prob=self.dropout)
+            self._X_batch = tf.nn.dropout(self._X_batch, keep_prob=self._dropout)
 
         # Run Gibbs chain for specified number of steps.
         with tf.name_scope('gibbs_chain'):
@@ -318,6 +331,15 @@ class BaseRBM(TensorFlowModel):
                 dvb = tf.reduce_mean(self._X_batch - v_states, axis=0) # == sum / N
             with tf.name_scope('dhb'):
                 dhb = tf.reduce_mean(h0_means - h_means, axis=0) # == sum / N
+
+        # apply sparsity targets if needed
+        with tf.name_scope('sparsity_targets'):
+            q_means = tf.reduce_sum(h_means, axis=0)
+            q_update = self._q_means.assign(self._sparsity_damping * self._q_means +\
+                                            (1 - self._sparsity_damping) * q_means)
+            sparsity_penalty = self._sparsity_cost * (q_update - self._sparsity_target)
+            dhb -= sparsity_penalty
+            dW  -= sparsity_penalty
 
         # update parameters
         with tf.name_scope('momentum_updates'):

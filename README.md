@@ -73,6 +73,11 @@ optional arguments:
   --sample-v-states     sample visible states, otherwise use probabilities w/o
                         sampling (default: False)
   --dropout P           probability of input units being on (default: None)
+  --sparsity-target T   desired probability of hidden activation (default:
+                        0.1)
+  --sparsity-cost C     controls the amount of sparsity penalty (default:
+                        0.001)
+  --sparsity-damping D  decay rate for hidden activations probs (default: 0.9)
   --dtype T             datatype precision to use, {'float32', 'float64'}
                         (default: float32)
   --model-dirpath DIRPATH

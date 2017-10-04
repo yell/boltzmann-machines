@@ -45,6 +45,12 @@ def main():
                         help='sample visible states, otherwise use probabilities w/o sampling')
     parser.add_argument('--dropout', type=float, metavar='P',
                         help='probability of input units being on')
+    parser.add_argument('--sparsity-target', type=float, default=0.1, metavar='T',
+                        help='desired probability of hidden activation')
+    parser.add_argument('--sparsity-cost', type=float, default=0.001, metavar='C',
+                        help='controls the amount of sparsity penalty')
+    parser.add_argument('--sparsity-damping', type=float, default=0.9, metavar='D',
+                        help='decay rate for hidden activations probs')
     parser.add_argument('--dtype', type=str, default='float32', metavar='T',
                         help="datatype precision to use, {'float32', 'float64'}")
     parser.add_argument('--model-dirpath', type=str, default='../models/rbm_mnist/', metavar='DIRPATH',
@@ -71,6 +77,9 @@ def main():
                        sample_h_states=True,
                        sample_v_states=args.sample_v_states,
                        dropout=args.dropout,
+                       sparsity_target=args.sparsity_target,
+                       sparsity_cost=args.sparsity_cost,
+                       sparsity_damping=args.sparsity_damping,
                        metrics_config=dict(
                            msre=True,
                            pll=True,
