@@ -49,7 +49,7 @@ def main():
                         help='probability of input units being on')
     parser.add_argument('--sparsity-target', type=float, default=0.1, metavar='T',
                         help='desired probability of hidden activation')
-    parser.add_argument('--sparsity-cost', type=float, default=0.001, metavar='C',
+    parser.add_argument('--sparsity-cost', type=float, default=1e-5, metavar='C',
                         help='controls the amount of sparsity penalty')
     parser.add_argument('--sparsity-damping', type=float, default=0.9, metavar='D',
                         help='decay rate for hidden activations probs')

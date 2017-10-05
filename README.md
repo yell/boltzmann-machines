@@ -32,9 +32,9 @@ Train RBM on MNIST dataset and use it for classification.
 
 | <div align="center">Algorithm</div> | Test Accuracy, % |
 | :--- | :---: |
-| RBM features + Logistic Regression | **98.01** |
-| RBM features + k-NN | **96.89** |
-| RBM + discriminative finetuning | **98.82** |
+| RBM features + Logistic Regression | **98.21** |
+| RBM features + k-NN | **96.96** |
+| RBM + discriminative finetuning | **98.66** |
 
 ### DBM MNIST (~~[script]()~~, ~~[notebook]()~~)
 ### DBM CIFAR-10 Naïve (~~[script]()~~, ~~[notebook]()~~)
@@ -77,7 +77,7 @@ optional arguments:
   --sparsity-target T   desired probability of hidden activation (default:
                         0.1)
   --sparsity-cost C     controls the amount of sparsity penalty (default:
-                        0.001)
+                        1e-05))
   --sparsity-damping D  decay rate for hidden activations probs (default: 0.9)
   --dtype T             datatype precision to use, {'float32', 'float64'}
                         (default: float32)
