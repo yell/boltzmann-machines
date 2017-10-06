@@ -19,7 +19,7 @@ class BaseRBM(TensorFlowModel):
         Number of Gibbs sweeps per iteration.
     learning_rate, momentum : float or iterable
         Gradient descent parameters. Values are updated after each epoch.
-    w_init : float or (n_visible, n_hidden) iterable
+    W_init : float or (n_visible, n_hidden) iterable
         Weight matrix initialization. If float, initialize from zero-centered
         Gaussian with this standard deviation. If iterable, initialize from it.
     vb_init, hb_init : float or iterable
@@ -58,13 +58,13 @@ class BaseRBM(TensorFlowModel):
     def __init__(self,
                  v_layer_cls=None, v_layer_params=None, n_visible=784,
                  h_layer_cls=None, h_layer_params=None, n_hidden=256,
-                 w_init=0.01, vb_init=0., hb_init=0., n_gibbs_steps=1,
+                 W_init=0.01, vb_init=0., hb_init=0., n_gibbs_steps=1,
                  learning_rate=0.01, momentum=0.9, max_epoch=10, batch_size=10, L2=1e-4,
                  sample_v_states=False, sample_h_states=True, dropout=None,
                  sparsity_target=0.1, sparsity_cost=1e-4, sparsity_damping=0.9,
                  metrics_config=None, verbose=False, save_after_each_epoch=True,
-                 visualize_filters=True, filter_shape=(28, 28), max_filters=30,
-                 visualize_hidden_activities=True, max_hidden=25,
+                 display_filters=30, filter_shape=(28, 28),
+                 display_hidden_activations=25,
                  model_path='rbm_model/', *args, **kwargs):
         super(BaseRBM, self).__init__(model_path=model_path, *args, **kwargs)
         self.n_visible = n_visible
@@ -79,10 +79,10 @@ class BaseRBM(TensorFlowModel):
         self._v_layer = v_layer_cls(**v_layer_params)
         self._h_layer = h_layer_cls(**h_layer_params)
 
-        self.w_init = w_init
-        if hasattr(self.w_init, '__iter__'):
-            self.w_init = np.asarray(self.w_init)
-            assert_shape(self, 'w_init', (self.n_visible, self.n_hidden))
+        self.W_init = W_init
+        if hasattr(self.W_init, '__iter__'):
+            self.W_init = np.asarray(self.W_init)
+            assert_shape(self, 'W_init', (self.n_visible, self.n_hidden))
 
         self.hb_init = hb_init
         if hasattr(self.hb_init, '__iter__'):
@@ -149,12 +149,9 @@ class BaseRBM(TensorFlowModel):
         self.verbose = verbose
         self.save_after_each_epoch = save_after_each_epoch
 
-        self.visualize_filters = visualize_filters
+        self.display_filters = display_filters
         self.filter_shape = filter_shape
-        self.max_filters = max_filters
-
-        self.visualize_hidden_activities = visualize_hidden_activities
-        self.max_hidden = max_hidden
+        self.display_hidden_activations = display_hidden_activations
 
         # current epoch and iteration
         self.epoch = 0
@@ -206,13 +203,13 @@ class BaseRBM(TensorFlowModel):
 
     def _make_vars(self):
         with tf.name_scope('weights'):
-            if hasattr(self.w_init, '__iter__'):
-                w_init = tf.constant(self.w_init, dtype=self._tf_dtype)
+            if hasattr(self.W_init, '__iter__'):
+                W_init = tf.constant(self.W_init, dtype=self._tf_dtype)
             else:
-                w_init = tf.random_normal([self._n_visible, self._n_hidden],
-                                           mean=0.0, stddev=self.w_init,
+                W_init = tf.random_normal([self._n_visible, self._n_hidden],
+                                           mean=0.0, stddev=self.W_init,
                                            seed=self.random_seed, dtype=self._tf_dtype)
-            w_init = tf.identity(w_init, name='w_init')
+            W_init = tf.identity(W_init, name='W_init')
 
             vb_init = self.vb_init if hasattr(self.vb_init, '__iter__') else\
                       np.repeat(self.vb_init, self.n_visible)
@@ -223,7 +220,7 @@ class BaseRBM(TensorFlowModel):
             vb_init = tf.constant(vb_init, dtype=self._tf_dtype, name='vb_init')
             hb_init = tf.constant(hb_init, dtype=self._tf_dtype, name='hb_init')
 
-            self._W = tf.Variable(w_init, dtype=self._tf_dtype, name='W')
+            self._W = tf.Variable(W_init, dtype=self._tf_dtype, name='W')
             self._vb = tf.Variable(vb_init, dtype=self._tf_dtype, name='vb')
             self._hb = tf.Variable(hb_init, dtype=self._tf_dtype, name='hb')
 
@@ -232,12 +229,12 @@ class BaseRBM(TensorFlowModel):
             tf.summary.histogram('hb', self._hb)
 
             # visualize filters
-            if self.visualize_filters:
+            if self.display_filters:
                 with tf.name_scope('filters_visualization'):
                     W_display = tf.reshape(self._W, [self.filter_shape[0],
                                                      self.filter_shape[1], self.n_hidden, 1])
                     W_display = tf.transpose(W_display, [2, 0, 1, 3])
-                    tf.summary.image('W_filters', W_display, max_outputs=self.max_filters)
+                    tf.summary.image('W_filters', W_display, max_outputs=self.display_filters)
 
         with tf.name_scope('weights_updates'):
             self._dW = tf.Variable(tf.zeros([self._n_visible, self._n_hidden], dtype=self._tf_dtype), name='dW')
@@ -315,9 +312,10 @@ class BaseRBM(TensorFlowModel):
                         h_states = self._sample_h_given_v(h_means)
 
         # visualize hidden activation means
-        if self.visualize_hidden_activities:
+        if self.display_hidden_activations:
             with tf.name_scope('hidden_activations_visualization'):
-                h_means_display = tf.cast(h_means[:, :self.max_hidden], tf.float32)
+                h_means_display = h_means[:, :self.display_hidden_activations]
+                h_means_display = tf.cast(h_means_display, tf.float32)
                 h_means_display = tf.expand_dims(h_means_display, 0)
                 h_means_display = tf.expand_dims(h_means_display, -1)
                 tf.summary.image('hidden_activation_means', h_means_display)

@@ -18,7 +18,7 @@ class TestRBM(object):
         self.rbm_config = dict(n_visible=self.n_visible, n_hidden=self.n_hidden,
                                sample_v_states=True, sample_h_states=True,
                                dropout=0.9,
-                               verbose=False, visualize_filters=False,
+                               verbose=False, display_filters=False,
                                random_seed=1337)
 
     def cleanup(self):
@@ -26,14 +26,14 @@ class TestRBM(object):
             if os.path.exists(d):
                 rmtree(d)
 
-    def test_w_init(self):
+    def test_W_init(self):
         for C in (BernoulliRBM, MultinomialRBM, GaussianRBM):
-            assert_raises(ValueError, lambda: C(n_visible=4, n_hidden=3, w_init=np.zeros((4, 2))))
-            assert_raises(ValueError, lambda: C(n_visible=4, n_hidden=3, w_init=np.zeros((3, 3))))
-            assert_raises(ValueError, lambda: C(n_visible=4, n_hidden=3, w_init=np.zeros((3, 2))))
-            C(n_visible=4, n_hidden=3, w_init=np.zeros((4, 3)))
-            C(n_visible=3, n_hidden=3, w_init=np.zeros((3, 3)))
-            C(n_visible=1, n_hidden=1, w_init=np.zeros((1, 1)))
+            assert_raises(ValueError, lambda: C(n_visible=4, n_hidden=3, W_init=np.zeros((4, 2))))
+            assert_raises(ValueError, lambda: C(n_visible=4, n_hidden=3, W_init=np.zeros((3, 3))))
+            assert_raises(ValueError, lambda: C(n_visible=4, n_hidden=3, W_init=np.zeros((3, 2))))
+            C(n_visible=4, n_hidden=3, W_init=np.zeros((4, 3)))
+            C(n_visible=3, n_hidden=3, W_init=np.zeros((3, 3)))
+            C(n_visible=1, n_hidden=1, W_init=np.zeros((1, 1)))
 
     def check_weights(self, rbm1, rbm2):
         rbm1_weights = rbm1.get_tf_params(scope='weights')
