@@ -4,7 +4,7 @@ from tensorflow.core.framework import summary_pb2
 
 from base import TensorFlowModel, run_in_tf_session
 from utils import (batch_iter, epoch_iter,
-                   make_inf_generator, write_during_training)
+                   write_during_training)
 
 
 class DBM(TensorFlowModel):
@@ -30,7 +30,8 @@ class DBM(TensorFlowModel):
     [3] Goodfellow, I. et. al. (2013). Joint Training of Deep Boltzmann machines
         for Classification.
     """
-    def __init__(self, rbms=None, v_particle_init=None, h_particles_init=None,
+    def __init__(self, rbms=None,
+                 v_particle_init=None, h_particles_init=None,
                  n_particles=100, n_particles_updates_per_iter=5,
                  max_mf_updates_per_iter=10, mf_tol=1e-7,
                  learning_rate=0.001, momentum=0.9, max_epoch=10, batch_size=100,
@@ -40,7 +41,11 @@ class DBM(TensorFlowModel):
                  verbose=False, save_after_each_epoch=False,
                  model_path='dbm_model/', *args, **kwargs):
         super(DBM, self).__init__(model_path=model_path, *args, **kwargs)
+        self.n_layers = None
+        self.n_visible = None
+        self.n_hiddens = None
         self.load_rbms(rbms)
+
         self._v_particle_init = v_particle_init
         self._h_particles_init = h_particles_init
 
@@ -49,10 +54,11 @@ class DBM(TensorFlowModel):
         self.max_mf_updates_per_iter = max_mf_updates_per_iter
         self.mf_tol = mf_tol
 
-        self.learning_rate = learning_rate
-        self._learning_rate_gen = None
-        self.momentum = momentum
-        self._momentum_gen = None
+        self.learning_rate = list(learning_rate) if hasattr(learning_rate, '__iter__') else \
+                             [learning_rate]
+        self.momentum = list(momentum) if hasattr(momentum, '__iter__') else \
+                        [momentum]
+
         self.max_epoch = max_epoch
         self.batch_size = batch_size
         self.L2 = L2
@@ -146,10 +152,6 @@ class DBM(TensorFlowModel):
             # ... and update their dtypes
             self._v_layer.tf_dtype = self._tf_dtype
             for h in self._h_layers: h.tf_dtype = self._tf_dtype
-        else:
-            self.n_layers = None
-            self.n_visible = None
-            self.n_hiddens = None
 
     def _make_constants(self):
         with tf.name_scope('constants'):
@@ -472,8 +474,8 @@ class DBM(TensorFlowModel):
 
     def _make_tf_feed_dict(self, X_batch=None, n_gibbs_steps=None):
         d = {}
-        d['learning_rate'] = self.learning_rate
-        d['momentum'] = self.momentum
+        d['learning_rate'] = self.learning_rate[min(self.epoch, len(self.learning_rate) - 1)]
+        d['momentum'] = self.momentum[min(self.epoch, len(self.momentum) - 1)]
         if X_batch is not None:
             d['X_batch'] = X_batch
         if n_gibbs_steps is not None:
@@ -485,10 +487,6 @@ class DBM(TensorFlowModel):
         return feed_dict
 
     def _train_epoch(self, X):
-        # updates hyper-parameters if needed
-        self.learning_rate = next(self._learning_rate_gen)
-        self.momentum = next(self._momentum_gen)
-
         train_msres, train_n_mf_updates = [], []
         for X_batch in batch_iter(X, self.batch_size, verbose=self.verbose):
             self.iter += 1
@@ -522,10 +520,6 @@ class DBM(TensorFlowModel):
         return mean_msre, mean_n_mf_updates
 
     def _fit(self, X, X_val=None):
-        # init generators
-        self._learning_rate_gen = make_inf_generator(self.learning_rate)
-        self._momentum_gen = make_inf_generator(self.momentum)
-
         # load ops requested
         self._train_op = tf.get_collection('train_op')[0]
         self._msre = tf.get_collection('msre')[0]
@@ -559,16 +553,6 @@ class DBM(TensorFlowModel):
                 self._save_model(global_step=self.epoch)
 
     @run_in_tf_session
-    def sample_v_particle(self, n_gibbs_steps=0, save_model=False):
-        if not self.called_fit:
-            raise RuntimeError('`fit` must be called before calling `sample_v_particle`')
-        self._sample_v_particle = tf.get_collection('sample_v_particle')[0]
-        v = self._tf_session.run(self._sample_v_particle,
-                                 feed_dict=self._make_tf_feed_dict(n_gibbs_steps=n_gibbs_steps))
-        self._save_model()
-        return v
-
-    @run_in_tf_session
     def transform(self, X):
         """Compute hidden units' (from last layer) activation probabilities."""
         self._transform_op = tf.get_collection('transform_op')[0]
@@ -579,3 +563,13 @@ class DBM(TensorFlowModel):
             Z[start:(start + self.batch_size)] = Z_b
             start += self.batch_size
         return Z
+
+    @run_in_tf_session
+    def sample_v_particle(self, n_gibbs_steps=0, save_model=False):
+        if not self.called_fit:
+            raise RuntimeError('`fit` must be called before calling `sample_v_particle`')
+        self._sample_v_particle = tf.get_collection('sample_v_particle')[0]
+        v = self._tf_session.run(self._sample_v_particle,
+                                 feed_dict=self._make_tf_feed_dict(n_gibbs_steps=n_gibbs_steps))
+        self._save_model()
+        return v
