@@ -11,6 +11,7 @@
 ### Deep Boltzmann Machine (DBM)
 * arbitrary number of layers of any types
 * initialize from greedy layer-wise pretrained RBMs and jointly fine-tune using PCD + mean-field approximation
+* ***TODO***: one can use `DBM` class with 1 hidden layer to train **RBM** with this more efficient algorithm
 
 ### Hierarchical Dirichlet Prior (HDP)
 ***TODO***
