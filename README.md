@@ -6,7 +6,7 @@
 * *different types of RBMs*: Bernoulli, Multinomial, Gaussian;
 * *easy to add new type of RBM*: implement new type of stochastic units or create new RBM from existing types of units
 * *visualization in Tensorboard*: learning curves (reconstruction RMSE, pseudo log-likelihood, free energy gap, L2 loss), distribution of weights and weights updates in TensorBoard ***TODO***: hidden activations and weight filters
-* variable number of Gibbs steps withing training is not yet supported, but possible (need to implement `tf.while_loop` with variable number of steps)
+* variable number of Gibbs steps withing training is not yet supported, but possible (need to implement `tf.while_loop` with variable number of steps) + see `init_from` method
 
 ### Deep Boltzmann Machine (DBM)
 * arbitrary number of layers of any types
