@@ -539,6 +539,19 @@ class BaseRBM(TensorFlowModel):
             if self.save_after_each_epoch:
                 self._save_model(global_step=self.epoch)
 
+    def init_from(self, rbm):
+        if type(self) != type(rbm):
+            raise ValueError('an attempt to initialize `{0}` from `{1}`'.\
+                             format(self.__class__.__name__, rbm.__class__.__name__))
+        weights = rbm.get_tf_params(scope='weights')
+        self.W_init = weights['W']
+        self.vb_init = weights['vb']
+        self.hb_init = weights['hb']
+
+        self.iter = rbm.iter
+        self.epoch = rbm.epoch
+        self.max_epoch += self.epoch
+
     @run_in_tf_session(update_seed=True)
     def transform(self, X):
         """Compute hidden units' activation probabilities."""
