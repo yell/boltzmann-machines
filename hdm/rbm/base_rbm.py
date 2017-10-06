@@ -54,6 +54,8 @@ class BaseRBM(TensorFlowModel):
         Machines" UTML TR 2010-003
     [3] Restricted Boltzmann Machines (RBMs), Deep Learning Tutorial
         url: http://deeplearning.net/tutorial/rbm.html
+    [4] Salakhutdinov, R. and Hinton, G. (2009). Deep Boltzmann machines.
+        In AISTATS 2009
     """
     def __init__(self,
                  v_layer_cls=None, v_layer_params=None, n_visible=784,
@@ -62,6 +64,7 @@ class BaseRBM(TensorFlowModel):
                  learning_rate=0.01, momentum=0.9, max_epoch=10, batch_size=10, L2=1e-4,
                  sample_v_states=False, sample_h_states=True, dropout=None,
                  sparsity_target=0.1, sparsity_cost=1e-4, sparsity_damping=0.9,
+                 dbm_first=False, dbm_last=False,
                  metrics_config=None, verbose=False, save_after_each_epoch=True,
                  display_filters=30, filter_shape=(28, 28),
                  display_hidden_activations=25,
@@ -123,6 +126,11 @@ class BaseRBM(TensorFlowModel):
         self.sparsity_cost = sparsity_cost
         self.sparsity_damping = sparsity_damping
 
+        # These flags are needed for RBMs which are used for pre-training a DBM
+        # to address "double counting evidence" problem [4].
+        self.dbm_first = dbm_first
+        self.dbm_last = dbm_last
+
         self.metrics_config = metrics_config or {}
         self.metrics_config.setdefault('l2_loss', False)
         self.metrics_config.setdefault('msre', False)
@@ -163,6 +171,10 @@ class BaseRBM(TensorFlowModel):
         self._n_hidden = None
         self._L2 = None
         self._dropout = None
+        self._dbm_first = None
+        self._dbm_last = None
+        self._propup_multiplier = None
+        self._propdown_multiplier = None
 
         # tf input data
         self._X_batch = None
@@ -195,6 +207,15 @@ class BaseRBM(TensorFlowModel):
             self._sparsity_target = tf.constant(self.sparsity_target, dtype=self._tf_dtype, name='sparsity_target')
             self._sparsity_cost = tf.constant(self.sparsity_cost, dtype=self._tf_dtype, name='sparsity_cost')
             self._sparsity_damping = tf.constant(self.sparsity_damping, dtype=self._tf_dtype, name='sparsity_damping')
+
+            self._dbm_first = tf.constant(self.dbm_first, dtype=tf.bool, name='is_dbm_first')
+            self._dbm_last = tf.constant(self.dbm_last, dtype=tf.bool, name='is_dbm_last')
+            t = tf.constant(1., dtype=self._tf_dtype, name="1")
+            t1 = tf.cast(self._dbm_first, dtype=self._tf_dtype)
+            self._propup_multiplier = tf.identity(tf.add(t1, t), name='propup_multiplier')
+            t2 = tf.cast(self._dbm_last, dtype=self._tf_dtype)
+            self._propdown_multiplier = tf.identity(tf.add(t2, t), name='propdown_multiplier')
+            
 
     def _make_placeholders(self):
         with tf.name_scope('input_data'):
@@ -262,8 +283,9 @@ class BaseRBM(TensorFlowModel):
     def _means_h_given_v(self, v):
         """Compute means E(h|v)."""
         with tf.name_scope('means_h_given_v'):
-            h_means = self._h_layer.activation(x=self._propup(v),
-                                               b=self._hb)
+            propup = self._propup_multiplier * self._propup(v)
+            hb     = self._propup_multiplier * self._hb
+            h_means = self._h_layer.activation(x=propup, b=hb)
         return h_means
 
     def _sample_h_given_v(self, h_means):
@@ -275,8 +297,9 @@ class BaseRBM(TensorFlowModel):
     def _means_v_given_h(self, h):
         """Compute means E(v|h)."""
         with tf.name_scope('means_v_given_h'):
-            v_means = self._v_layer.activation(x=self._propdown(h),
-                                               b=self._vb)
+            propdown = self._propdown_multiplier * self._propdown(h)
+            vb       = self._propdown_multiplier * self._vb
+            v_means = self._v_layer.activation(x=propdown, b=vb)
         return v_means
 
     def _sample_v_given_h(self, v_means):
