@@ -1,4 +1,4 @@
-# Hierarchical Deep Models
+# Hierarchical-Deep Models
 
 ## Features
 ### Restricted Boltzmann Machine (RBM)
