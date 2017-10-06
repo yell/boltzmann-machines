@@ -99,10 +99,11 @@ class BaseRBM(TensorFlowModel):
             assert_len(self, 'vb_init', self.n_visible)
 
         self.n_gibbs_steps = n_gibbs_steps
-        self.learning_rate = [learning_rate] if not hasattr(learning_rate, '__iter__')\
-                             else list(learning_rate)
-        self.momentum = [momentum] if not hasattr(momentum, '__iter__')\
-                        else list(momentum)
+        self.learning_rate = list(learning_rate) if hasattr(learning_rate, '__iter__') else\
+                             [learning_rate]
+        self.momentum = list(momentum) if hasattr(momentum, '__iter__') else\
+                        [momentum]
+
         self.max_epoch = max_epoch
         self.batch_size = batch_size
         self.L2 = L2
