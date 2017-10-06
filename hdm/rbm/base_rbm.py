@@ -5,6 +5,7 @@ from tensorflow.core.framework import summary_pb2
 from hdm.base import TensorFlowModel, run_in_tf_session
 from hdm.utils import (batch_iter, epoch_iter,
                        write_during_training)
+from hdm.utils.testing import assert_len, assert_shape
 
 
 class BaseRBM(TensorFlowModel):
@@ -21,10 +22,8 @@ class BaseRBM(TensorFlowModel):
     w_init : float or (n_visible, n_hidden) iterable
         Weight matrix initialization. If float, initialize from zero-centered
         Gaussian with this standard deviation. If iterable, initialize from it.
-    vb_init : float or iterable
-        Visible unit bias(es).
-    hb_init : float
-        Hidden unit bias.
+    vb_init, hb_init : float or iterable
+        Visible and hidden unit bias(es).
     dropout : None or float
         If float, interpreted as probability of being on.
     metrics_config : dict
@@ -83,19 +82,21 @@ class BaseRBM(TensorFlowModel):
         self.w_init = w_init
         if hasattr(self.w_init, '__iter__'):
             self.w_init = np.asarray(self.w_init)
-            if self.w_init.shape != (self.n_visible, self.n_hidden):
-                raise ValueError('`w_init` has invalid shape {0} != {1}'.\
-                                 format(self.w_init.shape, (self.n_visible, self.n_hidden)))
+            assert_shape(self, 'w_init', (self.n_visible, self.n_hidden))
+
         self.hb_init = hb_init
+        if hasattr(self.hb_init, '__iter__'):
+            self.hb_init = np.asarray(self.hb_init)
+            assert_len(self, 'hb_init', self.n_hidden)
+
         # Visible biases can be initialized with list of values,
         # because it is often helpful to initialize i-th visible bias
         # with value log(p_i / (1 - p_i)), p_i = fraction of training
         # vectors where i-th unit is on, as proposed in [2]
         self.vb_init = vb_init
         if hasattr(self.vb_init, '__iter__'):
-            self._vb_init_tmp = self.vb_init = np.asarray(self.vb_init)
-        else:
-            self._vb_init_tmp = np.repeat(self.vb_init, self.n_visible)
+            self.vb_init = np.asarray(self.vb_init)
+            assert_len(self, 'vb_init', self.n_visible)
 
         self.n_gibbs_steps = n_gibbs_steps
         self.learning_rate = [learning_rate] if not hasattr(learning_rate, '__iter__')\
@@ -212,12 +213,19 @@ class BaseRBM(TensorFlowModel):
                                            mean=0.0, stddev=self.w_init,
                                            seed=self.random_seed, dtype=self._tf_dtype)
             w_init = tf.identity(w_init, name='w_init')
-            vb_init = tf.constant(self._vb_init_tmp, dtype=self._tf_dtype, name='vb_init')
-            hb_init = tf.constant(self.hb_init, dtype=self._tf_dtype, name='hb_init')
+
+            vb_init = self.vb_init if hasattr(self.vb_init, '__iter__') else\
+                      np.repeat(self.vb_init, self.n_visible)
+
+            hb_init = self.hb_init if hasattr(self.hb_init, '__iter__') else\
+                      np.repeat(self.hb_init, self.n_hidden)
+
+            vb_init = tf.constant(vb_init, dtype=self._tf_dtype, name='vb_init')
+            hb_init = tf.constant(hb_init, dtype=self._tf_dtype, name='hb_init')
 
             self._W = tf.Variable(w_init, dtype=self._tf_dtype, name='W')
             self._vb = tf.Variable(vb_init, dtype=self._tf_dtype, name='vb')
-            self._hb = tf.Variable(hb_init * tf.ones([self._n_hidden], dtype=self._tf_dtype), name='hb')
+            self._hb = tf.Variable(hb_init, dtype=self._tf_dtype, name='hb')
 
             tf.summary.histogram('W', self._W)
             tf.summary.histogram('vb', self._vb)
