@@ -32,7 +32,7 @@ def main():
 
     parser.add_argument('--n-hiddens', type=int, default=[512, 1024], metavar='N', nargs='+',
                         help='numbers of hidden units')
-    parser.add_argument('--epochs', type=int, default=[64, 120, 300], metavar='N', nargs='+',
+    parser.add_argument('--epochs', type=int, default=[64, 140, 300], metavar='N', nargs='+',
                         help='number of epochs to train')
     parser.add_argument('--batch-size', type=int, default=48, metavar='N',
                         help='input batch size for training')
