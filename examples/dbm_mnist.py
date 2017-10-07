@@ -27,12 +27,15 @@ def main():
                         help='number of training examples')
     parser.add_argument('--n-val', type=int, default=5000, metavar='N',
                         help='number of validation examples')
-    parser.add_argument('--n-hiddens', type=int, default=[500, 1000], metavar='N', nargs='+',
+    parser.add_argument('--n-hiddens', type=int, default=[512, 1024], metavar='N', nargs='+',
                         help='numbers of hidden units')
+    parser.add_argument('--batch-size', type=int, default=48, metavar='N',
+                        help='input batch size for training')
+
     parser.add_argument('--load-rbm1', type=str, default=None, metavar='DIRPATH',
                         help='directory path to load pre-trained RBM #1')
     parser.add_argument('--load-rbm2', type=str, default=None, metavar='DIRPATH',
-                        help='directory path to load pre-trained RBM #1')
+                        help='directory path to load pre-trained RBM #2')
     args = parser.parse_args()
 
     # prepare data
@@ -57,7 +60,7 @@ def main():
                             learning_rate=0.01,
                             momentum=[.5] * 5 + [.9],
                             max_epoch=100,
-                            batch_size=100,
+                            batch_size=args.batch_size,
                             L2=1e-3,
                             sample_h_states=True,
                             sample_v_states=True,
@@ -66,7 +69,7 @@ def main():
                             metrics_config=dict(
                                 msre=True,
                                 pll=True,
-                                train_metrics_every_iter=10,
+                                train_metrics_every_iter=200,
                             ),
                             verbose=True,
                             random_seed=1337,
