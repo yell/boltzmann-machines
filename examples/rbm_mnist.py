@@ -5,9 +5,10 @@ Train Bernoulli-Bernoulli RBM on MNIST dataset.
 
 Momentum is initially 0.5 and gradually increases to 0.9.
 Training time is approx. 2.5 times faster using single-precision rather than double
-with negligible difference in reconstruction error, pseudo log-lik is more noisy though.
+with negligible difference in reconstruction error, pseudo log-lik is slightly more noisy
+at the beginning of training though.
 """
-print(__doc__)
+print __doc__
 
 
 import argparse
