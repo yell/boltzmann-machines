@@ -45,7 +45,7 @@ Train RBM on MNIST dataset and use it for classification.
 ### SB-VAE (~~[script]()~~, ~~[notebook]()~~)
 ### Usage
 Use **script**s for training models from scratch, for instance
-```bash
+```
 $ python rbm_mnist.py -h
 
 Train Bernoulli-Bernoulli RBM on MNIST dataset.
