@@ -85,7 +85,7 @@ class BaseRBM(TensorFlowModel):
                  sample_v_states=False, sample_h_states=True, dropout=None,
                  sparsity_target=0.1, sparsity_cost=1e-4, sparsity_damping=0.9,
                  dbm_first=False, dbm_last=False,
-                 metrics_config=None, verbose=False, save_after_each_epoch=True,
+                 metrics_config=None, verbose=True, save_after_each_epoch=True,
                  display_filters=30, filter_shape=(28, 28),
                  display_hidden_activations=25,
                  model_path='rbm_model/', *args, **kwargs):
