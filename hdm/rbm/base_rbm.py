@@ -590,7 +590,6 @@ class BaseRBM(TensorFlowModel):
 
         self.iter = rbm.iter
         self.epoch = rbm.epoch
-        self.max_epoch += self.epoch
 
     @run_in_tf_session(update_seed=True)
     def transform(self, X):
