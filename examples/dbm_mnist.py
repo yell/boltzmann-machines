@@ -32,7 +32,7 @@ def main():
 
     parser.add_argument('--n-hiddens', type=int, default=[512, 1024], metavar='N', nargs='+',
                         help='numbers of hidden units')
-    parser.add_argument('--epochs', type=int, default=[64, 144, 300], metavar='N', nargs='+',
+    parser.add_argument('--epochs', type=int, default=[64, 120, 300], metavar='N', nargs='+',
                         help='number of epochs to train')
     parser.add_argument('--batch-size', type=int, default=48, metavar='N',
                         help='input batch size for training')
@@ -107,15 +107,15 @@ def main():
         rbm2_config = dict(
             n_visible=args.n_hiddens[0],
             n_hidden=args.n_hiddens[1],
-            W_init=0.01,
+            W_init=0.005,
             vb_init=0.,
             hb_init=0.,
             n_gibbs_steps=1,
-            learning_rate=0.05,
+            learning_rate=0.01,
             momentum=[0.5] * 5 + [0.9],
             max_epoch=args.increase_n_gibbs_steps_every,
             batch_size=args.batch_size,
-            L2=1e-3,
+            L2=1e-4,
             sample_h_states=True,
             sample_v_states=True,
             sparsity_cost=0.,
@@ -123,7 +123,7 @@ def main():
             metrics_config=dict(
                 msre=True,
                 pll=True,
-                train_metrics_every_iter=100,
+                train_metrics_every_iter=1000,
             ),
             verbose=True,
             display_filters=False,
@@ -137,12 +137,15 @@ def main():
         rbm2.fit(H)
         rbm2_config['momentum'] = 0.9
         while max_epoch < args.epochs[1]:
-            print "\nIncreasing number of Gibbs steps, decreasing learning rate ...\n\n"
             max_epoch += args.increase_n_gibbs_steps_every
             max_epoch = min(max_epoch, args.epochs[1])
             rbm2_config['max_epoch'] = max_epoch
             rbm2_config['n_gibbs_steps'] += 1
-            rbm2_config['learning_rate'] = 0.05/float(rbm2_config['n_gibbs_steps'])
+            rbm2_config['learning_rate'] = 0.05 / float(rbm2_config['n_gibbs_steps'])
+
+            print "\nNumber of Gibbs steps = {0}, decreasing learning rate = {1:.4f} ...\n\n".\
+                  format(rbm2_config['n_gibbs_steps'], rbm2_config['learning_rate'])
+
             rbm2_new = BernoulliRBM(**rbm2_config)
             rbm2_new.init_from(rbm2)
             rbm2 = rbm2_new
