@@ -55,8 +55,10 @@ Training time is approx. 2.5 times faster using single-precision rather than dou
 with negligible difference in reconstruction error, pseudo log-lik is more noisy though.
 
 usage: rbm_mnist.py [-h] [--n-train N] [--n-val N] [--n-hidden N] [--vb-init]
-                    [--n-gibbs-steps N] [--lr LR] [--epochs N]
-                    [--batch-size N] [--l2 L2] [--sample-v-states] [--dtype D]
+                    [--hb-init HB] [--n-gibbs-steps N] [--lr LR [LR ...]]
+                    [--epochs N] [--batch-size N] [--l2 L2]
+                    [--sample-v-states] [--dropout P] [--sparsity-target T]
+                    [--sparsity-cost C] [--sparsity-damping D] [--dtype T]
                     [--model-dirpath DIRPATH]
 
 optional arguments:
@@ -67,18 +69,18 @@ optional arguments:
   --vb-init             initialize visible biases as logit of mean values of
                         features, otherwise zero init (default: True)
   --hb-init HB          initial hidden bias (default: 0.0)
-  --n-gibbs-steps N     number of Gibbs steps per weight update (default: 1)
-  --lr LR               initial learning rates (default: 0.05)
+  --n-gibbs-steps N     number of Gibbs updates per iteration (default: 1)
+  --lr LR [LR ...]      learning rate(s) (default: 0.05)
   --epochs N            number of epochs to train (default: 100)
   --batch-size N        input batch size for training (default: 10)
-  --l2 L2               L2 weight decay (default: 1e-05)
+  --l2 L2               L2 weight decay coefficient (default: 1e-05)
   --sample-v-states     sample visible states, otherwise use probabilities w/o
                         sampling (default: False)
-  --dropout P           probability of input units being on (default: None)
+  --dropout P           probability of visible units being on (default: None)
   --sparsity-target T   desired probability of hidden activation (default:
                         0.1)
   --sparsity-cost C     controls the amount of sparsity penalty (default:
-                        1e-05))
+                        1e-05)
   --sparsity-damping D  decay rate for hidden activations probs (default: 0.9)
   --dtype T             datatype precision to use, {'float32', 'float64'}
                         (default: float32)

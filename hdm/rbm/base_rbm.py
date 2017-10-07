@@ -10,22 +10,42 @@ from hdm.utils.testing import assert_len, assert_shape
 
 class BaseRBM(TensorFlowModel):
     """
-    A generic implementation of RBM with CD-k
-    learning algorithm.
+    A generic implementation of RBM with k-step
+    Contrastive Divergence (CD-k) learning algorithm.
 
     Parameters
     ----------
-    n_gibbs_steps : int
-        Number of Gibbs sweeps per iteration.
-    learning_rate, momentum : float or iterable
-        Gradient descent parameters. Values are updated after each epoch.
     W_init : float or (n_visible, n_hidden) iterable
         Weight matrix initialization. If float, initialize from zero-centered
         Gaussian with this standard deviation. If iterable, initialize from it.
     vb_init, hb_init : float or iterable
         Visible and hidden unit bias(es).
-    dropout : None or float
-        If float, interpreted as probability of being on.
+    n_gibbs_steps : positive int
+        Number of Gibbs updates per iteration.
+    learning_rate, momentum : positive float or iterable
+        Gradient descent parameters. Values are updated after each epoch.
+    max_epoch : positive int
+        Train till this epoch.
+    batch_size : positive int
+        Input batch size for training.
+    L2 : non-negative float
+        L2 weight decay coefficient.
+    sample_v_states, sample_h_states : bool
+        Whether to sample visible/hidden states, or to use probabilities
+        w/o sampling. Note that data driven states for hidden units will
+        be sampled regardless of the provided parameters.
+        `transform` will also use probabilities/means of hidden units.
+    dropout : None or float in [0; 1]
+        If float, interpreted as probability of visible units being on.
+    sparsity_target : float in (0; 1)
+        Desired probability of hidden activation.
+    sparsity_cost : positive float
+        Controls the amount of sparsity penalty.
+    sparsity_damping : float in (0; 1)
+        Decay rate for hidden activations probs.
+    dbm_first, dbm_last : bool
+        Indicators of whether RBM is first or last in a stack of RBMs used
+        for DBM pre-training to address "double counting evidence" problem [4].
     metrics_config : dict
         Parameters that controls which metrics and how often they are computed.
         Possible (optional) commands:
@@ -115,9 +135,7 @@ class BaseRBM(TensorFlowModel):
         # sampling used for states of hidden units driven by the data, and probabilities
         # for ones driven by reconstructions, and if probabilities (means) used for visible units,
         # both driven by data and by reconstructions. It is therefore recommended to set
-        # these parameter to False (default). Note that data driven states for hidden units
-        # will be sampled regardless of the provided parameters. `transform` will also use
-        # probabilities/means of hidden units.
+        # these parameter to False (default).
         self.sample_h_states = sample_h_states
         self.sample_v_states = sample_v_states
         self.dropout = dropout
@@ -126,8 +144,6 @@ class BaseRBM(TensorFlowModel):
         self.sparsity_cost = sparsity_cost
         self.sparsity_damping = sparsity_damping
 
-        # These flags are needed for RBMs which are used for pre-training a DBM
-        # to address "double counting evidence" problem [4].
         self.dbm_first = dbm_first
         self.dbm_last = dbm_last
 

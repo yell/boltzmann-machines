@@ -34,19 +34,19 @@ def main():
     parser.add_argument('--hb-init', type=float, default=0., metavar='HB',
                         help='initial hidden bias')
     parser.add_argument('--n-gibbs-steps', type=int, default=1, metavar='N',
-                        help='number of Gibbs steps per weight update')
-    parser.add_argument('--lr', type=float, default=0.05, metavar='LR',
-                        help='initial learning rates')
+                        help='number of Gibbs updates per iteration')
+    parser.add_argument('--lr', type=float, default=0.05, metavar='LR', nargs='+',
+                        help='learning rate(s)')
     parser.add_argument('--epochs', type=int, default=100, metavar='N',
                         help='number of epochs to train')
     parser.add_argument('--batch-size', type=int, default=10, metavar='N',
                         help='input batch size for training')
     parser.add_argument('--l2', type=float, default=1e-5, metavar='L2',
-                        help='L2 weight decay')
+                        help='L2 weight decay coefficient')
     parser.add_argument('--sample-v-states', action='store_true',
                         help='sample visible states, otherwise use probabilities w/o sampling')
     parser.add_argument('--dropout', type=float, metavar='P',
-                        help='probability of input units being on')
+                        help='probability of visible units being on')
     parser.add_argument('--sparsity-target', type=float, default=0.1, metavar='T',
                         help='desired probability of hidden activation')
     parser.add_argument('--sparsity-cost', type=float, default=1e-5, metavar='C',
