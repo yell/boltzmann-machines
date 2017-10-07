@@ -104,6 +104,7 @@ def main():
         rbm2 = BernoulliRBM.load_model(args.load_rbm2)
     else:
         print "\nTraining RBM #2 ...\n\n"
+        rbm2_learning_rate = 0.01
         rbm2_config = dict(
             n_visible=args.n_hiddens[0],
             n_hidden=args.n_hiddens[1],
@@ -111,7 +112,7 @@ def main():
             vb_init=0.,
             hb_init=0.,
             n_gibbs_steps=1,
-            learning_rate=0.01,
+            learning_rate=rbm2_learning_rate,
             momentum=[0.5] * 5 + [0.9],
             max_epoch=args.increase_n_gibbs_steps_every,
             batch_size=args.batch_size,
@@ -141,9 +142,9 @@ def main():
             max_epoch = min(max_epoch, args.epochs[1])
             rbm2_config['max_epoch'] = max_epoch
             rbm2_config['n_gibbs_steps'] += 1
-            rbm2_config['learning_rate'] = 0.05 / float(rbm2_config['n_gibbs_steps'])
+            rbm2_config['learning_rate'] = rbm2_learning_rate / float(rbm2_config['n_gibbs_steps'])
 
-            print "\nNumber of Gibbs steps = {0}, decreasing learning rate = {1:.4f} ...\n\n".\
+            print "\nNumber of Gibbs steps = {0}, learning rate = {1:.4f} ...\n\n".\
                   format(rbm2_config['n_gibbs_steps'], rbm2_config['learning_rate'])
 
             rbm2_new = BernoulliRBM(**rbm2_config)
