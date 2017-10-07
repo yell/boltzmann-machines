@@ -23,19 +23,25 @@ from hdm.utils.dataset import load_mnist
 def main():
     # training settings
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    # common
     parser.add_argument('--n-train', type=int, default=55000, metavar='N',
                         help='number of training examples')
     parser.add_argument('--n-val', type=int, default=5000, metavar='N',
                         help='number of validation examples')
-    parser.add_argument('--n-hiddens', type=int, default=[512, 1024], metavar='N', nargs='+',
-                        help='numbers of hidden units')
     parser.add_argument('--batch-size', type=int, default=48, metavar='N',
                         help='input batch size for training')
 
+    # RBMs
+    parser.add_argument('--n-hiddens', type=int, default=[512, 1024], metavar='N', nargs='+',
+                        help='numbers of hidden units')
     parser.add_argument('--load-rbm1', type=str, default=None, metavar='DIRPATH',
                         help='directory path to load pre-trained RBM #1')
     parser.add_argument('--load-rbm2', type=str, default=None, metavar='DIRPATH',
                         help='directory path to load pre-trained RBM #2')
+
+    # DBM
+
     args = parser.parse_args()
 
     # prepare data
@@ -59,7 +65,7 @@ def main():
                             n_gibbs_steps=1,
                             learning_rate=0.01,
                             momentum=[.5] * 5 + [.9],
-                            max_epoch=100,
+                            max_epoch=64,
                             batch_size=args.batch_size,
                             L2=1e-3,
                             sample_h_states=True,
@@ -69,13 +75,39 @@ def main():
                             metrics_config=dict(
                                 msre=True,
                                 pll=True,
-                                train_metrics_every_iter=200,
+                                train_metrics_every_iter=1000,
                             ),
                             verbose=True,
                             random_seed=1337,
                             tf_dtype='float32',
-                            model_path='../models/dbm_mnist_rbm_1/')
-        rbm1.fit(X_train)
+                            tf_saver_params=dict(max_to_keep=1),
+                            model_path='../models/dbm_mnist_rbm1/')
+        rbm1.fit(X)
+
+    # pre-train RBM #2
+
+
+        # rbm2 = BernoulliRBM(n_visible=500,
+        #                     n_hidden=1000,
+        #                     n_gibbs_steps=2,
+        #                     w_std=0.01,
+        #                     hb_init=0.,
+        #                     vb_init=0.,
+        #                     learning_rate=0.05,
+        #                     momentum=[.5] * 5 + [.9],
+        #                     batch_size=100,
+        #                     max_epoch=200,
+        #                     L2=1e-3,
+        #                     sample_h_states=True,
+        #                     sample_v_states=True,
+        #                     metrics_config=dict(
+        #                         msre=True,
+        #                         pll=True,
+        #                         train_metrics_every_iter=10,
+        #                     ),
+        #                     verbose=True,
+        #                     random_seed=1337,
+        #                     model_path='../models/2_dbm_mnist_rbm_2/')
 
     # RBM2 = [1] * 20 -> [2] * 20 -> ...
 
