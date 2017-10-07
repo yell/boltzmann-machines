@@ -80,7 +80,8 @@ class BaseRBM(TensorFlowModel):
     def __init__(self,
                  v_layer_cls=None, v_layer_params=None, n_visible=784,
                  h_layer_cls=None, h_layer_params=None, n_hidden=256,
-                 W_init=0.01, vb_init=0., hb_init=0., n_gibbs_steps=1,
+                 W_init=0.01, vb_init=0., hb_init=0.,
+                 dW_init=None, dvb_init=None, dhb_init=None, n_gibbs_steps=1,
                  learning_rate=0.01, momentum=0.9, max_epoch=10, batch_size=10, L2=1e-4,
                  sample_v_states=False, sample_h_states=True, dropout=None,
                  sparsity_target=0.1, sparsity_cost=1e-4, sparsity_damping=0.9,
@@ -107,11 +108,6 @@ class BaseRBM(TensorFlowModel):
             self.W_init = np.asarray(self.W_init)
             assert_shape(self, 'W_init', (self.n_visible, self.n_hidden))
 
-        self.hb_init = hb_init
-        if hasattr(self.hb_init, '__iter__'):
-            self.hb_init = np.asarray(self.hb_init)
-            assert_len(self, 'hb_init', self.n_hidden)
-
         # Visible biases can be initialized with list of values,
         # because it is often helpful to initialize i-th visible bias
         # with value log(p_i / (1 - p_i)), p_i = fraction of training
@@ -120,6 +116,23 @@ class BaseRBM(TensorFlowModel):
         if hasattr(self.vb_init, '__iter__'):
             self.vb_init = np.asarray(self.vb_init)
             assert_len(self, 'vb_init', self.n_visible)
+
+        self.hb_init = hb_init
+        if hasattr(self.hb_init, '__iter__'):
+            self.hb_init = np.asarray(self.hb_init)
+            assert_len(self, 'hb_init', self.n_hidden)
+
+        self.dW_init = dW_init
+        if self.dW_init is not None:
+            assert_shape(self, 'dW_init', (self.n_visible, self.n_hidden))
+
+        self.dvb_init = dvb_init
+        if self.dvb_init is not None:
+            assert_len(self, 'vb_init', self.n_visible)
+
+        self.dhb_init = dhb_init
+        if self.dhb_init is not None:
+            assert_len(self, 'hb_init', self.n_hidden)
 
         self.n_gibbs_steps = n_gibbs_steps
         self.learning_rate = list(learning_rate) if hasattr(learning_rate, '__iter__') else\
@@ -275,9 +288,16 @@ class BaseRBM(TensorFlowModel):
                     tf.summary.image('W_filters', W_display, max_outputs=self.display_filters)
 
         with tf.name_scope('weights_updates'):
-            self._dW = tf.Variable(tf.zeros([self._n_visible, self._n_hidden], dtype=self._tf_dtype), name='dW')
-            self._dvb = tf.Variable(tf.zeros([self._n_visible], dtype=self._tf_dtype), name='dvb')
-            self._dhb = tf.Variable(tf.zeros([self._n_hidden], dtype=self._tf_dtype), name='dhb')
+            dW_init = tf.constant(self.dW_init, dtype=self._tf_dtype) if self.dW_init is not None else\
+                      tf.zeros([self._n_visible, self._n_hidden], dtype=self._tf_dtype)
+            dvb_init = tf.constant(self.dvb_init, dtype=self._tf_dtype) if self.dvb_init is not None else \
+                       tf.zeros([self._n_visible], dtype=self._tf_dtype)
+            dhb_init = tf.constant(self.dhb_init, dtype=self._tf_dtype) if self.dhb_init is not None else \
+                       tf.zeros([self._n_hidden], dtype=self._tf_dtype)
+
+            self._dW = tf.Variable(dW_init, name='dW')
+            self._dvb = tf.Variable(dvb_init, name='dvb')
+            self._dhb = tf.Variable(dhb_init, name='dhb')
 
             tf.summary.histogram('dW', self._dW)
             tf.summary.histogram('dvb', self._dvb)
@@ -587,6 +607,11 @@ class BaseRBM(TensorFlowModel):
         self.W_init = weights['W']
         self.vb_init = weights['vb']
         self.hb_init = weights['hb']
+
+        weights_updates = rbm.get_tf_params(scope='weights_updates')
+        self.dW_init = weights_updates['dW']
+        self.dvb_init = weights_updates['dvb']
+        self.dhb_init = weights_updates['dhb']
 
         self.iter = rbm.iter
         self.epoch = rbm.epoch
