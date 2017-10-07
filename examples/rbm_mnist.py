@@ -27,6 +27,7 @@ def main():
                         help='number of training examples')
     parser.add_argument('--n-val', type=int, default=5000, metavar='N',
                         help='number of validation examples')
+
     parser.add_argument('--n-hidden', type=int, default=1024, metavar='N',
                         help='number of hidden units')
     parser.add_argument('--vb-init', action='store_false',
