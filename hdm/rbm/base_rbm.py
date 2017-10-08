@@ -84,7 +84,7 @@ class BaseRBM(TensorFlowModel):
                  dW_init=None, dvb_init=None, dhb_init=None, n_gibbs_steps=1,
                  learning_rate=0.01, momentum=0.9, max_epoch=10, batch_size=10, L2=1e-4,
                  sample_v_states=False, sample_h_states=True, dropout=None,
-                 sparsity_target=0.1, sparsity_cost=1e-4, sparsity_damping=0.9,
+                 sparsity_target=0.1, sparsity_cost=0., sparsity_damping=0.9,
                  dbm_first=False, dbm_last=False,
                  metrics_config=None, verbose=True, save_after_each_epoch=True,
                  display_filters=30, filter_shape=(28, 28),
