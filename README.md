@@ -37,7 +37,7 @@ Train RBM on MNIST dataset and use it for classification.
 | RBM features + k-NN | **96.96** |
 | RBM + discriminative finetuning | **98.66** |
 
-### DBM MNIST (~~[script]()~~, ~~[notebook]()~~)
+### DBM MNIST ([script](examples/dbm_mnist.py), *[notebook](notebooks/dbm_mnist.ipynb)*)
 ### DBM CIFAR-10 Naïve (~~[script]()~~, ~~[notebook]()~~)
 ### DBM CIFAR-10 (~~[script]()~~, ~~[notebook]()~~)
 ### HDP (~~[script]()~~, ~~[notebook]()~~)
