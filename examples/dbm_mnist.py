@@ -3,6 +3,9 @@
 """
 Train 2-layer Bernoulli DBM on MNIST dataset.
 Hyper-parameters are similar to those in MATLAB code [1].
+Some of them were changed for more efficient computation on GPUs,
+another ones to obtain more stable learning (lesser number of "died" units etc.)
+
 RBM #2 trained with increasing k in CD-k and decreasing learning rate.
 
 Links
@@ -93,7 +96,7 @@ def main():
                             model_path=args.rbm1_dirpath)
         rbm1.fit(X)
 
-    # freeze RBM #1 and extract features P(h|data)
+    # freeze RBM #1 and extract features H = P(h|v=data)
     print "\nExtracting features from RBM #1 ...\n\n"
     H = rbm1.transform(X)
     print H.shape
@@ -151,6 +154,11 @@ def main():
             rbm2_new.init_from(rbm2)
             rbm2 = rbm2_new
             rbm2.fit(H)
+
+    # freeze RBM #2 and extract features Z = P(h|v=H)
+    print "\nExtracting features from RBM #1 ...\n\n"
+    Z = rbm2.transform(H)
+    print Z.shape
 
     # DBM <- (rbm1, rbm2)
 
