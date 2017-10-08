@@ -124,14 +124,17 @@ class BaseRBM(TensorFlowModel):
 
         self.dW_init = dW_init
         if self.dW_init is not None:
+            self.dW_init = np.asarray(self.dW_init)
             assert_shape(self, 'dW_init', (self.n_visible, self.n_hidden))
 
         self.dvb_init = dvb_init
         if self.dvb_init is not None:
+            self.dvb_init = np.asarray(self.dvb_init)
             assert_len(self, 'vb_init', self.n_visible)
 
         self.dhb_init = dhb_init
         if self.dhb_init is not None:
+            self.dhb_init = np.asarray(self.dhb_init)
             assert_len(self, 'hb_init', self.n_hidden)
 
         self.n_gibbs_steps = n_gibbs_steps
