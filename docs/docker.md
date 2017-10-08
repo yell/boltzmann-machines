@@ -22,7 +22,7 @@ This container builds CUDA, cuDNN and python before installing dependencies.
 
 3) Build the project image
 ```bash
-docker build . -t hd-models-cuda -f Dockerfile.ubuntu-cuda
+docker build . -t hd-models-cuda -f Dockerfile-gpu
 ```
 4) Run the container
 ```bash
