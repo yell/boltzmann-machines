@@ -127,7 +127,7 @@ def main():
             metrics_config=dict(
                 msre=True,
                 pll=True,
-                train_metrics_every_iter=400,
+                train_metrics_every_iter=500,
             ),
             verbose=True,
             display_filters=False,
