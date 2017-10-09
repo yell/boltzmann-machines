@@ -1,5 +1,6 @@
 import numpy as np
 import tensorflow as tf
+from tensorflow.contrib.distributions import Multinomial
 
 from base_rbm import BaseRBM
 from rbm_layers import BernoulliLayer, MultinomialLayer, GaussianLayer
@@ -14,9 +15,9 @@ class BernoulliRBM(BaseRBM):
 
     def _free_energy(self, v):
         with tf.name_scope('free_energy'):
-            tv = -tf.einsum('ij,j->i', v, self._vb)
-            th = -tf.reduce_sum(tf.nn.softplus(self._propup(v) + self._hb), axis=1)
-            fe = tf.reduce_mean(tv + th, axis=0)
+            t1 = -tf.einsum('ij,j->i', v, self._vb)
+            t2 = -tf.reduce_sum(tf.nn.softplus(self._propup(v) + self._hb), axis=1)
+            fe = tf.reduce_mean(t1 + t2, axis=0)
         return fe
 
 
@@ -40,18 +41,21 @@ class MultinomialRBM(BaseRBM):
                                              h_layer_params=dict(n_samples=self.n_samples),
                                              model_path=model_path, *args, **kwargs)
 
-    # TODO: fix energy
     def _free_energy(self, v):
+        K = float(self.n_hidden)
+        M = float(self.n_samples)
         with tf.name_scope('free_energy'):
-            tv = -tf.einsum('ij,j->i', v, self._vb)
-            th = -tf.reduce_sum(tf.matmul(v, self._W), axis=1)
-            fe = tf.reduce_mean(tv, axis=0) +\
-                 self.n_samples * (tf.reduce_mean(th, axis=0) - tf.reduce_sum(self._hb))
+            t1 = -tf.einsum('ij,j->i', v, self._vb) * M
+            t2 = -tf.matmul(v, self._W)
+            h_hat = Multinomial(total_count=M, logits=tf.ones([K])).sample()
+            t3 = tf.einsum('ij,j->i', t2, h_hat)
+            fe = tf.reduce_mean(t1 + t3, axis=0) + (
+                -tf.lgamma(M + K) + tf.lgamma(M + 1) + tf.lgamma(K))
         return fe
 
     def transform(self, X):
         H = super(MultinomialRBM, self).transform(X)
-        H /= self.n_samples
+        H /= float(self.n_samples)
         return H
 
 
@@ -97,9 +101,9 @@ class GaussianRBM(BaseRBM):
         with tf.name_scope('free_energy'):
             t = tf.divide(tf.reshape(self._vb, [1, self.n_visible]), self._sigma)
             t2 = tf.square(tf.subtract(v, t))
-            tv = 0.5 * tf.reduce_sum(t2, axis=1)
-            th = -tf.reduce_sum(tf.nn.softplus(self._propup(v) + self._hb), axis=1)
-            fe = tf.reduce_mean(tv + th, axis=0)
+            t3 = 0.5 * tf.reduce_sum(t2, axis=1)
+            t4 = -tf.reduce_sum(tf.nn.softplus(self._propup(v) + self._hb), axis=1)
+            fe = tf.reduce_mean(t3 + t4, axis=0)
         return fe
 
 
