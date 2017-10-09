@@ -96,10 +96,10 @@ def main():
                             model_path=args.rbm1_dirpath)
         rbm1.fit(X)
 
-    # freeze RBM #1 and extract features H = P(h|v=data)
+    # freeze RBM #1 and extract features Z = P(h|v=X)
     print "\nExtracting features from RBM #1 ...\n\n"
-    H = rbm1.transform(X)
-    print H.shape
+    Z = rbm1.transform(X)
+    print Z.shape
 
     # pre-train RBM #2
     if args.load_rbm2:
@@ -138,7 +138,7 @@ def main():
         )
         max_epoch = args.increase_n_gibbs_steps_every
         rbm2 = BernoulliRBM(**rbm2_config)
-        rbm2.fit(H)
+        rbm2.fit(Z)
         rbm2_config['momentum'] = 0.9
         while max_epoch < args.epochs[1]:
             max_epoch += args.increase_n_gibbs_steps_every
@@ -153,12 +153,12 @@ def main():
             rbm2_new = BernoulliRBM(**rbm2_config)
             rbm2_new.init_from(rbm2)
             rbm2 = rbm2_new
-            rbm2.fit(H)
+            rbm2.fit(Z)
 
-    # freeze RBM #2 and extract features Z = P(h|v=H)
+    # freeze RBM #2 and extract features Q = P(h|v=Z)
     print "\nExtracting features from RBM #1 ...\n\n"
-    Z = rbm2.transform(H)
-    print Z.shape
+    Q = rbm2.transform(Z)
+    print Q.shape
 
     # DBM <- (rbm1, rbm2)
 

@@ -556,13 +556,13 @@ class DBM(TensorFlowModel):
     def transform(self, X):
         """Compute hidden units' (from last layer) activation probabilities."""
         self._transform_op = tf.get_collection('transform_op')[0]
-        Z = np.zeros((len(X), self.n_hiddens[-1]))
+        Q = np.zeros((len(X), self.n_hiddens[-1]))
         start = 0
         for X_b in batch_iter(X, batch_size=self.batch_size, verbose=self.verbose):
-            Z_b = self._transform_op.eval(feed_dict=self._make_tf_feed_dict(X_b))
-            Z[start:(start + self.batch_size)] = Z_b
+            Q_b = self._transform_op.eval(feed_dict=self._make_tf_feed_dict(X_b))
+            Q[start:(start + self.batch_size)] = Q_b
             start += self.batch_size
-        return Z
+        return Q
 
     @run_in_tf_session
     def sample_v_particle(self, n_gibbs_steps=0, save_model=False):

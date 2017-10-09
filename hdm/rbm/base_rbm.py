@@ -623,14 +623,14 @@ class BaseRBM(TensorFlowModel):
     def transform(self, X):
         """Compute hidden units' activation probabilities."""
         self._transform_op = tf.get_collection('transform_op')[0]
-        H = np.zeros((len(X), self.n_hidden))
+        Z = np.zeros((len(X), self.n_hidden))
         start = 0
         for X_b in batch_iter(X, batch_size=self.batch_size,
                               verbose=self.verbose):
-            H_b = self._transform_op.eval(feed_dict=self._make_tf_feed_dict(X_b))
-            H[start:(start + self.batch_size)] = H_b
+            Z_b = self._transform_op.eval(feed_dict=self._make_tf_feed_dict(X_b))
+            Z[start:(start + self.batch_size)] = Z_b
             start += self.batch_size
-        return H
+        return Z
 
     def _serialize(self, params):
         for k, v in params.items():
