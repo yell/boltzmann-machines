@@ -32,6 +32,11 @@ class MultinomialRBM(BaseRBM):
     n_samples : int
         Number of softmax units with shared weights
         (<=> number of samples from one softmax unit).
+
+    References
+    ----------
+    [1] R. Salakhutdinov, A. Mnih, and G. Hinton. Restricted boltzmann
+        machines for collaborative filtering, 2007.
     """
     def __init__(self, n_samples=100,
                  model_path='m_rbm_model/', *args, **kwargs):
@@ -45,6 +50,7 @@ class MultinomialRBM(BaseRBM):
         K = float(self.n_hidden)
         M = float(self.n_samples)
         with tf.name_scope('free_energy'):
+            # visible bias is scaled as suggested in [1]
             t1 = -tf.einsum('ij,j->i', v, self._vb) * M
             t2 = -tf.matmul(v, self._W)
             h_hat = Multinomial(total_count=M, logits=tf.ones([K])).sample()

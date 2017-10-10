@@ -52,6 +52,12 @@ class BernoulliLayer(BaseLayer):
 
 class MultinomialLayer(BaseLayer):
     def __init__(self, n_samples=100, *args, **kwargs):
+        """
+        References
+        ----------
+        [1] R. Salakhutdinov, A. Mnih, and G. Hinton. Restricted boltzmann
+            machines for collaborative filtering, 2007.
+        """
         super(MultinomialLayer, self).__init__(*args, **kwargs)
         self.n_samples = float(n_samples)
 
@@ -62,7 +68,8 @@ class MultinomialLayer(BaseLayer):
         return tf.identity(t, name='multinomial_init')
 
     def activation(self, x, b):
-        t = tf.nn.softmax(x + self.n_samples * b)
+        # visible bias is scaled as suggested in [1]
+        t = tf.nn.softmax(x + float(self.n_samples) * b)
         return self.n_samples * t
 
     def _sample(self, means):
