@@ -62,7 +62,7 @@ class MultinomialLayer(BaseLayer):
         return tf.identity(t, name='multinomial_init')
 
     def activation(self, x, b):
-        t = tf.nn.softmax(x + b)
+        t = tf.nn.softmax(x + self.n_samples * b)
         return self.n_samples * t
 
     def _sample(self, means):
