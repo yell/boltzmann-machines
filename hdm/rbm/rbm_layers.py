@@ -51,10 +51,9 @@ class BernoulliLayer(BaseLayer):
 
 
 class MultinomialLayer(BaseLayer):
-    def __init__(self, n_samples=100, sqrt_M=False, *args, **kwargs):
+    def __init__(self, n_samples=100, *args, **kwargs):
         super(MultinomialLayer, self).__init__(*args, **kwargs)
         self.n_samples = float(n_samples)
-        self.sqrt_M = sqrt_M
 
     def init(self, batch_size, random_seed=None):
         t = tf.random_uniform([batch_size, self.n_units], minval=0., maxval=1.,
@@ -64,16 +63,10 @@ class MultinomialLayer(BaseLayer):
 
     def activation(self, x, b):
         t = tf.nn.softmax(x + b)
-        return np.sqrt(self.n_samples) * t if self.sqrt_M else self.n_samples * t
+        return self.n_samples * t
 
     def _sample(self, means):
         return Multinomial(total_count=self.n_samples, probs=tf.to_float(means / tf.reduce_sum(means)))
-
-    def sample(self, means):
-        T = super(MultinomialLayer, self).sample(means)
-        if self.sqrt_M:
-            T /= np.sqrt(self.n_samples)
-        return T
 
 
 class GaussianLayer(BaseLayer):
