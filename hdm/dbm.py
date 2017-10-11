@@ -15,11 +15,24 @@ class DBM(TensorFlowModel):
     rbms : [BaseRBM]
         Array of already pretrained RBMs going from visible units
         to the most hidden ones.
-    n_particles : int
+    n_particles : positive int
         Number of persistent Markov chains (i.e., "fantasy particles").
-    max_mf_updates_per_iter : int
-        Maximum number of mean-field to perform on each iteration.
-    mf_tol : float
+    n_particles_updates_per_iter : positive int
+        Number of Gibbs steps for PCD.
+    max_mf_updates_per_iter : positive int
+        Maximum number of mean-field updates per weight update.
+    mf_tol : positive float
+        Mean-field tolerance.
+    learning_rate, momentum : positive float or iterable
+        Gradient descent parameters. Values are updated after each epoch.
+    max_epoch : positive int
+        Train till this epoch.
+    batch_size : positive int
+        Input batch size for training.
+    l2 : non-negative float
+        L2 weight decay coefficient.
+    max_norm : positive float
+        Maximum norm constraint.
 
     References
     ----------
@@ -31,11 +44,10 @@ class DBM(TensorFlowModel):
         for Classification.
     """
     def __init__(self, rbms=None,
-                 v_particle_init=None, h_particles_init=None,
-                 n_particles=100, n_particles_updates_per_iter=5,
-                 max_mf_updates_per_iter=10, mf_tol=1e-7,
-                 learning_rate=0.001, momentum=0.9, max_epoch=10, batch_size=100,
-                 L2=0., max_norm=None,
+                 n_particles=100, v_particle_init=None, h_particles_init=None,
+                 n_gibbs_steps=1, max_mf_updates=10, mf_tol=1e-7,
+                 learning_rate=0.0005, momentum=0.9, max_epoch=10, batch_size=100,
+                 L2=0., max_norm=np.inf,
                  sample_v_states=True, sample_h_states=None,
                  train_metrics_every_iter=10, val_metrics_every_epoch=1,
                  verbose=False, save_after_each_epoch=False,
@@ -50,13 +62,13 @@ class DBM(TensorFlowModel):
         self._h_particles_init = h_particles_init
 
         self.n_particles = n_particles
-        self.n_particles_updates_per_iter = n_particles_updates_per_iter
-        self.max_mf_updates_per_iter = max_mf_updates_per_iter
+        self.n_gibbs_steps = n_gibbs_steps
+        self.max_mf_updates = max_mf_updates
         self.mf_tol = mf_tol
 
-        self.learning_rate = list(learning_rate) if hasattr(learning_rate, '__iter__') else \
+        self.learning_rate = list(learning_rate) if hasattr(learning_rate, '__iter__') else\
                              [learning_rate]
-        self.momentum = list(momentum) if hasattr(momentum, '__iter__') else \
+        self.momentum = list(momentum) if hasattr(momentum, '__iter__') else\
                         [momentum]
 
         self.max_epoch = max_epoch
@@ -67,7 +79,6 @@ class DBM(TensorFlowModel):
         # column of weight vectors instead of L2-regularization,
         # as is recommended in [3].
         self.max_norm = max_norm
-        if self.max_norm is None: self.max_norm = np.inf
 
         self.sample_v_states = sample_v_states
         self.sample_h_states = sample_h_states
@@ -157,8 +168,8 @@ class DBM(TensorFlowModel):
         with tf.name_scope('constants'):
             self._n_particles = tf.constant(self.n_particles, dtype=tf.int32, name='n_particles')
             self._n_particles_updates_per_iter = \
-                tf.constant(self.n_particles_updates_per_iter, dtype=tf.int32, name='n_particles_updates_per_iter')
-            self._max_mf_updates_per_iter = tf.constant(self.max_mf_updates_per_iter,
+                tf.constant(self.n_gibbs_steps, dtype=tf.int32, name='n_particles_updates_per_iter')
+            self._max_mf_updates_per_iter = tf.constant(self.max_mf_updates,
                                                         dtype=tf.int32, name='max_mf_updates_per_iter')
             self._mf_tol = tf.constant(self.mf_tol, dtype=self._tf_dtype, name='mf_tol')
             self._batch_size = tf.constant(self.batch_size, dtype=tf.int32, name='batch_size')
@@ -571,5 +582,6 @@ class DBM(TensorFlowModel):
         self._sample_v_particle = tf.get_collection('sample_v_particle')[0]
         v = self._tf_session.run(self._sample_v_particle,
                                  feed_dict=self._make_tf_feed_dict(n_gibbs_steps=n_gibbs_steps))
-        self._save_model()
+        if save_model:
+            self._save_model()
         return v
