@@ -17,8 +17,8 @@ class DBM(TensorFlowModel):
         to the most hidden ones.
     n_particles : positive int
         Number of persistent Markov chains (i.e., "fantasy particles").
-    n_gibbs_steps : positive int
-        Number of Gibbs steps for PCD.
+    n_gibbs_steps : positive int or iterable
+        Number of Gibbs steps for PCD. Values are updated after each epoch.
     max_mf_updates : positive int
         Maximum number of mean-field updates per weight update.
     mf_tol : positive float
