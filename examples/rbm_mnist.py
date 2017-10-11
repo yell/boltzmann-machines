@@ -7,7 +7,9 @@ Momentum is initially 0.5 and gradually increases to 0.9.
 Training time is approx. 2.5 times faster using single-precision rather than double
 with negligible difference in reconstruction error, pseudo log-lik is slightly more noisy
 at the beginning of training though.
+
 After the model is trained, it is discriminatively fine-tuned.
+The code uses early stopping so max number of MLP epochs is often not reached.
 """
 print __doc__
 
@@ -76,7 +78,7 @@ def main():
                         help='L2 weight decay coefficient for MLP')
     parser.add_argument('--mlp-lrm', type=float, default=(0.01, 1.), metavar='LRM', nargs='+',
                         help='learning rate multipliers of 1e-3 for MLP')
-    parser.add_argument('--mlp-epochs', type=int, default=1000, metavar='N',
+    parser.add_argument('--mlp-epochs', type=int, default=2000, metavar='N',
                         help='number of epochs to train MLP')
     parser.add_argument('--mlp-save-prefix', type=str, default='../data/rbm_', metavar='PREFIX',
                         help='prefix to save MLP predictions and targets')
