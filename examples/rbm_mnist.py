@@ -16,6 +16,11 @@ print __doc__
 
 import argparse
 import numpy as np
+import keras.backend as K
+if K.backend() == 'tensorflow':
+    import tensorflow as tf
+    tf.set_random_seed(1234)
+
 from keras import regularizers
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from keras.models import Sequential
