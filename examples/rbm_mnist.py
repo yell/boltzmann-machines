@@ -77,11 +77,13 @@ def main():
                         help='if enabled, use random initialization for MLP')
     parser.add_argument('--mlp-l2', type=float, default=1e-5, metavar='L2',
                         help='L2 weight decay coefficient for MLP')
-    parser.add_argument('--mlp-lrm', type=float, default=(0.01, 1.), metavar='LRM', nargs='+',
+    parser.add_argument('--mlp-lrm', type=float, default=(0.1, 1.), metavar='LRM', nargs='+',
                         help='learning rate multipliers of 1e-3 for MLP')
-    parser.add_argument('--mlp-epochs', type=int, default=1000, metavar='N',
+    parser.add_argument('--mlp-epochs', type=int, default=100, metavar='N',
                         help='number of epochs to train MLP')
-    parser.add_argument('--mlp-batch-size', type=int, default=32, metavar='N',
+    parser.add_argument('--mlp-val-metric', type=str, default='val_acc', metavar='S',
+                        help="metric on validation set to perform early stopping, {'val_acc', 'val_loss'}")
+    parser.add_argument('--mlp-batch-size', type=int, default=128, metavar='N',
                         help='input batch size for training MLP')
     parser.add_argument('--mlp-save-prefix', type=str, default='../data/rbm_', metavar='PREFIX',
                         help='prefix to save MLP predictions and targets')
@@ -169,9 +171,9 @@ def main():
 
     # train and evaluate classifier
     with Stopwatch(verbose=True) as s:
-        early_stopping = EarlyStopping(monitor='val_loss', patience=20, verbose=2)
-        reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, verbose=2,
-                                      patience=10, min_lr=1e-5)
+        early_stopping = EarlyStopping(monitor=args.mlp_val_metric, patience=12, verbose=2)
+        reduce_lr = ReduceLROnPlateau(monitor=args.mlp_val_metric, factor=0.2, verbose=2,
+                                      patience=6, min_lr=1e-5)
         try:
             mlp.fit(X_train, one_hot(y_train, n_classes=10),
                     epochs=args.mlp_epochs,
