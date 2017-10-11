@@ -86,6 +86,8 @@ def main():
                         help='learning rate multipliers of 1e-3 for MLP')
     parser.add_argument('--mlp-epochs', type=int, default=1000, metavar='N',
                         help='number of epochs to train MLP')
+    parser.add_argument('--mlp-batch-size', type=int, default=32, metavar='N',
+                        help='input batch size for training MLP')
     parser.add_argument('--mlp-save-prefix', type=str, default='../data/rbm_', metavar='PREFIX',
                         help='prefix to save MLP predictions and targets')
     args = parser.parse_args()
@@ -160,7 +162,6 @@ def main():
         Activation('softmax'),
     ])
 
-
     mlp.compile(optimizer=MultiAdam(lr=0.001,
                                     lr_multipliers={'dense_1': args.mlp_lrm[0],
                                                     'dense_2': args.mlp_lrm[1]}),
@@ -178,7 +179,9 @@ def main():
                                       patience=10, min_lr=1e-5)
         try:
             mlp.fit(X_train, one_hot(y_train, n_classes=10),
-                    epochs=args.mlp_epochs, batch_size=32, shuffle=False,
+                    epochs=args.mlp_epochs,
+                    batch_size=args.mlp_batch_size,
+                    shuffle=False,
                     validation_data=(X_val, one_hot(y_val, n_classes=10)),
                     callbacks=[early_stopping, reduce_lr])
         except KeyboardInterrupt:
