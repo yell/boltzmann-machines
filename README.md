@@ -36,7 +36,16 @@ Train RBM on MNIST dataset and use it for classification.
 | :--- | :---: |
 | RBM features + Logistic Regression | **98.21** |
 | RBM features + k-NN | **96.96** |
-| RBM + discriminative finetuning | **98.66** |
+| RBM + discriminative finetuning | **98.67** |
+
+Also, [one-shot learning idea]:
+
+| Number of labeled data pairs (train + val) | RBM + fine-tuning | random initialization |
+| :---: | :---: | :---: |
+| 60k (55k + 5k) | **98.67%** | **98.26%** |
+| 1k (900 + 100) | **93.52%** | **88.70%** |
+| 100 (90 + 10) | **81.37%** | **76.02%** |
+| 15 (10 + 5) | **32.51%** | **27.56%** |
 
 ### DBM MNIST ([script](examples/dbm_mnist.py), *[notebook](notebooks/dbm_mnist.ipynb)*)
 ### DBM CIFAR-10 Naïve (~~[script]()~~, ~~[notebook]()~~)
