@@ -52,7 +52,7 @@ def main():
                         help='learning rate or sequence of such (per epoch)')
     parser.add_argument('--epochs', type=int, default=100, metavar='N',
                         help='number of epochs to train')
-    parser.add_argument('--batch-size', type=int, default=10, metavar='N',
+    parser.add_argument('--batch-size', type=int, default=10, metavar='B',
                         help='input batch size for training')
     parser.add_argument('--l2', type=float, default=1e-5, metavar='L2',
                         help='L2 weight decay coefficient')
