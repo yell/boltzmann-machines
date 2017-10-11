@@ -78,7 +78,7 @@ def main():
                         help='L2 weight decay coefficient for MLP')
     parser.add_argument('--mlp-lrm', type=float, default=(0.01, 1.), metavar='LRM', nargs='+',
                         help='learning rate multipliers of 1e-3 for MLP')
-    parser.add_argument('--mlp-epochs', type=int, default=2000, metavar='N',
+    parser.add_argument('--mlp-epochs', type=int, default=1000, metavar='N',
                         help='number of epochs to train MLP')
     parser.add_argument('--mlp-save-prefix', type=str, default='../data/rbm_', metavar='PREFIX',
                         help='prefix to save MLP predictions and targets')
@@ -170,7 +170,7 @@ def main():
                                       patience=10, min_lr=1e-5)
         try:
             mlp.fit(X_train, one_hot(y_train, n_classes=10),
-                    epochs=args.mlp_epochs, shuffle=False,
+                    epochs=args.mlp_epochs, batch_size=32, shuffle=False,
                     validation_data=(X_val, one_hot(y_val, n_classes=10)),
                     callbacks=[early_stopping, reduce_lr])
         except KeyboardInterrupt:
