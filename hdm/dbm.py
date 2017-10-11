@@ -173,10 +173,8 @@ class DBM(TensorFlowModel):
             self._X_batch = tf.placeholder(self._tf_dtype, [None, self.n_visible], name='X_batch')
 
     def _make_vars(self):
-        # Compose weights and biases of DBM from trained RBMs' ones
-        # and account double-counting evidence problem [1].
-        # Initialize intermediate biases as mean of current RBM's
-        # hidden biases and visible ones of the next, as in [2]
+        # compose weights and biases of DBM from trained RBMs' ones
+        # and account double-counting evidence problem [1]
         W_init, hb_init = [], []
         vb_init = self._vb_init[0]
         for i in xrange(self.n_layers):
@@ -184,14 +182,22 @@ class DBM(TensorFlowModel):
             vb = self._vb_init[i]
             hb = self._hb_init[i]
 
-            if i in (0, self.n_layers - 1):
-                W *= 0.5  # equivalent to training with RBMs with doubled weights
-            W_init.append(W)
-            if i < self.n_layers - 1:
+            # halve weights and biases of intermediate RBMs
+            if i > 0 and i < self.n_layers - 1:
+                W *= 0.5
+                vb *= 0.5
                 hb *= 0.5
-            hb_init.append(hb)
-            if i > 0:
+
+            # initialize weights
+            W_init.append(W)
+
+            # initialize hidden biases as average of respective biases
+            # of respective RBMs, as in [2]
+            if i == 0:
+                hb_init.append(0.5 * hb)
+            else: # i > 0
                 hb_init[i - 1] += 0.5 * vb
+                hb_init.append(0.5 * hb if i < self.n_layers - 1 else hb)
 
         # initialize weights and biases
         with tf.name_scope('weights'):
