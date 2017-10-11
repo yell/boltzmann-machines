@@ -225,7 +225,11 @@ def main():
 
     V = dbm.sample_v_particle(n_gibbs_steps=10)
     print V.shape, V.min(), V.max(), V.mean(), V.sum()
-
+    from hdm.utils import plot_matrices
+    import matplotlib.pyplot as plt
+    fig = plt.figure(figsize=(10, 10))
+    plot_matrices(V, shape=(28, 28), imshow_params={'cmap': plt.cm.gray})
+    plt.show()
 
 
 if __name__ == '__main__':

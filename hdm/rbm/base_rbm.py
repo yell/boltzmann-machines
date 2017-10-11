@@ -195,9 +195,9 @@ class BaseRBM(TensorFlowModel):
         self._propdown_multiplier = None
 
         # tf input data
-        self._X_batch = None
         self._learning_rate = None
         self._momentum = None
+        self._X_batch = None
 
         # tf vars
         self._W = None
@@ -237,9 +237,9 @@ class BaseRBM(TensorFlowModel):
 
     def _make_placeholders(self):
         with tf.name_scope('input_data'):
-            self._X_batch = tf.placeholder(self._tf_dtype, [None, self.n_visible], name='X_batch')
             self._learning_rate = tf.placeholder(self._tf_dtype, [], name='learning_rate')
             self._momentum = tf.placeholder(self._tf_dtype, [], name='momentum')
+            self._X_batch = tf.placeholder(self._tf_dtype, [None, self.n_visible], name='X_batch')
 
     def _make_vars(self):
         with tf.name_scope('weights'):
@@ -467,9 +467,9 @@ class BaseRBM(TensorFlowModel):
 
     def _make_tf_feed_dict(self, X_batch):
         d = {}
-        d['X_batch'] = X_batch
         d['learning_rate'] = self.learning_rate[min(self.epoch, len(self.learning_rate) - 1)]
         d['momentum'] = self.momentum[min(self.epoch, len(self.momentum) - 1)]
+        d['X_batch'] = X_batch
         # prepend name of the scope, and append ':0'
         feed_dict = {}
         for k, v in d.items():

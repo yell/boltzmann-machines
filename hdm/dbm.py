@@ -33,7 +33,8 @@ class DBM(TensorFlowModel):
     l2 : non-negative float
         L2 weight decay coefficient.
     max_norm : positive float
-        Maximum norm constraint.
+        Maximum norm constraint. Might be useful to use for this model instead
+        of L2 weight decay as recommended in [3]
 
     References
     ----------
@@ -72,9 +73,6 @@ class DBM(TensorFlowModel):
         self.max_epoch = max_epoch
         self.batch_size = batch_size
         self.L2 = L2
-        # It might be helpful to use constraints on the norms of
-        # column of weight vectors instead of L2-regularization,
-        # as is recommended in [3].
         self.max_norm = max_norm
 
         self.sample_v_states = sample_v_states
@@ -100,25 +98,25 @@ class DBM(TensorFlowModel):
         self._M = None
 
         # tf input data
-        self._X_batch = None
         self._learning_rate = None
         self._momentum = None
         self._n_gibbs_steps = None
+        self._X_batch = None
 
         # tf vars
         self._W = []
-        self._hb = []
         self._vb = None
+        self._hb = []
 
         self._dW = []
-        self._dhb = []
         self._dvb = None
+        self._dhb = []
 
         self._mu = []
         self._mu_new = []
         self._v = None
-        self._H = []
         self._v_new = None
+        self._H = []
         self._H_new = []
 
         # tf operations
@@ -130,31 +128,30 @@ class DBM(TensorFlowModel):
 
     def load_rbms(self, rbms):
         self._rbms = rbms
-        if self._rbms is not None:
 
-            # create some shortcuts
-            self.n_layers = len(self._rbms)
-            # TODO: remove this assertion
-            assert self.n_layers >= 2
-            self.n_visible = self._rbms[0].n_visible
-            self.n_hiddens = [rbm.n_hidden for rbm in self._rbms]
+        # create some shortcuts
+        self.n_layers = len(self._rbms)
+        # TODO: remove this assertion
+        assert self.n_layers >= 2
+        self.n_visible = self._rbms[0].n_visible
+        self.n_hiddens = [rbm.n_hidden for rbm in self._rbms]
 
-            # extract weights and biases
-            self._W_tmp, self._vb_tmp, self._hb_tmp = [], [], []
-            for i in xrange(self.n_layers):
-                weights = self._rbms[i].get_tf_params(scope='weights')
-                self._W_tmp.append(weights['W'])
-                self._vb_tmp.append(weights['vb'])
-                self._hb_tmp.append(weights['hb'])
+        # extract weights and biases
+        self._W_init, self._vb_init, self._hb_init = [], [], []
+        for i in xrange(self.n_layers):
+            weights = self._rbms[i].get_tf_params(scope='weights')
+            self._W_init.append(weights['W'])
+            self._vb_init.append(weights['vb'])
+            self._hb_init.append(weights['hb'])
 
-            # collect resp. layers of units
-            self._v_layer = self._rbms[0]._v_layer
-            self._h_layers = [rbm._h_layer for rbm in self._rbms]
+        # collect resp. layers of units
+        self._v_layer = self._rbms[0]._v_layer
+        self._h_layers = [rbm._h_layer for rbm in self._rbms]
 
-            # ... and update their dtypes
-            self._v_layer.tf_dtype = self._tf_dtype
-            for h in self._h_layers:
-                h.tf_dtype = self._tf_dtype
+        # ... and update their dtypes
+        self._v_layer.tf_dtype = self._tf_dtype
+        for h in self._h_layers:
+            h.tf_dtype = self._tf_dtype
 
     def _make_constants(self):
         with tf.name_scope('constants'):
@@ -170,10 +167,10 @@ class DBM(TensorFlowModel):
 
     def _make_placeholders(self):
         with tf.name_scope('input_data'):
-            self._X_batch = tf.placeholder(self._tf_dtype, [None, self.n_visible], name='X_batch')
             self._learning_rate = tf.placeholder(self._tf_dtype, [], name='learning_rate')
             self._momentum = tf.placeholder(self._tf_dtype, [], name='momentum')
             self._n_gibbs_steps = tf.placeholder(tf.int32, [], name='n_gibbs_steps')
+            self._X_batch = tf.placeholder(self._tf_dtype, [None, self.n_visible], name='X_batch')
 
     def _make_vars(self):
         # Compose weights and biases of DBM from trained RBMs' ones
@@ -181,11 +178,12 @@ class DBM(TensorFlowModel):
         # Initialize intermediate biases as mean of current RBM's
         # hidden biases and visible ones of the next, as in [2]
         W_init, hb_init = [], []
-        vb_init = self._vb_tmp[0]
+        vb_init = self._vb_init[0]
         for i in xrange(self.n_layers):
-            W = self._W_tmp[i]
-            hb = self._hb_tmp[i]
-            vb = self._vb_tmp[i]
+            W = self._W_init[i]
+            vb = self._vb_init[i]
+            hb = self._hb_init[i]
+
             if i in (0, self.n_layers - 1):
                 W *= 0.5  # equivalent to training with RBMs with doubled weights
             W_init.append(W)
