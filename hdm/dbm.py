@@ -557,7 +557,7 @@ class DBM(TensorFlowModel):
                     s += "; val.msre: {0:.5f}".format(val_msre)
                 if val_n_mf_updates:
                     s += "; val.n_mf_upds: {0:.2f}".format(val_n_mf_updates)
-                write_during_training(s + '\n')
+                write_during_training(s)
 
             # save if needed
             if self.save_after_each_epoch:
