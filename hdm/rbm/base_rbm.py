@@ -28,8 +28,8 @@ class BaseRBM(TensorFlowModel):
         Train till this epoch.
     batch_size : positive int
         Input batch size for training.
-    L2 : non-negative float
-        L2 weight decay coefficient.
+    l2 : non-negative float
+        l2 weight decay coefficient.
     sample_v_states, sample_h_states : bool
         Whether to sample visible/hidden states, or to use probabilities
         w/o sampling. Note that data driven states for hidden units will
@@ -78,10 +78,10 @@ class BaseRBM(TensorFlowModel):
         In AISTATS 2009
     """
     def __init__(self,
-                 v_layer_cls=None, v_layer_params=None, n_visible=784,
-                 h_layer_cls=None, h_layer_params=None, n_hidden=256,
+                 n_visible=784, v_layer_cls=None, v_layer_params=None,
+                 n_hidden=256, h_layer_cls=None, h_layer_params=None,
                  W_init=0.01, vb_init=0., hb_init=0., n_gibbs_steps=1,
-                 learning_rate=0.01, momentum=0.9, max_epoch=10, batch_size=10, L2=1e-4,
+                 learning_rate=0.01, momentum=0.9, max_epoch=10, batch_size=10, l2=1e-4,
                  sample_v_states=False, sample_h_states=True, dropout=None,
                  sparsity_target=0.1, sparsity_cost=0., sparsity_damping=0.9,
                  dbm_first=False, dbm_last=False,
@@ -134,7 +134,7 @@ class BaseRBM(TensorFlowModel):
 
         self.max_epoch = max_epoch
         self.batch_size = batch_size
-        self.L2 = L2
+        self.l2 = l2
 
         # According to [2], the training goes less noisy and slightly faster, if
         # sampling used for states of hidden units driven by the data, and probabilities
@@ -190,7 +190,7 @@ class BaseRBM(TensorFlowModel):
         # tf constants
         self._n_visible = None
         self._n_hidden = None
-        self._L2 = None
+        self._l2 = None
         self._dropout = None
         self._dbm_first = None
         self._dbm_last = None
@@ -222,7 +222,7 @@ class BaseRBM(TensorFlowModel):
         with tf.name_scope('constants'):
             self._n_visible = tf.constant(self.n_visible, dtype=tf.int32, name='n_visible')
             self._n_hidden = tf.constant(self.n_hidden, dtype=tf.int32, name='n_hidden')
-            self._L2 = tf.constant(self.L2, dtype=self._tf_dtype, name='L2_coef')
+            self._l2 = tf.constant(self.l2, dtype=self._tf_dtype, name='l2_coef')
             if self.dropout is not None:
                 self._dropout = tf.constant(self.dropout, dtype=self._tf_dtype, name='dropout_prob')
             self._sparsity_target = tf.constant(self.sparsity_target, dtype=self._tf_dtype, name='sparsity_target')
@@ -384,7 +384,7 @@ class BaseRBM(TensorFlowModel):
             with tf.name_scope('dW'):
                 dW_positive = tf.matmul(self._X_batch, h0_means, transpose_a=True)
                 dW_negative = tf.matmul(v_states, h_means, transpose_a=True)
-                dW = (dW_positive - dW_negative) / N - self._L2 * self._W
+                dW = (dW_positive - dW_negative) / N - self._l2 * self._W
             with tf.name_scope('dvb'):
                 dvb = tf.reduce_mean(self._X_batch - v_states, axis=0) # == sum / N
             with tf.name_scope('dhb'):
@@ -417,8 +417,8 @@ class BaseRBM(TensorFlowModel):
             tf.add_to_collection('train_op', train_op)
 
         # compute metrics
-        with tf.name_scope('L2_loss'):
-            l2_loss = self._L2 * tf.nn.l2_loss(self._W)
+        with tf.name_scope('l2_loss'):
+            l2_loss = self._l2 * tf.nn.l2_loss(self._W)
             tf.add_to_collection('l2_loss', l2_loss)
 
         with tf.name_scope('mean_squared_recon_error'):

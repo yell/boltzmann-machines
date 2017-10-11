@@ -114,7 +114,7 @@ def main():
                            momentum=np.geomspace(0.5, 0.9, 8),
                            max_epoch=args.epochs,
                            batch_size=args.batch_size,
-                           L2=args.l2,
+                           l2=args.l2,
                            sample_h_states=True,
                            sample_v_states=args.sample_v_states,
                            dropout=args.dropout,
