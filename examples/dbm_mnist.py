@@ -219,10 +219,9 @@ def main():
                   model_path=args.dbm_dirpath)
         dbm.fit(X_train, X_val)
 
-    R = dbm.transform(X)
-    print R.shape, R.min(), R.max(), R.mean(), R.sum()
-
-    # r_i = p(h_{L-1}|v=x_i)
+    # g_i = p(h_{L-1}|v=x_i)
+    G = dbm.transform(X)
+    print G.shape, G.min(), G.max(), G.mean(), G.sum()
 
     V = dbm.sample_v_particle(n_gibbs_steps=10)
     print V.shape, V.min(), V.max(), V.mean(), V.sum()

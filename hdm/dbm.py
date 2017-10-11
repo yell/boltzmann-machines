@@ -75,16 +75,13 @@ class DBM(TensorFlowModel):
         self.max_epoch = max_epoch
         self.batch_size = batch_size
         self.L2 = L2
-
         # It might be helpful to use constraints on the norms of
         # column of weight vectors instead of L2-regularization,
         # as is recommended in [3].
         self.max_norm = max_norm
 
         self.sample_v_states = sample_v_states
-        self.sample_h_states = sample_h_states
-        if self.sample_h_states is None:
-            self.sample_h_states = [True] * self.n_hiddens
+        self.sample_h_states = sample_h_states or [True] * self.n_hiddens
 
         self.train_metrics_every_iter = train_metrics_every_iter
         self.val_metrics_every_epoch = val_metrics_every_epoch
