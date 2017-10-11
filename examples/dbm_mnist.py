@@ -41,7 +41,8 @@ def main():
     parser.add_argument('--epochs', type=int, default=[64, 140, 300], metavar='N', nargs='+',
                         help='number of epochs to train')
     parser.add_argument('--batch-size', type=int, default=[48], metavar='B', nargs='+',
-                        help='input batch size for training')
+                        help='input batch size for training, `--n-train` and `--n-val`'+\
+                             'must be divisible by this number')
     parser.add_argument('--increase-n-gibbs-steps-every', type=int, default=20, metavar='I',
                         help='increase number of Gibbs steps every specified number of epochs for RBM #2')
 

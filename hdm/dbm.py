@@ -170,7 +170,7 @@ class DBM(TensorFlowModel):
             self._batch_size = tf.constant(self.batch_size, dtype=tf.int32, name='batch_size')
             self._L2 = tf.constant(self.L2, dtype=self._tf_dtype, name='L2_coef')
             self._max_norm = tf.constant(self.max_norm, dtype=self._tf_dtype, name='max_norm_coef')
-            self._N = tf.cast(self._n_particles, dtype=self._tf_dtype, name='N')
+            self._N = tf.cast(self._batch_size, dtype=self._tf_dtype, name='N')
             self._M = tf.cast(self._n_particles, dtype=self._tf_dtype, name='M')
 
     def _make_placeholders(self):
