@@ -5,7 +5,7 @@ python rbm_mnist.py --load ../models/rbm_mnist_final/ --mlp-no-init --mlp-save-p
 
 # 1k
 python rbm_mnist.py --load ../models/rbm_mnist_final/ --mlp-batch-size 32 --mlp-val-metric 'val_acc' --n-train 900 --n-val 100 --mlp-save-prefix '../data/rbm_900_100_' --mlp-lrm 0.01 1.
-rbm_mnist.py --load ../models/rbm_mnist_final/ --mlp-batch-size 32 --mlp-val-metric 'val_acc' --n-train 900 --n-val 100 --mlp-no-init --mlp-save-prefix '../data/rbm_900_100_no_init_' --mlp-lrm 1. 1.
+python rbm_mnist.py --load ../models/rbm_mnist_final/ --mlp-batch-size 32 --mlp-val-metric 'val_acc' --n-train 900 --n-val 100 --mlp-no-init --mlp-save-prefix '../data/rbm_900_100_no_init_' --mlp-lrm 1. 1.
 
 # 100
 python rbm_mnist.py --load ../models/rbm_mnist_final/ --mlp-batch-size 32 --mlp-val-metric 'val_loss' --mlp-epochs 1000 --n-train 90 --n-val 10 --mlp-save-prefix '../data/rbm_90_10_' --mlp-lrm 0.01 1.
