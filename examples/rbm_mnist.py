@@ -25,6 +25,7 @@ from hdm.rbm import BernoulliRBM, logit_mean
 from hdm.utils import (RNG, Stopwatch,
                        one_hot, one_hot_decision_function, unhot)
 from hdm.utils.dataset import load_mnist
+from hdm.utils.optimizers import MultiAdam
 
 
 def main():
@@ -45,7 +46,7 @@ def main():
     parser.add_argument('--n-gibbs-steps', type=int, default=1, metavar='N',
                         help='number of Gibbs updates per iteration')
     parser.add_argument('--lr', type=float, default=0.05, metavar='LR', nargs='+',
-                        help='learning rate(s)')
+                        help='learning rate or sequence of such (per epoch)')
     parser.add_argument('--epochs', type=int, default=100, metavar='N',
                         help='number of epochs to train')
     parser.add_argument('--batch-size', type=int, default=10, metavar='N',
@@ -73,6 +74,8 @@ def main():
                         help='if enabled, use random initialization for MLP')
     parser.add_argument('--mlp-l2', type=float, default=1e-5, metavar='L2',
                         help='L2 weight decay coefficient for MLP')
+    parser.add_argument('--mlp-lrm', type=float, default=(0.01, 1.), metavar='LRM', nargs='+',
+                        help='learning rate multipliers of 1e-3 for MLP')
     parser.add_argument('--mlp-epochs', type=int, default=1000, metavar='N',
                         help='number of epochs to train MLP')
     parser.add_argument('--mlp-save-prefix', type=str, default='../data/rbm_', metavar='PREFIX',
@@ -148,7 +151,9 @@ def main():
         Activation('softmax'),
     ])
 
-    mlp.compile(optimizer='adam',
+    mlp.compile(optimizer=MultiAdam(lr=0.001,
+                                    lr_multipliers={'dense_1': args.mlp_lrm[0],
+                                                    'dense_2': args.mlp_lrm[1]}),
                 loss='categorical_crossentropy',
                 metrics=['accuracy'])
 
@@ -158,9 +163,9 @@ def main():
 
     # train and evaluate classifier
     with Stopwatch(verbose=True) as s:
-        early_stopping = EarlyStopping(monitor='val_loss', patience=12, verbose=2)
+        early_stopping = EarlyStopping(monitor='val_loss', patience=20, verbose=2)
         reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, verbose=2,
-                                      patience=5, min_lr=1e-5)
+                                      patience=10, min_lr=1e-5)
         try:
             mlp.fit(X_train, one_hot(y_train, n_classes=10),
                     epochs=args.mlp_epochs, shuffle=False,
