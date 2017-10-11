@@ -3,7 +3,7 @@ import tensorflow as tf
 from tensorflow.core.framework import summary_pb2
 
 from base import TensorFlowModel, run_in_tf_session
-from utils import (batch_iter, epoch_iter,
+from utils import (make_list_from, batch_iter, epoch_iter,
                    write_during_training)
 
 
@@ -59,19 +59,16 @@ class DBM(TensorFlowModel):
         self.n_hiddens = None
         self.load_rbms(rbms)
 
+        self.n_particles = n_particles
         self._v_particle_init = v_particle_init
         self._h_particles_init = h_particles_init
 
-        self.n_particles = n_particles
-        self.n_gibbs_steps = list(n_gibbs_steps) if hasattr(n_gibbs_steps, '__iter__') else \
-                             [n_gibbs_steps]
+        self.n_gibbs_steps = make_list_from(n_gibbs_steps)
         self.max_mf_updates = max_mf_updates
         self.mf_tol = mf_tol
-        self.learning_rate = list(learning_rate) if hasattr(learning_rate, '__iter__') else\
-                             [learning_rate]
-        self.momentum = list(momentum) if hasattr(momentum, '__iter__') else\
-                        [momentum]
 
+        self.learning_rate = make_list_from(learning_rate)
+        self.momentum = make_list_from(momentum)
         self.max_epoch = max_epoch
         self.batch_size = batch_size
         self.L2 = L2
@@ -137,6 +134,7 @@ class DBM(TensorFlowModel):
 
             # create some shortcuts
             self.n_layers = len(self._rbms)
+            # TODO: remove this assertion
             assert self.n_layers >= 2
             self.n_visible = self._rbms[0].n_visible
             self.n_hiddens = [rbm.n_hidden for rbm in self._rbms]

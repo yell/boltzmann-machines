@@ -46,6 +46,9 @@ def epoch_iter(start_epoch, max_epoch, verbose=False):
     for epoch in gen:
         yield epoch
 
+def make_list_from(x):
+    return list(x) if hasattr(x, '__iter__') else [x]
+
 def one_hot(y, n_classes=None):
     """Convert `y` to one-hot encoding.
 

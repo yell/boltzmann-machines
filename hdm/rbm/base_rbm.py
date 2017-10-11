@@ -3,7 +3,7 @@ import tensorflow as tf
 from tensorflow.core.framework import summary_pb2
 
 from hdm.base import TensorFlowModel, run_in_tf_session
-from hdm.utils import (batch_iter, epoch_iter,
+from hdm.utils import (make_list_from, batch_iter, epoch_iter,
                        write_during_training)
 from hdm.utils.testing import assert_len, assert_shape
 
@@ -127,11 +127,8 @@ class BaseRBM(TensorFlowModel):
         self._dhb_init = None
 
         self.n_gibbs_steps = n_gibbs_steps
-        self.learning_rate = list(learning_rate) if hasattr(learning_rate, '__iter__') else\
-                             [learning_rate]
-        self.momentum = list(momentum) if hasattr(momentum, '__iter__') else\
-                        [momentum]
-
+        self.learning_rate = make_list_from(learning_rate)
+        self.momentum = make_list_from(momentum)
         self.max_epoch = max_epoch
         self.batch_size = batch_size
         self.l2 = l2
