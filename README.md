@@ -1,6 +1,6 @@
 # Hierarchical-Deep Models
 
-## Features
+## Implemented
 ### Restricted Boltzmann Machine (RBM)
 * *k-step Contrastive Divergence*: *variable* learning rate and momentum, L2 weight decay, maxnorm, ***TODO***: rest, ***TODO***: dropout, ***TODO***: sparsity targets
 * *different types of RBMs*: Bernoulli, Multinomial, Gaussian;
@@ -19,11 +19,12 @@
 ### Stick-breaking Variational Autoencoder (SB-VAE)
 ***TODO***
 
-### General
+## Features
 * easy to use `sklearn`-like interface
 * serialization (tf saver + python class hyperparams + RNG state), easy to save and to load
 * reproducible (random seeds)
 * all models support both `float32` and `float64` precision
+* choose metrics to display during learning
 * easy to resume training; note that changing parameters other than placeholders or python-level parameters (such as `batch_size`, `learning_rate`, `momentum`, `sample_v_states` etc.) between `fit` calls have no effect as this would require altering the computation graph, which is not yet supported; **however**, one can build model with new desired TF graph, and initialize weights and biases from old model by using `init_from` method
 * *visualization*: python routines to display images, learned filters, confusion matrices etc.
 
