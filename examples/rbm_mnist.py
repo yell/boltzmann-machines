@@ -23,6 +23,7 @@ if K.backend() == 'tensorflow':
 
 from keras import regularizers
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau
+from keras.initializers import glorot_uniform
 from keras.models import Sequential
 from keras.layers import Dense, Activation
 from sklearn.metrics import accuracy_score
@@ -152,11 +153,13 @@ def main():
     mlp = Sequential([
         Dense(args.n_hidden, input_shape=(784,),
               kernel_regularizer=regularizers.l2(args.mlp_l2),
+              kernel_initializer=glorot_uniform(1111),
               **first_layer_params),
         Activation('sigmoid'),
-        Dense(10),
+        Dense(10, kernel_initializer=glorot_uniform(2222)),
         Activation('softmax'),
     ])
+
 
     mlp.compile(optimizer=MultiAdam(lr=0.001,
                                     lr_multipliers={'dense_1': args.mlp_lrm[0],
