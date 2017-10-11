@@ -17,9 +17,9 @@ class DBM(TensorFlowModel):
         to the most hidden ones.
     n_particles : positive int
         Number of persistent Markov chains (i.e., "fantasy particles").
-    n_particles_updates_per_iter : positive int
+    n_gibbs_steps : positive int
         Number of Gibbs steps for PCD.
-    max_mf_updates_per_iter : positive int
+    max_mf_updates : positive int
         Maximum number of mean-field updates per weight update.
     mf_tol : positive float
         Mean-field tolerance.
@@ -28,7 +28,8 @@ class DBM(TensorFlowModel):
     max_epoch : positive int
         Train till this epoch.
     batch_size : positive int
-        Input batch size for training.
+        Input batch size for training. Total number of training examples should
+        be divisible by this number.
     l2 : non-negative float
         L2 weight decay coefficient.
     max_norm : positive float
@@ -62,10 +63,10 @@ class DBM(TensorFlowModel):
         self._h_particles_init = h_particles_init
 
         self.n_particles = n_particles
-        self.n_gibbs_steps = n_gibbs_steps
+        self.n_gibbs_steps = list(n_gibbs_steps) if hasattr(n_gibbs_steps, '__iter__') else \
+                             [n_gibbs_steps]
         self.max_mf_updates = max_mf_updates
         self.mf_tol = mf_tol
-
         self.learning_rate = list(learning_rate) if hasattr(learning_rate, '__iter__') else\
                              [learning_rate]
         self.momentum = list(momentum) if hasattr(momentum, '__iter__') else\
@@ -96,8 +97,7 @@ class DBM(TensorFlowModel):
 
         # tf constants
         self._n_particles = None
-        self._n_particles_updates_per_iter = None
-        self._max_mf_updates_per_iter = None
+        self._max_mf_updates = None
         self._mf_tol = None
         self._batch_size = None
         self._L2 = None
@@ -134,10 +134,6 @@ class DBM(TensorFlowModel):
         self._n_mf_updates = None
         self._sample_v_particle = None
 
-    def _apply_max_norm(self, T):
-        n = tf.norm(T, axis=0)
-        return T * tf.minimum(self._max_norm, n) / tf.maximum(n, 1e-8)
-
     def load_rbms(self, rbms):
         self._rbms = rbms
         if self._rbms is not None:
@@ -162,21 +158,20 @@ class DBM(TensorFlowModel):
 
             # ... and update their dtypes
             self._v_layer.tf_dtype = self._tf_dtype
-            for h in self._h_layers: h.tf_dtype = self._tf_dtype
+            for h in self._h_layers:
+                h.tf_dtype = self._tf_dtype
 
     def _make_constants(self):
         with tf.name_scope('constants'):
             self._n_particles = tf.constant(self.n_particles, dtype=tf.int32, name='n_particles')
-            self._n_particles_updates_per_iter = \
-                tf.constant(self.n_gibbs_steps, dtype=tf.int32, name='n_particles_updates_per_iter')
-            self._max_mf_updates_per_iter = tf.constant(self.max_mf_updates,
-                                                        dtype=tf.int32, name='max_mf_updates_per_iter')
+            self._max_mf_updates = tf.constant(self.max_mf_updates,
+                                                        dtype=tf.int32, name='max_mf_updates')
             self._mf_tol = tf.constant(self.mf_tol, dtype=self._tf_dtype, name='mf_tol')
             self._batch_size = tf.constant(self.batch_size, dtype=tf.int32, name='batch_size')
             self._L2 = tf.constant(self.L2, dtype=self._tf_dtype, name='L2_coef')
             self._max_norm = tf.constant(self.max_norm, dtype=self._tf_dtype, name='max_norm_coef')
-            self._N = tf.cast(self._batch_size, dtype=self._tf_dtype)
-            self._M = tf.cast(self._n_particles, dtype=self._tf_dtype)
+            self._N = tf.cast(self._n_particles, dtype=self._tf_dtype, name='N')
+            self._M = tf.cast(self._n_particles, dtype=self._tf_dtype, name='M')
 
     def _make_placeholders(self):
         with tf.name_scope('input_data'):
@@ -342,7 +337,7 @@ class DBM(TensorFlowModel):
             with tf.control_dependencies(init_ops):  # make sure mu's are initialized
                 n_mf_updates, _, _, _, mu, _ = tf.while_loop(cond=mf_cond, body=mf_body,
                                                              loop_vars=[tf.constant(0),
-                                                                        self._max_mf_updates_per_iter,
+                                                                        self._max_mf_updates,
                                                                         self._mf_tol,
                                                                         self._X_batch,
                                                                         self._mu, self._mu_new],
@@ -354,7 +349,8 @@ class DBM(TensorFlowModel):
         """Update fantasy particles by running Gibbs sampler
         for specified number of steps.
         """
-        if n_steps is None: n_steps = self._n_particles_updates_per_iter
+        if n_steps is None:
+            n_steps = self._n_gibbs_steps
         with tf.name_scope('gibbs_chain'):
             def sa_cond(step, max_step, v, H, v_new, H_new):
                 return step < max_step
@@ -362,7 +358,7 @@ class DBM(TensorFlowModel):
             def sa_body(step, max_step, v, H, v_new, H_new):
                 v, H, v_new, H_new = self._make_gibbs_step(v, H, v_new, H_new,
                                                            update_v=True, sample=True)
-                return step + 1, max_step, v_new, H_new, v, H  # swap particles
+                return step + 1, max_step, v_new, H_new, v, H # swap particles
 
             _, _, v, H, v_new, H_new = tf.while_loop(cond=sa_cond, body=sa_body,
                                                      loop_vars=[tf.constant(0),
@@ -375,6 +371,10 @@ class DBM(TensorFlowModel):
             H_updates = [ self._H[i].assign(H[i]) for i in xrange(self.n_layers) ]
             H_new_updates = [ self._H_new[i].assign(H_new[i]) for i in xrange(self.n_layers) ]
         return v_update, H_updates, v_new_update, H_new_updates
+
+    def _apply_max_norm(self, T):
+        n = tf.norm(T, axis=0)
+        return T * tf.minimum(self._max_norm, n) / tf.maximum(n, 1e-8)
 
     def _make_train_op(self):
         # run mean-field updates for current mini-batch
@@ -390,7 +390,7 @@ class DBM(TensorFlowModel):
         v_update, H_updates, v_new_update, H_new_updates = self._make_particles_update()
 
         with tf.control_dependencies([v_update, v_new_update] + H_updates + H_new_updates +\
-                                             [self._mu[i].assign(mu[i]) for i in xrange(self.n_layers)]):
+                                     [self._mu[i].assign(mu[i]) for i in xrange(self.n_layers)]):
             # compute gradients estimates (= positive - negative associations)
             with tf.name_scope('grads_estimates'):
                 # visible bias
@@ -489,8 +489,8 @@ class DBM(TensorFlowModel):
         d['momentum'] = self.momentum[min(self.epoch, len(self.momentum) - 1)]
         if X_batch is not None:
             d['X_batch'] = X_batch
-        if n_gibbs_steps is not None:
-            d['n_gibbs_steps'] = n_gibbs_steps
+        d['n_gibbs_steps'] = self.n_gibbs_steps[min(self.epoch, len(self.n_gibbs_steps) - 1)] \
+                             if n_gibbs_steps is None else n_gibbs_steps
         # prepend name of the scope, and append ':0'
         feed_dict = {}
         for k, v in d.items():
@@ -563,7 +563,7 @@ class DBM(TensorFlowModel):
             if self.save_after_each_epoch:
                 self._save_model(global_step=self.epoch)
 
-    @run_in_tf_session
+    @run_in_tf_session()
     def transform(self, X):
         """Compute hidden units' (from last layer) activation probabilities."""
         self._transform_op = tf.get_collection('transform_op')[0]
@@ -575,7 +575,7 @@ class DBM(TensorFlowModel):
             start += self.batch_size
         return Q
 
-    @run_in_tf_session
+    @run_in_tf_session(update_seed=True)
     def sample_v_particle(self, n_gibbs_steps=0, save_model=False):
         if not self.called_fit:
             raise RuntimeError('`fit` must be called before calling `sample_v_particle`')
