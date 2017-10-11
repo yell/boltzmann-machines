@@ -30,9 +30,9 @@ def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     # data-related
-    parser.add_argument('--n-train', type=int, default=59000, metavar='N',
+    parser.add_argument('--n-train', type=int, default=57600, metavar='N',
                         help='number of training examples')
-    parser.add_argument('--n-val', type=int, default=1000, metavar='N',
+    parser.add_argument('--n-val', type=int, default=2400, metavar='N',
                         help='number of validation examples')
 
     # common
@@ -220,6 +220,8 @@ def main():
 
     R = dbm.transform(X)
     print R.shape, R.min(), R.max(), R.mean(), R.sum()
+
+    # r_i = p(h_{L-1}|v=x_i)
 
     V = dbm.sample_v_particle(n_gibbs_steps=10)
     print V.shape, V.min(), V.max(), V.mean(), V.sum()
