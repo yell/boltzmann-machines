@@ -132,8 +132,6 @@ class DBM(TensorFlowModel):
 
             # create some shortcuts
             self.n_layers = len(self._rbms)
-            # TODO: remove this assertion + update `_make_gibbs_step`
-            assert self.n_layers >= 2
             self.n_visible = self._rbms[0].n_visible
             self.n_hiddens = [rbm.n_hidden for rbm in self._rbms]
 
@@ -337,14 +335,22 @@ class DBM(TensorFlowModel):
                 return step + 1, max_step, tol, X_batch, mu_new, mu  # swap mu and mu_new
 
             with tf.control_dependencies(init_ops):  # make sure mu's are initialized
-                n_mf_updates, _, _, _, mu, _ = tf.while_loop(cond=mf_cond, body=mf_body,
-                                                             loop_vars=[tf.constant(0),
-                                                                        self._max_mf_updates,
-                                                                        self._mf_tol,
-                                                                        self._X_batch,
-                                                                        self._mu, self._mu_new],
-                                                             back_prop=False,
-                                                             name='mean_field_updates')
+                i = tf.constant(0)
+                n_mf_updates, _, _, _, mu, _ = \
+                    tf.while_loop(cond=mf_cond, body=mf_body,
+                                  loop_vars=[i,
+                                             self._max_mf_updates,
+                                             self._mf_tol,
+                                             self._X_batch,
+                                             self._mu, self._mu_new],
+                                  shape_invariants=[i.get_shape(),
+                                                    self._max_mf_updates.get_shape(),
+                                                    self._mf_tol.get_shape(),
+                                                    self._X_batch.get_shape(),
+                                                    [tf.TensorShape([None, n]) for n in self.n_hiddens],
+                                                    [tf.TensorShape([None, n]) for n in self.n_hiddens]],
+                                  back_prop=False,
+                                  name='mean_field_updates')
                 mu_updates = [ self._mu[i].assign(mu[i]) for i in xrange(self.n_layers) ]
             return n_mf_updates, mu_updates
 
