@@ -38,7 +38,7 @@ def main():
     # common
     parser.add_argument('--n-hiddens', type=int, default=[512, 1024], metavar='N', nargs='+',
                         help='numbers of hidden units')
-    parser.add_argument('--epochs', type=int, default=[64, 140, 300], metavar='N', nargs='+',
+    parser.add_argument('--epochs', type=int, default=[80, 140, 500], metavar='N', nargs='+',
                         help='number of epochs to train')
     parser.add_argument('--batch-size', type=int, default=[48, 48, 100], metavar='B', nargs='+',
                         help='input batch size for training, `--n-train` and `--n-val`'+\
@@ -64,11 +64,11 @@ def main():
     # DBM-related
     parser.add_argument('--n-particles', type=int, default=100, metavar='M',
                         help='number of persistent Markov chains')
-    parser.add_argument('--n-gibbs-steps', type=int, default=1, metavar='N',
+    parser.add_argument('--n-gibbs-steps', type=int, default=5, metavar='N',
                         help='number of Gibbs steps for PCD')
     parser.add_argument('--max-mf-updates', type=int, default=50, metavar='N',
                         help='maximum number of mean-field updates per weight update')
-    parser.add_argument('--mf-tol', type=float, default=1e-8, metavar='TOL',
+    parser.add_argument('--mf-tol', type=float, default=1e-7, metavar='TOL',
                         help='mean-field tolerance')
     parser.add_argument('--lr', type=float, default=5e-4, metavar='LR',
                         help='initial learning rate')
@@ -157,7 +157,7 @@ def main():
             ),
             verbose=True,
             display_filters=False,
-            random_seed=9000,
+            random_seed=1111,
             tf_dtype='float32',
             tf_saver_params=dict(max_to_keep=1),
             model_path=args.rbm2_dirpath
@@ -211,7 +211,7 @@ def main():
                   sample_h_states=(True, True),
                   train_metrics_every_iter=500,
                   val_metrics_every_epoch=1,
-                  random_seed=1337,
+                  random_seed=2222,
                   verbose=True,
                   tf_dtype='float32',
                   save_after_each_epoch=True,

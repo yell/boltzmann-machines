@@ -48,7 +48,7 @@ class DBM(EnergyBasedModel):
     """
     def __init__(self, rbms=None,
                  n_particles=100, v_particle_init=None, h_particles_init=None,
-                 n_gibbs_steps=1, max_mf_updates=10, mf_tol=1e-7,
+                 n_gibbs_steps=5, max_mf_updates=10, mf_tol=1e-7,
                  learning_rate=0.0005, momentum=0.9, max_epoch=10, batch_size=100,
                  L2=0., max_norm=np.inf,
                  sample_v_states=True, sample_h_states=None,
