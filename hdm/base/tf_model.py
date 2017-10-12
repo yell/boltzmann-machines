@@ -171,8 +171,9 @@ class TensorFlowModel(BaseModel):
 
     @run_in_tf_session(check_initialized=False)
     def init(self):
-        self.initialized = True
-        self._save_model()
+        if not self.initialized:
+            self.initialized = True
+            self._save_model()
         return self
 
     @run_in_tf_session(check_initialized=False, update_seed=True)
