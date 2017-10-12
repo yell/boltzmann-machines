@@ -575,8 +575,6 @@ class DBM(TensorFlowModel):
 
     @run_in_tf_session(update_seed=True)
     def sample_v_particle(self, n_gibbs_steps=0, save_model=False):
-        if not self.called_fit:
-            raise RuntimeError('`fit` must be called before calling `sample_v_particle`')
         self._sample_v_particle = tf.get_collection('sample_v_particle')[0]
         v = self._tf_session.run(self._sample_v_particle,
                                  feed_dict=self._make_tf_feed_dict(n_gibbs_steps=n_gibbs_steps))

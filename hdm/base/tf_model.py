@@ -10,7 +10,7 @@ def is_weight_name(name):
     return not name.startswith('_') and name.endswith('_')
 
 
-def run_in_tf_session(update_seed=False):
+def run_in_tf_session(check_fit=True, update_seed=False):
     """Decorator function that takes care to load appropriate graph/session,
     depending on whether model can be loaded from disk or is just created,
     and to execute `f` inside this session.
@@ -29,6 +29,8 @@ def run_in_tf_session(update_seed=False):
                         model._tf_saver.restore(model._tf_session, model._model_filepath)
                         model._init_tf_writers()
                         res = f(model, *args, **kwargs)
+            elif check_fit:
+                raise RuntimeError('`fit` must be called before calling `{0}`'.format(f.__name__))
             else:
                 with model._tf_graph.as_default():
                     with tf.Session(config=model._tf_session_config) as model._tf_session:
@@ -167,7 +169,7 @@ class TensorFlowModel(BaseModel):
         """Class-specific `fit` routine."""
         raise NotImplementedError('`fit` is not implemented')
 
-    @run_in_tf_session(update_seed=True)
+    @run_in_tf_session(check_fit=False, update_seed=True)
     def fit(self, X, X_val=None):
         """Fit the model according to the given training data."""
         self.called_fit = True
