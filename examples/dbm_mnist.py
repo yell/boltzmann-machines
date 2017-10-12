@@ -209,7 +209,7 @@ def main():
                   max_norm=args.max_norm,
                   sample_v_states=True,
                   sample_h_states=(True, True),
-                  train_metrics_every_iter=100,
+                  train_metrics_every_iter=500,
                   val_metrics_every_epoch=1,
                   random_seed=1337,
                   verbose=True,
