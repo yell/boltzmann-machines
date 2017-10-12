@@ -16,7 +16,7 @@ class DBM(TensorFlowModel):
         Array of already pretrained RBMs going from visible units
         to the most hidden ones.
     n_particles : positive int
-        Number of persistent Markov chains (i.e., "fantasy particles").
+        Number of "persistent" Markov chains (i.e., "negative" or "fantasy" "particles").
     n_gibbs_steps : positive int or iterable
         Number of Gibbs steps for PCD. Values are updated after each epoch.
     max_mf_updates : positive int
@@ -247,8 +247,8 @@ class DBM(TensorFlowModel):
                     self._mu.append(mu)
                     self._mu_new.append(mu_new)
 
-        # initialize fantasy particles
-        with tf.name_scope('fantasy_particles'):
+        # initialize negative particles
+        with tf.name_scope('negative_particles'):
             if self._v_particle_init is not None:
                 t = tf.constant(self._v_particle_init, dtype=self._tf_dtype, name='v_init')
             else:
@@ -345,7 +345,7 @@ class DBM(TensorFlowModel):
             return n_mf_updates, mu
 
     def _make_particles_update(self, n_steps=None):
-        """Update fantasy particles by running Gibbs sampler
+        """Update negative particles by running Gibbs sampler
         for specified number of steps.
         """
         if n_steps is None:
@@ -384,7 +384,7 @@ class DBM(TensorFlowModel):
             transform_op = tf.identity(mu[-1])
             tf.add_to_collection('transform_op', transform_op)
 
-        # update fantasy particles by running Gibbs sampler
+        # update negative particles by running Gibbs sampler
         # for specified number of steps
         v_update, H_updates, v_new_update, H_new_updates = self._make_particles_update()
 
