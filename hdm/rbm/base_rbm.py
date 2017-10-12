@@ -2,16 +2,17 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.core.framework import summary_pb2
 
-from hdm.base import TensorFlowModel, run_in_tf_session
+from hdm.base import run_in_tf_session
+from hdm.ebm import EnergyBasedModel
 from hdm.utils import (make_list_from, batch_iter, epoch_iter,
                        write_during_training)
 from hdm.utils.testing import assert_len, assert_shape
 
 
-class BaseRBM(TensorFlowModel):
+class BaseRBM(EnergyBasedModel):
     """
-    A generic implementation of RBM with k-step
-    Contrastive Divergence (CD-k) learning algorithm.
+    A generic implementation of Restricted Boltzmann Machine
+    with k-step Contrastive Divergence (CD-k) learning algorithm.
 
     Parameters
     ----------
@@ -331,10 +332,6 @@ class BaseRBM(TensorFlowModel):
         with tf.name_scope('sample_v_given_h'):
             v_samples = self._v_layer.sample(means=v_means)
         return v_samples
-
-    def _free_energy(self, v):
-        """Compute (average) free energy of a visible vectors `v`."""
-        raise NotImplementedError('`free_energy` is not implemented')
 
     def _make_train_op(self):
         # apply dropout if necessary

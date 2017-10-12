@@ -2,12 +2,13 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.core.framework import summary_pb2
 
-from base import TensorFlowModel, run_in_tf_session
+from base import run_in_tf_session
+from ebm import EnergyBasedModel
 from utils import (make_list_from, batch_iter, epoch_iter,
                    write_during_training)
 
 
-class DBM(TensorFlowModel):
+class DBM(EnergyBasedModel):
     """Deep Boltzmann Machine.
 
     Parameters
