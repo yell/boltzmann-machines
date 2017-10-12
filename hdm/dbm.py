@@ -561,6 +561,13 @@ class DBM(TensorFlowModel):
             if self.save_after_each_epoch:
                 self._save_model(global_step=self.epoch)
 
+    def _serialize(self, params):
+        for k, v in params.items():
+            if isinstance(v, np.ndarray):
+                # noinspection PyUnresolvedReferences
+                params[k] = v.tolist()
+        return params
+
     @run_in_tf_session()
     def transform(self, X):
         """Compute hidden units' (from last layer) activation probabilities."""
@@ -581,10 +588,3 @@ class DBM(TensorFlowModel):
         if save_model:
             self._save_model()
         return v
-
-    def _serialize(self, params):
-        for k, v in params.items():
-            if isinstance(v, np.ndarray):
-                # noinspection PyUnresolvedReferences
-                params[k] = v.tolist()
-        return params

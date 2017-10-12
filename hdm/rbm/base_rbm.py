@@ -587,6 +587,13 @@ class BaseRBM(TensorFlowModel):
             if self.save_after_each_epoch:
                 self._save_model(global_step=self.epoch)
 
+    def _serialize(self, params):
+        for k, v in params.items():
+            if isinstance(v, np.ndarray):
+                # noinspection PyUnresolvedReferences
+                params[k] = v.tolist()
+        return params
+
     def init_from(self, rbm):
         if type(self) != type(rbm):
             raise ValueError('an attempt to initialize `{0}` from `{1}`'.\
@@ -616,10 +623,3 @@ class BaseRBM(TensorFlowModel):
             Z[start:(start + self.batch_size)] = Z_b
             start += self.batch_size
         return Z
-
-    def _serialize(self, params):
-        for k, v in params.items():
-            if isinstance(v, np.ndarray):
-                # noinspection PyUnresolvedReferences
-                params[k] = v.tolist()
-        return params
