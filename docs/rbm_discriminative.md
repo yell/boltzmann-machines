@@ -14,8 +14,4 @@ python rbm_mnist.py --load ../models/rbm_mnist_final/ --mlp-batch-size 32 --mlp-
 # 100
 python rbm_mnist.py --load ../models/rbm_mnist_final/ --mlp-batch-size 32 --mlp-val-metric 'val_loss' --mlp-epochs 1000 --n-train 90 --n-val 10 --mlp-save-prefix '../data/rbm_90_10_' --mlp-lrm 0.01 1.
 python rbm_mnist.py --load ../models/rbm_mnist_final/ --mlp-batch-size 32 --mlp-val-metric 'val_loss' --mlp-epochs 1000 --n-train 90 --n-val 10 --mlp-no-init --mlp-save-prefix '../data/rbm_90_10_no_init_' --mlp-lrm 1. 1.
-
-# 15
-python rbm_mnist.py --load ../models/rbm_mnist_final/ --n-train 10 --n-val 5 --mlp-save-prefix '../data/rbm_10_5_' --mlp-lrm 0.1 20.
-python rbm_mnist.py --load ../models/rbm_mnist_final/ --n-train 10 --n-val 5 --mlp-no-init --mlp-save-prefix '../data/rbm_10_5_no_init_' --mlp-lrm 1. 1.
 ```
