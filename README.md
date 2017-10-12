@@ -42,10 +42,10 @@ Also, [one-shot learning idea]:
 
 | Number of labeled data pairs (train + val) | RBM + fine-tuning | random initialization |
 | :---: | :---: | :---: |
-| 60k (55k + 5k) | **98.67%** | **98.26%** |
-| 1k (900 + 100) | **93.52%** | **88.70%** |
-| 100 (90 + 10) | **81.37%** | **76.02%** |
-| 15 (10 + 5) | **32.51%** | **27.56%** |
+| 60k (55k + 5k) | 98.67% **(+0.41%)** | 98.26% |
+| 10k (9k + 1k) | 97.21% **(+2.48%)** | 94.73% |
+| 1k (900 + 100) | 93.52% **(+4.82%)** | 88.70% |
+| 100 (90 + 10) | 81.37% **(+5.35%)** | 76.02% |
 
 How to reproduce the last table see [here](docs/rbm_discriminative.md).
 
