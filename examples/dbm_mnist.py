@@ -30,9 +30,9 @@ def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     # data-related
-    parser.add_argument('--n-train', type=int, default=57600, metavar='N',
+    parser.add_argument('--n-train', type=int, default=59000, metavar='N',
                         help='number of training examples')
-    parser.add_argument('--n-val', type=int, default=2400, metavar='N',
+    parser.add_argument('--n-val', type=int, default=1000, metavar='N',
                         help='number of validation examples')
 
     # common
@@ -40,7 +40,7 @@ def main():
                         help='numbers of hidden units')
     parser.add_argument('--epochs', type=int, default=[64, 140, 300], metavar='N', nargs='+',
                         help='number of epochs to train')
-    parser.add_argument('--batch-size', type=int, default=[48], metavar='B', nargs='+',
+    parser.add_argument('--batch-size', type=int, default=[48, 48, 100], metavar='B', nargs='+',
                         help='input batch size for training, `--n-train` and `--n-val`'+\
                              'must be divisible by this number')
     parser.add_argument('--increase-n-gibbs-steps-every', type=int, default=20, metavar='I',
@@ -124,8 +124,8 @@ def main():
 
     # freeze RBM #1 and extract features Z = P(h|v=X)
     print "\nExtracting features from RBM #1 ...\n\n"
-    # Z = rbm1.transform(X)
-    # print Z.shape
+    Z = rbm1.transform(X)
+    print Z.shape
 
     # pre-train RBM #2
     if args.load_rbm2:
@@ -183,8 +183,8 @@ def main():
 
     # freeze RBM #2 and extract features Q = P(h|v=Z)
     print "\nExtracting features from RBM #1 ...\n\n"
-    # Q = rbm2.transform(Z)
-    # print Q.shape
+    Q = rbm2.transform(Z)
+    print Q.shape
 
     # jointly train DBM
     if args.load_dbm:
@@ -196,8 +196,8 @@ def main():
         dbm = DBM(rbms=[rbm1, rbm2],
                   n_particles=args.n_particles,
                   v_particle_init=X[:args.n_particles].copy(),
-                  # h_particles_init=(Z[:args.n_particles].copy(),
-                  #                   Q[:args.n_particles].copy()),
+                  h_particles_init=(Z[:args.n_particles].copy(),
+                                    Q[:args.n_particles].copy()),
                   n_gibbs_steps=args.n_gibbs_steps,
                   max_mf_updates=args.max_mf_updates,
                   mf_tol=args.mf_tol,
