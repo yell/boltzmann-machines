@@ -233,7 +233,6 @@ class BaseRBM(TensorFlowModel):
             self._propup_multiplier = tf.identity(tf.add(t1, t), name='propup_multiplier')
             t2 = tf.cast(self._dbm_last, dtype=self._tf_dtype)
             self._propdown_multiplier = tf.identity(tf.add(t2, t), name='propdown_multiplier')
-            
 
     def _make_placeholders(self):
         with tf.name_scope('input_data'):

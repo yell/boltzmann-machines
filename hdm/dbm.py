@@ -127,31 +127,32 @@ class DBM(TensorFlowModel):
         self._sample_v_particle = None
 
     def load_rbms(self, rbms):
-        self._rbms = rbms
+        if rbms is not None:
+            self._rbms = rbms
 
-        # create some shortcuts
-        self.n_layers = len(self._rbms)
-        # TODO: remove this assertion
-        assert self.n_layers >= 2
-        self.n_visible = self._rbms[0].n_visible
-        self.n_hiddens = [rbm.n_hidden for rbm in self._rbms]
+            # create some shortcuts
+            self.n_layers = len(self._rbms)
+            # TODO: remove this assertion + update `_make_gibbs_step`
+            assert self.n_layers >= 2
+            self.n_visible = self._rbms[0].n_visible
+            self.n_hiddens = [rbm.n_hidden for rbm in self._rbms]
 
-        # extract weights and biases
-        self._W_init, self._vb_init, self._hb_init = [], [], []
-        for i in xrange(self.n_layers):
-            weights = self._rbms[i].get_tf_params(scope='weights')
-            self._W_init.append(weights['W'])
-            self._vb_init.append(weights['vb'])
-            self._hb_init.append(weights['hb'])
+            # extract weights and biases
+            self._W_init, self._vb_init, self._hb_init = [], [], []
+            for i in xrange(self.n_layers):
+                weights = self._rbms[i].get_tf_params(scope='weights')
+                self._W_init.append(weights['W'])
+                self._vb_init.append(weights['vb'])
+                self._hb_init.append(weights['hb'])
 
-        # collect resp. layers of units
-        self._v_layer = self._rbms[0]._v_layer
-        self._h_layers = [rbm._h_layer for rbm in self._rbms]
+            # collect resp. layers of units
+            self._v_layer = self._rbms[0]._v_layer
+            self._h_layers = [rbm._h_layer for rbm in self._rbms]
 
-        # ... and update their dtypes
-        self._v_layer.tf_dtype = self._tf_dtype
-        for h in self._h_layers:
-            h.tf_dtype = self._tf_dtype
+            # ... and update their dtypes
+            self._v_layer.tf_dtype = self._tf_dtype
+            for h in self._h_layers:
+                h.tf_dtype = self._tf_dtype
 
     def _make_constants(self):
         with tf.name_scope('constants'):
@@ -301,7 +302,7 @@ class DBM(TensorFlowModel):
                 with tf.name_scope('sample_h{0}_hat_given_h{1}_hat'.format(self.n_layers - 1, self.n_layers - 2)):
                     H_new[-1] = self._h_layers[-1].sample(means=H_new[-1])
 
-            # update visible layer
+            # update visible layer if needed
             if update_v:
                 with tf.name_scope('means_v_hat_given_h0_hat'):
                     T = tf.matmul(a=H_new[0], b=self._W[0], transpose_b=True)
