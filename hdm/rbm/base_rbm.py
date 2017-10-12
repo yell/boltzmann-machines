@@ -275,7 +275,7 @@ class BaseRBM(TensorFlowModel):
                     W_display = tf.transpose(W_display, [2, 0, 1, 3])
                     tf.summary.image('W_filters', W_display, max_outputs=self.display_filters)
 
-        with tf.name_scope('weights_updates'):
+        with tf.name_scope('weights_increments'):
             dW_init = tf.constant(self._dW_init, dtype=self._tf_dtype) if self._dW_init is not None else\
                       tf.zeros([self._n_visible, self._n_hidden], dtype=self._tf_dtype)
             dvb_init = tf.constant(self._dvb_init, dtype=self._tf_dtype) if self._dvb_init is not None else \
@@ -596,10 +596,10 @@ class BaseRBM(TensorFlowModel):
         self.vb_init = weights['vb']
         self.hb_init = weights['hb']
 
-        weights_updates = rbm.get_tf_params(scope='weights_updates')
-        self._dW_init = weights_updates['dW']
-        self._dvb_init = weights_updates['dvb']
-        self._dhb_init = weights_updates['dhb']
+        weights_increments = rbm.get_tf_params(scope='weights_increments')
+        self._dW_init = weights_increments['dW']
+        self._dvb_init = weights_increments['dvb']
+        self._dhb_init = weights_increments['dhb']
 
         self.iter = rbm.iter
         self.epoch = rbm.epoch

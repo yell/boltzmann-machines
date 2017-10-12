@@ -158,7 +158,7 @@ class DBM(TensorFlowModel):
         with tf.name_scope('constants'):
             self._n_particles = tf.constant(self.n_particles, dtype=tf.int32, name='n_particles')
             self._max_mf_updates = tf.constant(self.max_mf_updates,
-                                                        dtype=tf.int32, name='max_mf_updates')
+                                               dtype=tf.int32, name='max_mf_updates')
             self._mf_tol = tf.constant(self.mf_tol, dtype=self._tf_dtype, name='mf_tol')
             self._batch_size = tf.constant(self.batch_size, dtype=tf.int32, name='batch_size')
             self._L2 = tf.constant(self.L2, dtype=self._tf_dtype, name='L2_coef')
@@ -219,7 +219,7 @@ class DBM(TensorFlowModel):
                 tf.summary.histogram('hb_hist', hb)
 
         # initialize grads accumulators
-        with tf.name_scope('weights_updates'):
+        with tf.name_scope('weights_increments'):
             t = tf.zeros(vb_init.shape, dtype=self._tf_dtype, name='dvb_init')
             self._dvb = tf.Variable(t, name='dvb')
             tf.summary.histogram('dvb_hist', self._dvb)
@@ -277,9 +277,10 @@ class DBM(TensorFlowModel):
 
             # update first hidden layer
             with tf.name_scope('means_h0_hat_given_v_h1'):
-                T1 = tf.matmul(v, self._W[0])
-                T2 = tf.matmul(a=H[1], b=self._W[1], transpose_b=True)
-                H_new[0] = self._h_layers[0].activation(T1 + T2, self._hb[0])
+                T = tf.matmul(v, self._W[0])
+                if self.n_layers >= 2:
+                    T += tf.matmul(a=H[1], b=self._W[1], transpose_b=True)
+                H_new[0] = self._h_layers[0].activation(T, self._hb[0])
             if sample and self.sample_h_states[0]:
                 with tf.name_scope('sample_h0_hat_given_v_h1'):
                     H_new[0] = self._h_layers[0].sample(means=H_new[0])
@@ -295,12 +296,13 @@ class DBM(TensorFlowModel):
                         H_new[i] = self._h_layers[i].sample(means=H_new[i])
 
             # update last hidden layer
-            with tf.name_scope('means_h{0}_hat_given_h{1}_hat'.format(self.n_layers - 1, self.n_layers - 2)):
-                T = tf.matmul(H_new[-2], self._W[-1])
-                H_new[-1] = self._h_layers[-1].activation(T, self._hb[-1])
-            if sample and self.sample_h_states[-1]:
-                with tf.name_scope('sample_h{0}_hat_given_h{1}_hat'.format(self.n_layers - 1, self.n_layers - 2)):
-                    H_new[-1] = self._h_layers[-1].sample(means=H_new[-1])
+            if self.n_layers >= 2:
+                with tf.name_scope('means_h{0}_hat_given_h{1}_hat'.format(self.n_layers - 1, self.n_layers - 2)):
+                    T = tf.matmul(H_new[-2], self._W[-1])
+                    H_new[-1] = self._h_layers[-1].activation(T, self._hb[-1])
+                if sample and self.sample_h_states[-1]:
+                    with tf.name_scope('sample_h{0}_hat_given_h{1}_hat'.format(self.n_layers - 1, self.n_layers - 2)):
+                        H_new[-1] = self._h_layers[-1].sample(means=H_new[-1])
 
             # update visible layer if needed
             if update_v:
@@ -343,7 +345,8 @@ class DBM(TensorFlowModel):
                                                                         self._mu, self._mu_new],
                                                              back_prop=False,
                                                              name='mean_field_updates')
-            return n_mf_updates, mu
+                mu_updates = [ self._mu[i].assign(mu[i]) for i in xrange(self.n_layers) ]
+            return n_mf_updates, mu_updates
 
     def _make_particles_update(self, n_steps=None):
         """Update negative particles by running Gibbs sampler
@@ -358,7 +361,7 @@ class DBM(TensorFlowModel):
             def sa_body(step, max_step, v, H, v_new, H_new):
                 v, H, v_new, H_new = self._make_gibbs_step(v, H, v_new, H_new,
                                                            update_v=True, sample=True)
-                return step + 1, max_step, v_new, H_new, v, H # swap particles
+                return step + 1, max_step, v_new, H_new, v, H  # swap particles
 
             _, _, v, H, v_new, H_new = tf.while_loop(cond=sa_cond, body=sa_body,
                                                      loop_vars=[tf.constant(0),
@@ -373,24 +376,24 @@ class DBM(TensorFlowModel):
         return v_update, H_updates, v_new_update, H_new_updates
 
     def _apply_max_norm(self, T):
-        n = tf.norm(T, axis=0)
-        return T * tf.minimum(self._max_norm, n) / tf.maximum(n, 1e-8)
+        T_norm = tf.norm(T, axis=0)
+        return T * tf.minimum(T_norm, self._max_norm) / tf.maximum(T_norm, 1e-8)
 
     def _make_train_op(self):
         # run mean-field updates for current mini-batch
-        n_mf_updates, mu = self._make_mf()
-
-        # encoded data, used by the transform method
-        with tf.name_scope('transform'):
-            transform_op = tf.identity(mu[-1])
-            tf.add_to_collection('transform_op', transform_op)
+        n_mf_updates, mu_updates = self._make_mf()
 
         # update negative particles by running Gibbs sampler
         # for specified number of steps
         v_update, H_updates, v_new_update, H_new_updates = self._make_particles_update()
 
-        with tf.control_dependencies([v_update, v_new_update] + H_updates + H_new_updates +\
-                                     [self._mu[i].assign(mu[i]) for i in xrange(self.n_layers)]):
+        with tf.control_dependencies([v_update, v_new_update] + H_updates + H_new_updates + mu_updates):
+
+            # encoded data, used by the transform method
+            with tf.name_scope('transform'):
+                transform_op = tf.identity(mu_updates[-1])
+                tf.add_to_collection('transform_op', transform_op)
+
             # compute gradients estimates (= positive - negative associations)
             with tf.name_scope('grads_estimates'):
                 # visible bias
@@ -400,14 +403,15 @@ class DBM(TensorFlowModel):
                 dW = []
                 # first layer of weights
                 with tf.name_scope('dW'):
-                    dW_0_positive = tf.matmul(a=self._X_batch, b=mu[0], transpose_a=True) / self._N
+                    dW_0_positive = tf.matmul(a=self._X_batch, b=self._mu[0], transpose_a=True) / self._N
                     dW_0_negative = tf.matmul(a=self._v, b=self._H[0], transpose_a=True) / self._M
                     dW_0 = (dW_0_positive - dW_0_negative) - self._L2 * self._W[0]
                     dW.append(dW_0)
+
                 # ... rest of them
                 for i in xrange(1, self.n_layers):
                     with tf.name_scope('dW'):
-                        dW_i_positive = tf.matmul(a=mu[i - 1], b=mu[i], transpose_a=True) / self._N
+                        dW_i_positive = tf.matmul(a=self._mu[i - 1], b=self._mu[i], transpose_a=True) / self._N
                         dW_i_negative = tf.matmul(a=self._H[i - 1], b=self._H[i], transpose_a=True) / self._M
                         dW_i = (dW_i_positive - dW_i_negative) - self._L2 * self._W[i]
                         dW.append(dW_i)
@@ -416,7 +420,7 @@ class DBM(TensorFlowModel):
                 # hidden biases
                 for i in xrange(self.n_layers):
                     with tf.name_scope('dhb'):
-                        dhb_i = tf.reduce_mean(mu[i], axis=0) - tf.reduce_mean(self._H[i], axis=0)
+                        dhb_i = tf.reduce_mean(self._mu[i], axis=0) - tf.reduce_mean(self._H[i], axis=0)
                         dhb.append(dhb_i)
 
             # update parameters
@@ -429,8 +433,7 @@ class DBM(TensorFlowModel):
                 for i in xrange(self.n_layers):
                     with tf.name_scope('dW'):
                         dW_update = self._dW[i].assign(self._learning_rate * (self._momentum * self._dW[i] + dW[i]))
-                        W_update = self._W[i].assign_add(dW_update)
-                        W_update = self._W[i].assign(self._apply_max_norm(W_update))
+                        W_update = self._W[i].assign(self._apply_max_norm(self._W[i] + dW_update))
                         W_updates.append(W_update)
 
                 hb_updates = []
@@ -442,29 +445,24 @@ class DBM(TensorFlowModel):
 
             # assemble train_op
             with tf.name_scope('training_step'):
-                particles_updates = tf.group(v_update, v_new_update,
-                                             tf.group(*H_updates), tf.group(*H_new_updates),
-                                             name='particles_updates')
-                weights_updates = tf.group(vb_update,
-                                           tf.group(*W_updates),
-                                           tf.group(*hb_updates),
-                                           name='weights_update')
-                train_op = tf.group(weights_updates, particles_updates)
+                train_op = tf.group(vb_update,
+                                    tf.group(*W_updates),
+                                    tf.group(*hb_updates))
                 tf.add_to_collection('train_op', train_op)
 
-        # compute metrics
-        with tf.name_scope('mean_squared_reconstruction_error'):
-            T = tf.matmul(a=mu[0], b=self._W[0], transpose_b=True)
-            v_means = self._v_layer.activation(T, self._vb)
-            v_means = tf.identity(v_means, name='x_reconstruction')
-            msre = tf.reduce_mean(tf.square(self._X_batch - v_means))
-            tf.add_to_collection('msre', msre)
+            # compute metrics
+            with tf.name_scope('mean_squared_reconstruction_error'):
+                T = tf.matmul(a=self._mu[0], b=self._W[0], transpose_b=True)
+                v_means = self._v_layer.activation(T, self._vb)
+                v_means = tf.identity(v_means, name='x_reconstruction')
+                msre = tf.reduce_mean(tf.square(self._X_batch - v_means))
+                tf.add_to_collection('msre', msre)
 
-        tf.add_to_collection('n_mf_updates', n_mf_updates)
+            tf.add_to_collection('n_mf_updates', n_mf_updates)
 
-        # collect summaries
-        tf.summary.scalar('mean_squared_recon_error', msre)
-        tf.summary.scalar('n_mf_updates', n_mf_updates)
+            # collect summaries
+            tf.summary.scalar('mean_squared_recon_error', msre)
+            tf.summary.scalar('n_mf_updates', n_mf_updates)
 
     def _make_sample_v_particle(self):
         with tf.name_scope('sample_v_particle'):
@@ -472,8 +470,8 @@ class DBM(TensorFlowModel):
                 self._make_particles_update(n_steps=self._n_gibbs_steps)
             with tf.control_dependencies([v_update, v_new_update] + H_updates + H_new_updates):
                 T = tf.matmul(a=self._H[0], b=self._W[0], transpose_b=True)
-                v_probs = self._v_layer.activation(T, self._vb)
-                sample_v_particle = self._v.assign(v_probs)
+                v_means = self._v_layer.activation(T, self._vb)
+                sample_v_particle = self._v.assign(v_means)
         tf.add_to_collection('sample_v_particle', sample_v_particle)
 
     def _make_tf_model(self):
@@ -552,11 +550,11 @@ class DBM(TensorFlowModel):
                 if train_msre:
                     s += "; msre: {0:.5f}".format(train_msre)
                 if train_n_mf_updates:
-                    s += "; n_mf_upds: {0:.2f}".format(train_n_mf_updates)
+                    s += "; n_mf_upds: {0:.1f}".format(train_n_mf_updates)
                 if val_msre:
                     s += "; val.msre: {0:.5f}".format(val_msre)
                 if val_n_mf_updates:
-                    s += "; val.n_mf_upds: {0:.2f}".format(val_n_mf_updates)
+                    s += "; val.n_mf_upds: {0:.1f}".format(val_n_mf_updates)
                 write_during_training(s)
 
             # save if needed
