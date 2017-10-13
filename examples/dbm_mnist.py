@@ -233,17 +233,29 @@ def main():
                   model_path=args.dbm_dirpath)
         dbm.fit(X_train, X_val)
 
-    # g_i = p(h_{L-1}|v=x_i)
-    G = dbm.transform(X)
-    print G.shape, G.min(), G.max(), G.mean(), G.sum()
+    def f(n_b):
+        log_Z = dbm.log_Z(n_betas=n_b)
+        mean = log_Z.mean()
+        std = log_Z.std()
+        print "{0} -> {1:.2f} +- {2:.2f}".format(n_b, mean, std)
 
-    V = dbm.sample_v(n_gibbs_steps=10)
-    print V.shape, V.min(), V.max(), V.mean(), V.sum()
-    from hdm.utils import plot_matrices
-    import matplotlib.pyplot as plt
-    fig = plt.figure(figsize=(10, 10))
-    plot_matrices(V, shape=(28, 28), imshow_params={'cmap': plt.cm.gray})
-    plt.show()
+    f(10)
+    f(100)
+    f(500)
+    f(1000)
+    f(10000)
+
+    # # g_i = p(h_{L-1}|v=x_i)
+    # G = dbm.transform(X)
+    # print G.shape, G.min(), G.max(), G.mean(), G.sum()
+    #
+    # V = dbm.sample_v(n_gibbs_steps=10)
+    # print V.shape, V.min(), V.max(), V.mean(), V.sum()
+    # from hdm.utils import plot_matrices
+    # import matplotlib.pyplot as plt
+    # fig = plt.figure(figsize=(10, 10))
+    # plot_matrices(V, shape=(28, 28), imshow_params={'cmap': plt.cm.gray})
+    # plt.show()
 
 
 if __name__ == '__main__':
