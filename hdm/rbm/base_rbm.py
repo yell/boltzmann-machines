@@ -607,10 +607,10 @@ class BaseRBM(EnergyBasedModel):
         self.vb_init = weights['vb']
         self.hb_init = weights['hb']
 
-        weights_increments = rbm.get_tf_params(scope='weights_increments')
-        self._dW_init = weights_increments['dW']
-        self._dvb_init = weights_increments['dvb']
-        self._dhb_init = weights_increments['dhb']
+        grads_accumulators = rbm.get_tf_params(scope='grads_accumulators')
+        self._dW_init = grads_accumulators['dW']
+        self._dvb_init = grads_accumulators['dvb']
+        self._dhb_init = grads_accumulators['dhb']
 
         self.iter = rbm.iter
         self.epoch = rbm.epoch
