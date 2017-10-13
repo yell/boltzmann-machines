@@ -38,11 +38,11 @@ def main():
     # common
     parser.add_argument('--n-hiddens', type=int, default=[512, 1024], metavar='N', nargs='+',
                         help='numbers of hidden units')
-    parser.add_argument('--epochs', type=int, default=[80, 140, 500], metavar='N', nargs='+',
+    parser.add_argument('--epochs', type=int, default=[64, 140, 500], metavar='N', nargs='+',
                         help='number of epochs to train')
     parser.add_argument('--batch-size', type=int, default=[48, 48, 100], metavar='B', nargs='+',
                         help='input batch size for training, `--n-train` and `--n-val`' + \
-                             'must be divisible by this number')
+                             'must be divisible by this number (for DBM)')
     parser.add_argument('--increase-n-gibbs-steps-every', type=int, default=20, metavar='I',
                         help='increase number of Gibbs steps every specified number of epochs for RBM #2')
 
@@ -70,15 +70,15 @@ def main():
                         help='maximum number of mean-field updates per weight update')
     parser.add_argument('--mf-tol', type=float, default=1e-7, metavar='TOL',
                         help='mean-field tolerance')
-    parser.add_argument('--lr', type=float, default=2e-4, metavar='LR',
+    parser.add_argument('--lr', type=float, default=1e-4, metavar='LR',
                         help='initial learning rate')
-    parser.add_argument('--l2', type=float, default=1e-6, metavar='L2',
+    parser.add_argument('--l2', type=float, default=1e-7, metavar='L2',
                         help='L2 weight decay coefficient')
     parser.add_argument('--max-norm', type=float, default=8., metavar='C',
                         help='maximum norm constraint')
-    parser.add_argument('--sparsity-target', type=float, default=[0.3, 0.1], metavar='T', nargs='+',
+    parser.add_argument('--sparsity-target', type=float, default=[0.2, 0.1], metavar='T', nargs='+',
                         help='desired probability of hidden activation')
-    parser.add_argument('--sparsity-cost', type=float, default=[1e-2, 1e-3], metavar='C', nargs='+',
+    parser.add_argument('--sparsity-cost', type=float, default=[1e-4, 1e-4], metavar='C', nargs='+',
                         help='controls the amount of sparsity penalty')
     parser.add_argument('--sparsity-damping', type=float, default=0.9, metavar='D',
                         help='decay rate for hidden activations probs')
