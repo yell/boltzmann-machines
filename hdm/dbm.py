@@ -125,7 +125,7 @@ class DBM(EnergyBasedModel):
         self._transform_op = None
         self._msre = None
         self._n_mf_updates = None
-        self._sample_v_particle = None
+        self._sample_v = None
 
     def load_rbms(self, rbms):
         if rbms is not None:
@@ -477,22 +477,22 @@ class DBM(EnergyBasedModel):
             tf.summary.scalar('mean_squared_recon_error', msre)
             tf.summary.scalar('n_mf_updates', n_mf_updates)
 
-    def _make_sample_v_particle(self):
-        with tf.name_scope('sample_v_particle'):
+    def _make_sample_v(self):
+        with tf.name_scope('sample_v'):
             v_update, H_updates, v_new_update, H_new_updates = \
                 self._make_particles_update(n_steps=self._n_gibbs_steps)
             with tf.control_dependencies([v_update, v_new_update] + H_updates + H_new_updates):
                 T = tf.matmul(a=self._H[0], b=self._W[0], transpose_b=True)
                 v_means = self._v_layer.activation(T, self._vb)
-                sample_v_particle = self._v.assign(v_means)
-        tf.add_to_collection('sample_v_particle', sample_v_particle)
+                sample_v = self._v.assign(v_means)
+        tf.add_to_collection('sample_v', sample_v)
 
     def _make_tf_model(self):
         self._make_constants()
         self._make_placeholders()
         self._make_vars()
         self._make_train_op()
-        self._make_sample_v_particle()
+        self._make_sample_v()
 
     def _make_tf_feed_dict(self, X_batch=None, n_gibbs_steps=None):
         d = {}
@@ -594,9 +594,9 @@ class DBM(EnergyBasedModel):
         return Q
 
     @run_in_tf_session(update_seed=True)
-    def sample_v_particle(self, n_gibbs_steps=0, save_model=False):
-        self._sample_v_particle = tf.get_collection('sample_v_particle')[0]
-        v = self._tf_session.run(self._sample_v_particle,
+    def sample_v(self, n_gibbs_steps=0, save_model=False):
+        self._sample_v = tf.get_collection('sample_v')[0]
+        v = self._tf_session.run(self._sample_v,
                                  feed_dict=self._make_tf_feed_dict(n_gibbs_steps=n_gibbs_steps))
         if save_model:
             self._save_model()
