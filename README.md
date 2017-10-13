@@ -2,16 +2,18 @@
 
 ## Implemented
 ### Restricted Boltzmann Machine (RBM)
-* *k-step Contrastive Divergence*: *variable* learning rate and momentum, L2 weight decay, maxnorm, ***TODO***: rest, ***TODO***: dropout, ***TODO***: sparsity targets
+* *k-step Contrastive Divergence*: *variable* learning rate and momentum, L2 weight decay, maxnorm, dropout, sparsity targets, ***TODO***: rest;
 * *different types of RBMs*: Bernoulli, Multinomial, Gaussian;
 * *easy to add new type of RBM*: implement new type of stochastic units or create new RBM from existing types of units
-* *visualization in Tensorboard*: learning curves (reconstruction RMSE, pseudo log-likelihood, free energy gap, L2 loss), distribution of weights and weights updates in TensorBoard ***TODO***: hidden activations and weight filters
+* *visualization in Tensorboard*: learning curves (reconstruction RMSE, pseudo log-likelihood, free energy gap, L2 loss), distribution of weights and weights updates in TensorBoard; hidden activations and weight filters
 * variable number of Gibbs steps withing training is not yet supported, but possible (need to implement `tf.while_loop` with variable number of steps) + see `init_from` method
 
 ### Deep Boltzmann Machine (DBM)
 * arbitrary number of layers of any types
 * initialize from greedy layer-wise pretrained RBMs and jointly fine-tune using PCD + mean-field approximation
-* ***TODO***: one can use `DBM` class with 1 hidden layer to train **RBM** with this more efficient algorithm + generating samples after training + AIS
+* one can use `DBM` class with 1 hidden layer to train **RBM** with this more efficient algorithm + generating samples after training + AIS
+* visualize filters and hidden activations for all layers
+* sparsity targets
 
 ### Hierarchical Dirichlet Prior (HDP)
 ***TODO***
