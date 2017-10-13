@@ -55,7 +55,7 @@ class DBM(EnergyBasedModel):
                  sparsity_targets=None, sparsity_costs=None, sparsity_damping=0.9,
                  train_metrics_every_iter=10, val_metrics_every_epoch=1,
                  verbose=False, save_after_each_epoch=False,
-                 display_filters=30, filter_shape=(28, 28),
+                 display_filters=25, filter_shape=(28, 28),
                  display_hidden_activations=25,
                  model_path='dbm_model/', *args, **kwargs):
         super(DBM, self).__init__(model_path=model_path, *args, **kwargs)
@@ -439,7 +439,7 @@ class DBM(EnergyBasedModel):
 
     def _apply_max_norm(self, T):
         T_norm = tf.norm(T, axis=0)
-        return T * tf.minimum(T_norm, self._max_norm) / tf.maximum(T_norm, 1e-8)
+        return T * tf.minimum(T_norm, self._max_norm) / tf.maximum(T_norm, 1e-8), T_norm
 
     def _make_train_op(self):
         # run mean-field updates for current mini-batch
@@ -512,10 +512,13 @@ class DBM(EnergyBasedModel):
                     vb_update = self._vb.assign_add(dvb_update)
 
                 W_updates = []
+                W_norms = []
                 for i in xrange(self.n_layers):
                     with tf.name_scope('dW'):
                         dW_update = self._dW[i].assign(self._learning_rate * (self._momentum * self._dW[i] + dW[i]))
-                        W_update = self._W[i].assign(self._apply_max_norm(self._W[i] + dW_update))
+                        W_new, W_norm = self._apply_max_norm(self._W[i] + dW_update)
+                        W_update = self._W[i].assign(W_new)
+                        W_norms.append(tf.minimum(tf.reduce_max(W_norm), self._max_norm))
                         W_updates.append(W_update)
 
                 hb_updates = []
@@ -545,6 +548,8 @@ class DBM(EnergyBasedModel):
             # collect summaries
             tf.summary.scalar('mean_squared_recon_error', msre)
             tf.summary.scalar('n_mf_updates', n_mf_updates)
+            for i in xrange(self.n_layers):
+                tf.summary.scalar('W_norm', W_norms[i])
 
     def _make_sample_v(self):
         with tf.name_scope('sample_v'):
