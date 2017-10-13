@@ -320,8 +320,14 @@ class DBM(EnergyBasedModel):
             # randomly initialize mu_new
             init_ops = []
             for i in xrange(self.n_layers):
-                q = self._h_layers[i].init(self.batch_size)
-                init_op = tf.assign(self._mu_new[i], q, name='init_mu_new')
+                if i == 0:
+                    T = 2. * tf.matmul(self._X_batch, self._W[0])
+                else:
+                    T = tf.matmul(self._H[i - 1], self._W[i])
+                    if i < self.n_layers - 1:
+                        T *= 2.
+                q_new = self._h_layers[i].activation(T, self._hb[i])
+                init_op = tf.assign(self._mu_new[i], q_new, name='approx_inference')
                 init_ops.append(init_op)
 
             # run mean-field updates until convergence
