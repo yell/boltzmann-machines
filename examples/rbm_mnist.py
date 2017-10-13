@@ -42,7 +42,7 @@ def main():
     parser.add_argument('--n-hidden', type=int, default=1024, metavar='N',
                         help='number of hidden units')
     parser.add_argument('--vb-init', action='store_false',
-                        help='initialize visible biases as logit of mean values of features'+\
+                        help='initialize visible biases as logit of mean values of features' + \
                              ', otherwise zero init')
     parser.add_argument('--hb-init', type=float, default=0., metavar='HB',
                         help='initial hidden bias')

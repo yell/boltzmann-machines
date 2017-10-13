@@ -393,7 +393,7 @@ class BaseRBM(EnergyBasedModel):
         # apply sparsity targets if needed
         with tf.name_scope('sparsity_targets'):
             q_means = tf.reduce_sum(h_means, axis=0)
-            q_update = self._q_means.assign(self._sparsity_damping * self._q_means +\
+            q_update = self._q_means.assign(self._sparsity_damping * self._q_means + \
                                             (1 - self._sparsity_damping) * q_means)
             sparsity_penalty = self._sparsity_cost * (q_update - self._sparsity_target)
             dhb -= sparsity_penalty
