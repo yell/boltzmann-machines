@@ -218,7 +218,7 @@ class DBM(EnergyBasedModel):
                 tf.summary.histogram('hb_hist', hb)
 
         # initialize grads accumulators
-        with tf.name_scope('weights_increments'):
+        with tf.name_scope('grads_accumulators'):
             t = tf.zeros(vb_init.shape, dtype=self._tf_dtype, name='dvb_init')
             self._dvb = tf.Variable(t, name='dvb')
             tf.summary.histogram('dvb_hist', self._dvb)

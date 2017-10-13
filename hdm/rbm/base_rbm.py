@@ -276,7 +276,7 @@ class BaseRBM(EnergyBasedModel):
                     W_display = tf.transpose(W_display, [2, 0, 1, 3])
                     tf.summary.image('W_filters', W_display, max_outputs=self.display_filters)
 
-        with tf.name_scope('weights_increments'):
+        with tf.name_scope('grads_accumulators'):
             dW_init = tf.constant(self._dW_init, dtype=self._tf_dtype) if self._dW_init is not None else\
                       tf.zeros([self._n_visible, self._n_hidden], dtype=self._tf_dtype)
             dvb_init = tf.constant(self._dvb_init, dtype=self._tf_dtype) if self._dvb_init is not None else \
