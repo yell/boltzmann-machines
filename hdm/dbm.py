@@ -692,13 +692,13 @@ class DBM(EnergyBasedModel):
     def transform(self, X):
         """Compute hidden units' (from last layer) activation probabilities."""
         self._transform_op = tf.get_collection('transform_op')[0]
-        Q = np.zeros((len(X), self.n_hiddens[-1]))
+        G = np.zeros((len(X), self.n_hiddens[-1]))
         start = 0
         for X_b in batch_iter(X, batch_size=self.batch_size, verbose=self.verbose):
-            Q_b = self._transform_op.eval(feed_dict=self._make_tf_feed_dict(X_b))
-            Q[start:(start + self.batch_size)] = Q_b
+            G_b = self._transform_op.eval(feed_dict=self._make_tf_feed_dict(X_b))
+            G[start:(start + self.batch_size)] = G_b
             start += self.batch_size
-        return Q
+        return G
 
     @run_in_tf_session(update_seed=True)
     def sample_v(self, n_gibbs_steps=0, save_model=False):
@@ -708,3 +708,7 @@ class DBM(EnergyBasedModel):
         if save_model:
             self._save_model()
         return v
+
+    @run_in_tf_session(update_seed=True)
+    def log_Z(self, n_betas=10000):
+        pass
