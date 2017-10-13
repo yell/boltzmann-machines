@@ -55,8 +55,8 @@ class DBM(EnergyBasedModel):
                  sparsity_targets=None, sparsity_costs=None, sparsity_damping=0.9,
                  train_metrics_every_iter=10, val_metrics_every_epoch=1,
                  verbose=False, save_after_each_epoch=False,
-                 display_filters=25, filter_shape=(28, 28),
-                 display_hidden_activations=25,
+                 display_filters=24, display_particles=24, v_shape=(28, 28),
+                 display_hidden_activations=24,
                  model_path='dbm_model/', *args, **kwargs):
         super(DBM, self).__init__(model_path=model_path, *args, **kwargs)
         self.n_layers = None
@@ -92,7 +92,8 @@ class DBM(EnergyBasedModel):
         self.save_after_each_epoch = save_after_each_epoch
 
         self.display_filters = display_filters
-        self.filter_shape = filter_shape
+        self.display_particles = display_particles
+        self.v_shape = v_shape
         self.display_hidden_activations = display_hidden_activations
 
         # current epoch and iter
@@ -256,9 +257,10 @@ class DBM(EnergyBasedModel):
                 for i in xrange(self.n_layers):
                     if i > 0:
                         W = tf.matmul(W, self._W[i])
-                    W_display = tf.reshape(W, [self.filter_shape[0],
-                                               self.filter_shape[1], self.n_hiddens[i], 1])
+                    W_display = tf.reshape(W, [self.v_shape[0],
+                                               self.v_shape[1], self.n_hiddens[i], 1])
                     W_display = tf.transpose(W_display, [2, 0, 1, 3])
+                    W_display = tf.cast(W_display, tf.float32)
                     tf.summary.image('W_filters', W_display, max_outputs=self.display_filters)
 
         # initialize gradients accumulators
@@ -318,6 +320,15 @@ class DBM(EnergyBasedModel):
                     h_new = tf.Variable(q_new, dtype=self._tf_dtype, name='h_new')
                     self._H.append(h)
                     self._H_new.append(h_new)
+
+        # visualize visible negative particles
+        if self.display_particles:
+            with tf.name_scope('particles_visualization'):
+                V = self._v[:self.display_particles, :]
+                V_display = tf.reshape(V, [self.display_particles, self.v_shape[0],
+                                                                   self.v_shape[1], 1])
+                V_display = tf.cast(V_display, tf.float32)
+                tf.summary.image('negative_particles', V_display, max_outputs=self.display_filters)
 
     def _make_gibbs_step(self, v, H, v_new, H_new, update_v=True, sample=True):
         """Compute one Gibbs step."""
@@ -516,7 +527,9 @@ class DBM(EnergyBasedModel):
                 for i in xrange(self.n_layers):
                     with tf.name_scope('dW'):
                         dW_update = self._dW[i].assign(self._learning_rate * (self._momentum * self._dW[i] + dW[i]))
-                        W_new, W_norm = self._apply_max_norm(self._W[i] + dW_update)
+                        W_update = self._W[i] + dW_update
+                        with tf.name_scope('max_norm'):
+                            W_new, W_norm = self._apply_max_norm(W_update)
                         W_update = self._W[i].assign(W_new)
                         W_norms.append(tf.minimum(tf.reduce_max(W_norm), self._max_norm))
                         W_updates.append(W_update)
