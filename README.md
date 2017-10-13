@@ -14,6 +14,8 @@
 * one can use `DBM` class with 1 hidden layer to train **RBM** with this more efficient algorithm + generating samples after training + AIS
 * visualize filters and hidden activations for all layers
 * sparsity targets
+* visualize norms of weights in each layer
+* visualize visible negative particles
 
 ### Hierarchical Dirichlet Prior (HDP)
 ***TODO***
