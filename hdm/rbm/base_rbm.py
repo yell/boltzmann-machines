@@ -87,8 +87,8 @@ class BaseRBM(EnergyBasedModel):
                  sparsity_target=0.1, sparsity_cost=0., sparsity_damping=0.9,
                  dbm_first=False, dbm_last=False,
                  metrics_config=None, verbose=True, save_after_each_epoch=True,
-                 display_filters=30, filter_shape=(28, 28),
-                 display_hidden_activations=25,
+                 display_filters=30, v_shape=(28, 28),
+                 display_hidden_activations=24,
                  model_path='rbm_model/', *args, **kwargs):
         super(BaseRBM, self).__init__(model_path=model_path, *args, **kwargs)
         self.n_visible = n_visible
@@ -178,7 +178,7 @@ class BaseRBM(EnergyBasedModel):
         self.save_after_each_epoch = save_after_each_epoch
 
         self.display_filters = display_filters
-        self.filter_shape = filter_shape
+        self.v_shape = v_shape
         self.display_hidden_activations = display_hidden_activations
 
         # current epoch and iteration
@@ -276,8 +276,8 @@ class BaseRBM(EnergyBasedModel):
         # visualize filters
         if self.display_filters:
             with tf.name_scope('filters_visualization'):
-                W_display = tf.reshape(self._W, [self.filter_shape[0],
-                                                 self.filter_shape[1], self.n_hidden, 1])
+                W_display = tf.reshape(self._W, [self.v_shape[0],
+                                                 self.v_shape[1], self.n_hidden, 1])
                 W_display = tf.transpose(W_display, [2, 0, 1, 3])
                 tf.summary.image('W_filters', W_display, max_outputs=self.display_filters)
 
