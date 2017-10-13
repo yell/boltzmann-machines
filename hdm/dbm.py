@@ -52,6 +52,7 @@ class DBM(EnergyBasedModel):
                  learning_rate=0.0005, momentum=0.9, max_epoch=10, batch_size=100,
                  L2=0., max_norm=np.inf,
                  sample_v_states=True, sample_h_states=None,
+                 sparsity_targets=None, sparsity_costs=None, sparsity_damping=0.9,
                  train_metrics_every_iter=10, val_metrics_every_epoch=1,
                  verbose=False, save_after_each_epoch=False,
                  display_filters=30, filter_shape=(28, 28),
@@ -60,7 +61,7 @@ class DBM(EnergyBasedModel):
         super(DBM, self).__init__(model_path=model_path, *args, **kwargs)
         self.n_layers = None
         self.n_visible = None
-        self.n_hiddens = None
+        self.n_hiddens = []
         self.load_rbms(rbms)
 
         self.n_particles = n_particles
@@ -79,7 +80,11 @@ class DBM(EnergyBasedModel):
         self.max_norm = max_norm
 
         self.sample_v_states = sample_v_states
-        self.sample_h_states = sample_h_states or [True] * self.n_hiddens
+        self.sample_h_states = sample_h_states or [True] * self.n_layers
+
+        self.sparsity_targets = sparsity_targets or [0.1] * self.n_layers
+        self.sparsity_costs = sparsity_costs or [0.] * self.n_layers
+        self.sparsity_damping = sparsity_damping
 
         self.train_metrics_every_iter = train_metrics_every_iter
         self.val_metrics_every_epoch = val_metrics_every_epoch
@@ -100,6 +105,11 @@ class DBM(EnergyBasedModel):
         self._n_particles = None
         self._max_mf_updates = None
         self._mf_tol = None
+
+        self._sparsity_targets = []
+        self._sparsity_costs = []
+        self._sparsity_damping = None
+
         self._batch_size = None
         self._L2 = None
         self._max_norm = None
@@ -123,6 +133,8 @@ class DBM(EnergyBasedModel):
 
         self._mu = []
         self._mu_new = []
+        self._q_means = []
+
         self._v = None
         self._v_new = None
         self._H = []
@@ -171,6 +183,14 @@ class DBM(EnergyBasedModel):
             self._max_mf_updates = tf.constant(self.max_mf_updates,
                                                dtype=tf.int32, name='max_mf_updates')
             self._mf_tol = tf.constant(self.mf_tol, dtype=self._tf_dtype, name='mf_tol')
+
+            for i in xrange(self.n_layers):
+                T = tf.constant(self.sparsity_targets[i], dtype=self._tf_dtype, name='sparsity_target')
+                self._sparsity_targets.append(T)
+                C = tf.constant(self.sparsity_costs[i], dtype=self._tf_dtype, name='sparsity_cost')
+                self._sparsity_costs.append(C)
+            self._sparsity_damping = tf.constant(self.sparsity_damping, dtype=self._tf_dtype, name='sparsity_damping')
+
             self._batch_size = tf.constant(self.batch_size, dtype=tf.int32, name='batch_size')
             self._L2 = tf.constant(self.L2, dtype=self._tf_dtype, name='L2_coef')
             self._max_norm = tf.constant(self.max_norm, dtype=self._tf_dtype, name='max_norm_coef')
@@ -241,7 +261,7 @@ class DBM(EnergyBasedModel):
                     W_display = tf.transpose(W_display, [2, 0, 1, 3])
                     tf.summary.image('W_filters', W_display, max_outputs=self.display_filters)
 
-        # initialize grads accumulators
+        # initialize gradients accumulators
         with tf.name_scope('grads_accumulators'):
             t = tf.zeros(vb_init.shape, dtype=self._tf_dtype, name='dvb_init')
             self._dvb = tf.Variable(t, name='dvb')
@@ -269,6 +289,12 @@ class DBM(EnergyBasedModel):
                 tf.summary.histogram('mu_hist', mu)
                 self._mu.append(mu)
                 self._mu_new.append(mu_new)
+
+        # initialize running means of hidden activations means
+        with tf.name_scope('hidden_means_accumulators'):
+            for i in xrange(self.n_layers):
+                T = tf.Variable(tf.zeros([self.n_hiddens[i]], dtype=self._tf_dtype), name='q_means')
+                self._q_means.append(T)
 
         # initialize negative particles
         with tf.name_scope('negative_particles'):
@@ -468,6 +494,16 @@ class DBM(EnergyBasedModel):
                     with tf.name_scope('dhb'):
                         dhb_i = tf.reduce_mean(self._mu[i], axis=0) - tf.reduce_mean(self._H[i], axis=0)
                         dhb.append(dhb_i)
+
+            # apply sparsity targets if needed
+            with tf.name_scope('sparsity_targets'):
+                for i in xrange(self.n_layers):
+                    q_means = tf.reduce_sum(self._mu[i], axis=0)
+                    q_update = self._q_means[i].assign(self._sparsity_damping * self._q_means[i] + \
+                                                       (1 - self._sparsity_damping) * q_means[i])
+                    sparsity_penalty = self._sparsity_costs[i] * (q_update - self._sparsity_targets[i])
+                    dhb[i] -= sparsity_penalty
+                    dW[i] -= sparsity_penalty
 
             # update parameters
             with tf.name_scope('momentum_updates'):
