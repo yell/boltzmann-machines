@@ -72,14 +72,22 @@ def main():
                         help='mean-field tolerance')
     parser.add_argument('--lr', type=float, default=5e-4, metavar='LR',
                         help='initial learning rate')
-    parser.add_argument('--l2', type=float, default=1e-8, metavar='L2',
+    parser.add_argument('--l2', type=float, default=1e-6, metavar='L2',
                         help='L2 weight decay coefficient')
     parser.add_argument('--max-norm', type=float, default=8., metavar='C',
                         help='maximum norm constraint')
+    parser.add_argument('--sparsity-target', type=float, default=[0.2, 0.1], metavar='T', nargs='+',
+                        help='desired probability of hidden activation')
+    parser.add_argument('--sparsity-cost', type=float, default=[1e-3], metavar='C', nargs='+',
+                        help='controls the amount of sparsity penalty')
+    parser.add_argument('--sparsity-damping', type=float, default=0.9, metavar='D',
+                        help='decay rate for hidden activations probs')
 
     args = parser.parse_args()
     if len(args.epochs) == 1: args.epochs *= 3
     if len(args.batch_size) == 1: args.batch_size *= 3
+    if len(args.sparsity_target) == 1: args.sparsity_target *= 2
+    if len(args.sparsity_cost) == 1: args.sparsity_cost *= 2
 
     # prepare data
     X, _ = load_mnist(mode='train', path='../data/')
@@ -209,6 +217,9 @@ def main():
                   max_norm=args.max_norm,
                   sample_v_states=True,
                   sample_h_states=(True, True),
+                  sparsity_targets=args.sparsity_target,
+                  sparsity_costs=args.sparsity_cost,
+                  sparsity_damping=args.sparsity_damping,
                   train_metrics_every_iter=1000,
                   val_metrics_every_epoch=2,
                   random_seed=2222,
