@@ -70,15 +70,15 @@ def main():
                         help='maximum number of mean-field updates per weight update')
     parser.add_argument('--mf-tol', type=float, default=1e-7, metavar='TOL',
                         help='mean-field tolerance')
-    parser.add_argument('--lr', type=float, default=5e-4, metavar='LR',
+    parser.add_argument('--lr', type=float, default=2e-4, metavar='LR',
                         help='initial learning rate')
     parser.add_argument('--l2', type=float, default=1e-6, metavar='L2',
                         help='L2 weight decay coefficient')
     parser.add_argument('--max-norm', type=float, default=8., metavar='C',
                         help='maximum norm constraint')
-    parser.add_argument('--sparsity-target', type=float, default=[0.2, 0.1], metavar='T', nargs='+',
+    parser.add_argument('--sparsity-target', type=float, default=[0.3, 0.1], metavar='T', nargs='+',
                         help='desired probability of hidden activation')
-    parser.add_argument('--sparsity-cost', type=float, default=[1e-3], metavar='C', nargs='+',
+    parser.add_argument('--sparsity-cost', type=float, default=[1e-2, 1e-3], metavar='C', nargs='+',
                         help='controls the amount of sparsity penalty')
     parser.add_argument('--sparsity-damping', type=float, default=0.9, metavar='D',
                         help='decay rate for hidden activations probs')
@@ -209,7 +209,7 @@ def main():
                   n_gibbs_steps=args.n_gibbs_steps,
                   max_mf_updates=args.max_mf_updates,
                   mf_tol=args.mf_tol,
-                  learning_rate=np.geomspace(args.lr, 1e-5, args.epochs[2]),
+                  learning_rate=np.geomspace(args.lr, 1e-5, 200),
                   momentum=np.geomspace(0.5, 0.9, 8),
                   max_epoch=args.epochs[2],
                   batch_size=args.batch_size[2],
@@ -220,7 +220,7 @@ def main():
                   sparsity_targets=args.sparsity_target,
                   sparsity_costs=args.sparsity_cost,
                   sparsity_damping=args.sparsity_damping,
-                  train_metrics_every_iter=1000,
+                  train_metrics_every_iter=500,
                   val_metrics_every_epoch=2,
                   random_seed=2222,
                   verbose=True,
