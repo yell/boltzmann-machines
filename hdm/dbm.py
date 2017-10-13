@@ -55,6 +55,7 @@ class DBM(EnergyBasedModel):
                  train_metrics_every_iter=10, val_metrics_every_epoch=1,
                  verbose=False, save_after_each_epoch=False,
                  display_filters=30, filter_shape=(28, 28),
+                 display_hidden_activations=25,
                  model_path='dbm_model/', *args, **kwargs):
         super(DBM, self).__init__(model_path=model_path, *args, **kwargs)
         self.n_layers = None
@@ -87,12 +88,15 @@ class DBM(EnergyBasedModel):
 
         self.display_filters = display_filters
         self.filter_shape = filter_shape
+        self.display_hidden_activations = display_hidden_activations
 
         # current epoch and iter
         self.epoch = 0
         self.iter = 0
 
         # tf constants
+        self._n_visible = None
+        self._n_hiddens = []
         self._n_particles = None
         self._max_mf_updates = None
         self._mf_tol = None
@@ -159,6 +163,10 @@ class DBM(EnergyBasedModel):
 
     def _make_constants(self):
         with tf.name_scope('constants'):
+            self._n_visible = tf.constant(self.n_visible, dtype=tf.int32, name='n_visible')
+            for i in xrange(self.n_layers):
+                T = tf.constant(self.n_hiddens[i], dtype=tf.int32, name='n_hidden')
+                self._n_hiddens.append(T)
             self._n_particles = tf.constant(self.n_particles, dtype=tf.int32, name='n_particles')
             self._max_mf_updates = tf.constant(self.max_mf_updates,
                                                dtype=tf.int32, name='max_mf_updates')
