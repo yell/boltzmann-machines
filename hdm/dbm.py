@@ -466,7 +466,7 @@ class DBM(EnergyBasedModel):
             if self.display_hidden_activations:
                 with tf.name_scope('hidden_activations_visualization'):
                     for i in xrange(self.n_layers):
-                        h_means_display = self._mu[i][:, :self.display_hidden_activations]
+                        h_means_display = self._H[i][:, :self.display_hidden_activations]
                         h_means_display = tf.cast(h_means_display, tf.float32)
                         h_means_display = tf.expand_dims(h_means_display, 0)
                         h_means_display = tf.expand_dims(h_means_display, -1)
@@ -513,8 +513,8 @@ class DBM(EnergyBasedModel):
                     q_update = self._q_means[i].assign(self._sparsity_damping * self._q_means[i] + \
                                                        (1 - self._sparsity_damping) * q_means[i])
                     sparsity_penalty = self._sparsity_costs[i] * (q_update - self._sparsity_targets[i])
-                    dhb[i] -= sparsity_penalty
                     dW[i] -= sparsity_penalty
+                    dhb[i] -= sparsity_penalty
 
             # update parameters
             with tf.name_scope('momentum_updates'):
@@ -574,12 +574,32 @@ class DBM(EnergyBasedModel):
                 sample_v = self._v.assign(v_means)
         tf.add_to_collection('sample_v', sample_v)
 
+    def _make_ais(self):
+        with tf.name_scope('annealed_importance_sampling'):
+            def sa_cond(step, max_step, v, H):
+                return step < max_step
+
+            def sa_body(step, max_step, v, H):
+                return step + 1, max_step, v, H
+
+            H0_update = self._H[0].assign(self._h_layers[0].init(batch_size=self._n_particles))
+            with tf.control_dependencies([H0_update]):
+                _, _, v, H = tf.while_loop(cond=sa_cond, body=sa_body,
+                                           loop_vars=[tf.constant(0),
+                                                      self._n_gibbs_steps,
+                                                      self._v, self._H],
+                                           back_prop=False)
+                v_update = self._v.assign(v)
+                H_updates = [self._H[i].assign(H[i]) for i in xrange(self.n_layers)]
+                return v_update, H_updates
+
     def _make_tf_model(self):
         self._make_constants()
         self._make_placeholders()
         self._make_vars()
         self._make_train_op()
         self._make_sample_v()
+        self._make_ais()
 
     def _make_tf_feed_dict(self, X_batch=None, n_gibbs_steps=None):
         d = {}
