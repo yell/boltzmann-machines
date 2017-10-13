@@ -38,12 +38,12 @@ def main():
     # common
     parser.add_argument('--n-hiddens', type=int, default=[512, 1024], metavar='N', nargs='+',
                         help='numbers of hidden units')
-    parser.add_argument('--epochs', type=int, default=[64, 140, 500], metavar='N', nargs='+',
+    parser.add_argument('--epochs', type=int, default=[56, 112, 500], metavar='N', nargs='+',
                         help='number of epochs to train')
     parser.add_argument('--batch-size', type=int, default=[48, 48, 100], metavar='B', nargs='+',
                         help='input batch size for training, `--n-train` and `--n-val`' + \
                              'must be divisible by this number (for DBM)')
-    parser.add_argument('--increase-n-gibbs-steps-every', type=int, default=20, metavar='I',
+    parser.add_argument('--increase-n-gibbs-steps-every', type=int, default=16, metavar='I',
                         help='increase number of Gibbs steps every specified number of epochs for RBM #2')
 
     # dirpaths
