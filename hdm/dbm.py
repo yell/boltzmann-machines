@@ -54,6 +54,7 @@ class DBM(EnergyBasedModel):
                  sample_v_states=True, sample_h_states=None,
                  train_metrics_every_iter=10, val_metrics_every_epoch=1,
                  verbose=False, save_after_each_epoch=False,
+                 display_filters=30, filter_shape=(28, 28),
                  model_path='dbm_model/', *args, **kwargs):
         super(DBM, self).__init__(model_path=model_path, *args, **kwargs)
         self.n_layers = None
@@ -83,6 +84,9 @@ class DBM(EnergyBasedModel):
         self.val_metrics_every_epoch = val_metrics_every_epoch
         self.verbose = verbose
         self.save_after_each_epoch = save_after_each_epoch
+
+        self.display_filters = display_filters
+        self.filter_shape = filter_shape
 
         # current epoch and iter
         self.epoch = 0
@@ -216,6 +220,18 @@ class DBM(EnergyBasedModel):
                 hb = tf.Variable(t,  dtype=self._tf_dtype, name='hb')
                 self._hb.append(hb)
                 tf.summary.histogram('hb_hist', hb)
+
+        # visualize filters
+        if self.display_filters:
+            with tf.name_scope('filters_visualization'):
+                W = self._W[0]
+                for i in xrange(self.n_layers):
+                    if i > 0:
+                        W = tf.matmul(W, self._W[i])
+                    W_display = tf.reshape(W, [self.filter_shape[0],
+                                               self.filter_shape[1], self.n_hiddens[i], 1])
+                    W_display = tf.transpose(W_display, [2, 0, 1, 3])
+                    tf.summary.image('W_filters', W_display, max_outputs=self.display_filters)
 
         # initialize grads accumulators
         with tf.name_scope('grads_accumulators'):
