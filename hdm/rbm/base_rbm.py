@@ -190,6 +190,9 @@ class BaseRBM(EnergyBasedModel):
         self._n_hidden = None
         self._l2 = None
         self._dropout = None
+        self._sparsity_target = None
+        self._sparsity_cost = None
+        self._sparsity_damping = None
         self._dbm_first = None
         self._dbm_last = None
         self._propup_multiplier = None
@@ -228,7 +231,6 @@ class BaseRBM(EnergyBasedModel):
             self._sparsity_target = tf.constant(self.sparsity_target, dtype=self._tf_dtype, name='sparsity_target')
             self._sparsity_cost = tf.constant(self.sparsity_cost, dtype=self._tf_dtype, name='sparsity_cost')
             self._sparsity_damping = tf.constant(self.sparsity_damping, dtype=self._tf_dtype, name='sparsity_damping')
-
             self._dbm_first = tf.constant(self.dbm_first, dtype=tf.bool, name='is_dbm_first')
             self._dbm_last = tf.constant(self.dbm_last, dtype=tf.bool, name='is_dbm_last')
             t = tf.constant(1., dtype=self._tf_dtype, name="1")
