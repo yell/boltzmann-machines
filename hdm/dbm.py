@@ -425,9 +425,19 @@ class DBM(EnergyBasedModel):
 
         with tf.control_dependencies([v_update, v_new_update] + H_updates + H_new_updates + mu_updates):
 
+            # visualize hidden activation means
+            if self.display_hidden_activations:
+                with tf.name_scope('hidden_activations_visualization'):
+                    for i in xrange(self.n_layers):
+                        h_means_display = self._mu[i][:, :self.display_hidden_activations]
+                        h_means_display = tf.cast(h_means_display, tf.float32)
+                        h_means_display = tf.expand_dims(h_means_display, 0)
+                        h_means_display = tf.expand_dims(h_means_display, -1)
+                        tf.summary.image('hidden_activation_means', h_means_display)
+
             # encoded data, used by the transform method
             with tf.name_scope('transform'):
-                transform_op = tf.identity(mu_updates[-1])
+                transform_op = tf.identity(self._mu[-1])
                 tf.add_to_collection('transform_op', transform_op)
 
             # compute gradients estimates (= positive - negative associations)
