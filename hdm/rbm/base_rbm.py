@@ -209,6 +209,8 @@ class BaseRBM(EnergyBasedModel):
         self._dhb = None
         self._dvb = None
 
+        self._q_means = None
+
         # tf operations
         self._train_op = None
         self._transform_op = None
