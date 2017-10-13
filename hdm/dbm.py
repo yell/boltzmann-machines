@@ -238,14 +238,13 @@ class DBM(EnergyBasedModel):
         # initialize variational parameters
         with tf.name_scope('variational_params'):
             for i in xrange(self.n_layers):
-                with tf.name_scope('mu'):
-                    t = tf.zeros([self._batch_size, self.n_hiddens[i]], dtype=self._tf_dtype)
-                    mu = tf.Variable(t, name='mu')
-                    t_new = tf.zeros([self._batch_size, self.n_hiddens[i]], dtype=self._tf_dtype)
-                    mu_new = tf.Variable(t_new, name='mu_new')
-                    tf.summary.histogram('mu', mu)
-                    self._mu.append(mu)
-                    self._mu_new.append(mu_new)
+                t = tf.zeros([self._batch_size, self.n_hiddens[i]], dtype=self._tf_dtype)
+                mu = tf.Variable(t, name='mu')
+                t_new = tf.zeros([self._batch_size, self.n_hiddens[i]], dtype=self._tf_dtype)
+                mu_new = tf.Variable(t_new, name='mu_new')
+                tf.summary.histogram('mu_hist', mu)
+                self._mu.append(mu)
+                self._mu_new.append(mu_new)
 
         # initialize negative particles
         with tf.name_scope('negative_particles'):
