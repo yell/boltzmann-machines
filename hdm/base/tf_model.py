@@ -196,9 +196,12 @@ class TensorFlowModel(BaseModel):
         weights = {}
         for var in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=scope):
             key = var.name
-            if scope and scope in key: key = key.replace(scope, '')
-            if key.startswith('/'): key = key[1:]
-            if key.endswith(':0'): key = key[:-2]
+            if scope and scope in key:
+                key = key.replace(scope, '')
+            if key.startswith('/'):
+                key = key[1:]
+            if key.endswith(':0'):
+                key = key[:-2]
             weights[key] = var.eval()
         return weights
 

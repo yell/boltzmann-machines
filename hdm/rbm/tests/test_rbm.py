@@ -49,6 +49,23 @@ class TestRBM(object):
         assert H1.shape == H2.shape
         assert_allclose(H1, H2)
 
+    def test_initialization(self):
+        for C, dtype in (
+                (BernoulliRBM, 'float32'),
+                (BernoulliRBM, 'float64'),
+                (MultinomialRBM, 'float32'),
+                (GaussianRBM, 'float32'),
+        ):
+            rbm = C(max_epoch=2,
+                     model_path='test_rbm_1/',
+                     tf_dtype=dtype,
+                     **self.rbm_config)
+            rbm.init()
+            if dtype == 'float32':
+                assert_almost_equal(rbm.get_tf_params(scope='weights')['W'][0][0], -0.0094548017)
+            if dtype == 'float64':
+                assert_almost_equal(rbm.get_tf_params(scope='weights')['W'][0][0], -0.0077341544416)
+
     def test_consistency(self):
         for C, dtype in (
             (BernoulliRBM, 'float32'),
@@ -56,18 +73,11 @@ class TestRBM(object):
             (MultinomialRBM, 'float32'),
             (GaussianRBM, 'float32'),
         ):
+            # train 2 RBMs with same params for 2 epochs
             rbm1 = C(max_epoch=2,
                     model_path='test_rbm_1/',
                     tf_dtype=dtype,
                     **self.rbm_config)
-
-            # check initialization
-            if dtype == 'float32':
-                assert_almost_equal(rbm1.get_tf_params(scope='weights')['W'][0][0], -0.0094548017)
-            if dtype == 'float64':
-                assert_almost_equal(rbm1.get_tf_params(scope='weights')['W'][0][0], -0.0077341544416)
-
-            # train 2 RBMs with same params for 2 epochs
             rbm2 = C(max_epoch=2,
                      model_path='test_rbm_2/',
                      tf_dtype=dtype,
