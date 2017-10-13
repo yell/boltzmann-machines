@@ -244,6 +244,7 @@ class BaseRBM(EnergyBasedModel):
             self._X_batch = tf.placeholder(self._tf_dtype, [None, self.n_visible], name='X_batch')
 
     def _make_vars(self):
+        # initialize weights and biases
         with tf.name_scope('weights'):
             if hasattr(self.W_init, '__iter__'):
                 W_init = tf.constant(self.W_init, dtype=self._tf_dtype)
@@ -270,14 +271,15 @@ class BaseRBM(EnergyBasedModel):
             tf.summary.histogram('vb', self._vb)
             tf.summary.histogram('hb', self._hb)
 
-            # visualize filters
-            if self.display_filters:
-                with tf.name_scope('filters_visualization'):
-                    W_display = tf.reshape(self._W, [self.filter_shape[0],
-                                                     self.filter_shape[1], self.n_hidden, 1])
-                    W_display = tf.transpose(W_display, [2, 0, 1, 3])
-                    tf.summary.image('W_filters', W_display, max_outputs=self.display_filters)
+        # visualize filters
+        if self.display_filters:
+            with tf.name_scope('filters_visualization'):
+                W_display = tf.reshape(self._W, [self.filter_shape[0],
+                                                 self.filter_shape[1], self.n_hidden, 1])
+                W_display = tf.transpose(W_display, [2, 0, 1, 3])
+                tf.summary.image('W_filters', W_display, max_outputs=self.display_filters)
 
+        # initialize gradients accumulators
         with tf.name_scope('grads_accumulators'):
             dW_init = tf.constant(self._dW_init, dtype=self._tf_dtype) if self._dW_init is not None else\
                       tf.zeros([self._n_visible, self._n_hidden], dtype=self._tf_dtype)
@@ -294,7 +296,8 @@ class BaseRBM(EnergyBasedModel):
             tf.summary.histogram('dvb', self._dvb)
             tf.summary.histogram('dhb', self._dhb)
 
-        with tf.name_scope('hidden_activations_probs'):
+        # initialize running means of hidden activations means
+        with tf.name_scope('hidden_activations_means'):
             self._q_means = tf.Variable(tf.zeros([self._n_hidden], dtype=self._tf_dtype), name='q_means')
 
     def _propup(self, v):
