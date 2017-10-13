@@ -41,7 +41,7 @@ def main():
     parser.add_argument('--epochs', type=int, default=[80, 140, 500], metavar='N', nargs='+',
                         help='number of epochs to train')
     parser.add_argument('--batch-size', type=int, default=[48, 48, 100], metavar='B', nargs='+',
-                        help='input batch size for training, `--n-train` and `--n-val`'+\
+                        help='input batch size for training, `--n-train` and `--n-val`' + \
                              'must be divisible by this number')
     parser.add_argument('--increase-n-gibbs-steps-every', type=int, default=20, metavar='I',
                         help='increase number of Gibbs steps every specified number of epochs for RBM #2')
@@ -153,7 +153,7 @@ def main():
             metrics_config=dict(
                 msre=True,
                 pll=True,
-                train_metrics_every_iter=500,
+                train_metrics_every_iter=1000,
             ),
             verbose=True,
             display_filters=False,
@@ -182,7 +182,7 @@ def main():
             rbm2.fit(Z)
 
     # freeze RBM #2 and extract features Q = P(h|v=Z)
-    print "\nExtracting features from RBM #1 ...\n\n"
+    print "\nExtracting features from RBM #2 ...\n\n"
     Q = rbm2.transform(Z)
     print Q.shape
 
@@ -209,8 +209,8 @@ def main():
                   max_norm=args.max_norm,
                   sample_v_states=True,
                   sample_h_states=(True, True),
-                  train_metrics_every_iter=500,
-                  val_metrics_every_epoch=1,
+                  train_metrics_every_iter=1000,
+                  val_metrics_every_epoch=2,
                   random_seed=2222,
                   verbose=True,
                   tf_dtype='float32',
@@ -223,7 +223,7 @@ def main():
     G = dbm.transform(X)
     print G.shape, G.min(), G.max(), G.mean(), G.sum()
 
-    V = dbm.sample_v_particle(n_gibbs_steps=10)
+    V = dbm.sample_v(n_gibbs_steps=10)
     print V.shape, V.min(), V.max(), V.mean(), V.sum()
     from hdm.utils import plot_matrices
     import matplotlib.pyplot as plt
