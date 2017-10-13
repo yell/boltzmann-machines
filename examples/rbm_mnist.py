@@ -88,6 +88,7 @@ def main():
     parser.add_argument('--mlp-save-prefix', type=str, default='../data/rbm_', metavar='PREFIX',
                         help='prefix to save MLP predictions and targets')
     args = parser.parse_args()
+    if args.load == '': args.load = args.model_dirpath
 
     # prepare data
     X, y = load_mnist(mode='train', path='../data/')

@@ -88,6 +88,9 @@ def main():
     if len(args.batch_size) == 1: args.batch_size *= 3
     if len(args.sparsity_target) == 1: args.sparsity_target *= 2
     if len(args.sparsity_cost) == 1: args.sparsity_cost *= 2
+    if args.load_rbm1 == '': args.load_rbm1 = args.rbm1_dirpath
+    if args.load_rbm2 == '': args.load_rbm2 = args.rbm2_dirpath
+    if args.load_dbm == '': args.load_dbm = args.dbm_dirpath
 
     # prepare data
     X, _ = load_mnist(mode='train', path='../data/')
