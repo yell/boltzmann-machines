@@ -38,7 +38,7 @@ def main():
     # common
     parser.add_argument('--n-hiddens', type=int, default=[512, 1024], metavar='N', nargs='+',
                         help='numbers of hidden units')
-    parser.add_argument('--epochs', type=int, default=[56, 112, 500], metavar='N', nargs='+',
+    parser.add_argument('--epochs', type=int, default=[56, 120, 500], metavar='N', nargs='+',
                         help='number of epochs to train')
     parser.add_argument('--batch-size', type=int, default=[48, 48, 100], metavar='B', nargs='+',
                         help='input batch size for training, `--n-train` and `--n-val`' + \
@@ -78,7 +78,7 @@ def main():
                         help='maximum norm constraint')
     parser.add_argument('--sparsity-target', type=float, default=[0.2, 0.1], metavar='T', nargs='+',
                         help='desired probability of hidden activation')
-    parser.add_argument('--sparsity-cost', type=float, default=[1e-4, 1e-4], metavar='C', nargs='+',
+    parser.add_argument('--sparsity-cost', type=float, default=[1e-3, 1e-3], metavar='C', nargs='+',
                         help='controls the amount of sparsity penalty')
     parser.add_argument('--sparsity-damping', type=float, default=0.9, metavar='D',
                         help='decay rate for hidden activations probs')
@@ -117,7 +117,7 @@ def main():
                             sample_h_states=True,
                             sample_v_states=True,
                             sparsity_cost=0.,
-                            dbm_first=True, # !!!
+                            dbm_first=True,  # !!!
                             metrics_config=dict(
                                 msre=True,
                                 pll=True,
@@ -141,11 +141,11 @@ def main():
         rbm2 = BernoulliRBM.load_model(args.load_rbm2)
     else:
         print "\nTraining RBM #2 ...\n\n"
-        rbm2_learning_rate = 0.01
+        rbm2_learning_rate = 0.02
         rbm2_config = dict(
             n_visible=args.n_hiddens[0],
             n_hidden=args.n_hiddens[1],
-            W_init=0.005,
+            W_init=0.008,
             vb_init=0.,
             hb_init=0.,
             n_gibbs_steps=1,
@@ -153,11 +153,11 @@ def main():
             momentum=[0.5] * 5 + [0.9],
             max_epoch=args.increase_n_gibbs_steps_every,
             batch_size=args.batch_size[1],
-            l2=1e-4,
+            l2=5e-4,
             sample_h_states=True,
             sample_v_states=True,
             sparsity_cost=0.,
-            dbm_last=True, # !!!
+            dbm_last=True,  # !!!
             metrics_config=dict(
                 msre=True,
                 pll=True,
