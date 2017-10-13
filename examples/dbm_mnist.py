@@ -38,7 +38,7 @@ def main():
     # common
     parser.add_argument('--n-hiddens', type=int, default=[512, 1024], metavar='N', nargs='+',
                         help='numbers of hidden units')
-    parser.add_argument('--epochs', type=int, default=[56, 120, 500], metavar='N', nargs='+',
+    parser.add_argument('--epochs', type=int, default=[56, 112, 500], metavar='N', nargs='+',
                         help='number of epochs to train')
     parser.add_argument('--batch-size', type=int, default=[48, 48, 100], metavar='B', nargs='+',
                         help='input batch size for training, `--n-train` and `--n-val`' + \
@@ -70,7 +70,7 @@ def main():
                         help='maximum number of mean-field updates per weight update')
     parser.add_argument('--mf-tol', type=float, default=1e-7, metavar='TOL',
                         help='mean-field tolerance')
-    parser.add_argument('--lr', type=float, default=1e-4, metavar='LR',
+    parser.add_argument('--lr', type=float, default=5e-4, metavar='LR',
                         help='initial learning rate')
     parser.add_argument('--l2', type=float, default=1e-7, metavar='L2',
                         help='L2 weight decay coefficient')
@@ -133,7 +133,7 @@ def main():
                             model_path=args.rbm1_dirpath)
         rbm1.fit(X)
 
-    # freeze RBM #1 and extract features Z = P(h|v=X)
+    # freeze RBM #1 and extract features Q = P_{RBM1}(h|v=X)
     print "\nExtracting features from RBM #1 ...\n\n"
     Z = rbm1.transform(X)
     print Z.shape
@@ -192,7 +192,7 @@ def main():
             rbm2 = rbm2_new
             rbm2.fit(Z)
 
-    # freeze RBM #2 and extract features Q = P(h|v=Z)
+    # freeze RBM #2 and extract features G = P_{RBM2}(h|v=Q)
     print "\nExtracting features from RBM #2 ...\n\n"
     Q = rbm2.transform(Z)
     print Q.shape
