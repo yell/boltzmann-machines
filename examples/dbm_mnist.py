@@ -239,9 +239,7 @@ def main():
         std = log_Z.std()
         print "{0} -> {1:.2f} +- {2:.2f}".format(n_b, mean, std)
 
-    f(10)
     f(100)
-    f(500)
     f(1000)
     f(10000)
 
