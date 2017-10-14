@@ -16,6 +16,7 @@
 * sparsity targets
 * visualize norms of weights in each layer
 * visualize visible negative particles
+* implemented Annealed Importance Sampling to estimate log partition function
 
 ### Hierarchical Dirichlet Prior (HDP)
 ***TODO***
