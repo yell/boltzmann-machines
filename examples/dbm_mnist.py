@@ -139,7 +139,8 @@ def main():
     Z = None
     if not args.load_rbm2 or not args.load_dbm:
         print "\nExtracting features from RBM #1 ...\n\n"
-        Z = rbm1.transform(X)
+        Z = np.load('Z.npy')
+        # Z = rbm1.transform(X)
         print Z.shape
 
     # pre-train RBM #2
@@ -204,7 +205,8 @@ def main():
     else:
         # freeze RBM #2 and extract features G = P_{RBM2}(h|v=Q)
         print "\nExtracting features from RBM #2 ...\n\n"
-        Q = rbm2.transform(Z)
+        Q = np.load('Z.npy')
+        # Q = rbm2.transform(Z)
         print Q.shape
 
         print "\nTraining DBM ...\n\n"
@@ -222,13 +224,15 @@ def main():
                   batch_size=args.batch_size[2],
                   l2=args.l2,
                   max_norm=args.max_norm,
+                  display_filters=0,
+                  display_particles=0,
                   sample_v_states=True,
                   sample_h_states=(True, True),
                   sparsity_targets=args.sparsity_target,
                   sparsity_costs=args.sparsity_cost,
                   sparsity_damping=args.sparsity_damping,
-                  train_metrics_every_iter=500,
-                  val_metrics_every_epoch=2,
+                  train_metrics_every_iter=10000,
+                  val_metrics_every_epoch=1000,
                   random_seed=2222,
                   verbose=True,
                   tf_dtype='float32',
@@ -254,13 +258,13 @@ def main():
     # G = dbm.transform(X)
     # print G.shape, G.min(), G.max(), G.mean(), G.sum()
 
-    V = dbm.sample_v(n_gibbs_steps=10)
-    print V.shape, V.min(), V.max(), V.mean(), V.sum()
-    from hdm.utils import plot_matrices
-    import matplotlib.pyplot as plt
-    fig = plt.figure(figsize=(10, 10))
-    plot_matrices(V, shape=(28, 28), imshow_params={'cmap': plt.cm.gray})
-    plt.show()
+    # V = dbm.sample_v(n_gibbs_steps=10)
+    # print V.shape, V.min(), V.max(), V.mean(), V.sum()
+    # from hdm.utils import plot_matrices
+    # import matplotlib.pyplot as plt
+    # fig = plt.figure(figsize=(10, 10))
+    # plot_matrices(V, shape=(28, 28), imshow_params={'cmap': plt.cm.gray})
+    # plt.show()
 
 
 if __name__ == '__main__':
