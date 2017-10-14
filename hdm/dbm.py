@@ -582,8 +582,7 @@ class DBM(EnergyBasedModel):
             v_update, H_updates, v_new_update, H_new_updates = \
                 self._make_particles_update(n_steps=self._n_gibbs_steps)
             with tf.control_dependencies([v_update, v_new_update] + H_updates + H_new_updates):
-                T = tf.matmul(a=self._H[0], b=self._W[0], transpose_b=True)
-                v_means = self._v_layer.activation(T, self._vb)
+                v_means, _, _, _ = self._make_particles_update(sample=False)
                 sample_v = self._v.assign(v_means)
         tf.add_to_collection('sample_v', sample_v)
 
