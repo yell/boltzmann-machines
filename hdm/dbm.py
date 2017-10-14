@@ -634,10 +634,10 @@ class DBM(EnergyBasedModel):
 
     def _make_ais(self):
         with tf.name_scope('annealed_importance_sampling'):
+
             # x_1 ~ Ber(0.5) of size (M, H_1)
             x = tf.cast(Bernoulli(logits=tf.zeros(self._x_ais.get_shape())).sample(), dtype=self._tf_dtype)
             x_update = self._x_ais.assign(x)
-
             with tf.control_dependencies([x_update]):
 
                 # -log p_0(x_1)
