@@ -328,8 +328,10 @@ class DBM(EnergyBasedModel):
                     self._H_new.append(h_new)
 
         # initialize current inv temperature for AIS
-        self._beta = tf.Variable(tf.constant(0., dtype=self._tf_dtype), name='beta')
-        self._x_ais = tf.Variable(tf.zeros([self.n_particles, self.n_hiddens[0]], dtype=self._tf_dtype), name='x_ais')
+        with tf.name_scope('AIS_variables'):
+            self._beta = tf.Variable(tf.constant(0., dtype=self._tf_dtype), name='beta')
+            self._x_ais = tf.Variable(tf.zeros([self.n_particles, self.n_hiddens[0]], dtype=self._tf_dtype),
+                                      name='x_ais')
 
 
     def _make_gibbs_step(self, v, H, v_new, H_new, update_v=True, sample=True):
