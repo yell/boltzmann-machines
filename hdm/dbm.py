@@ -638,10 +638,10 @@ class DBM(EnergyBasedModel):
             x = tf.cast(Bernoulli(logits=tf.zeros(self._x_ais.get_shape())).sample(), dtype=self._tf_dtype)
             x_update = self._x_ais.assign(x)
 
-            # -log p_0(x_1)
-            log_Z = -self._unnormalized_log_prob_H0()
+            with tf.control_dependencies([x_update]):
 
-            with tf.control_dependencies([x_update, log_Z]):
+                # -log p_0(x_1)
+                log_Z = -self._unnormalized_log_prob_H0()
 
                 def cond(i, log_Z):
                     return i < self._n_betas - 1
@@ -649,7 +649,7 @@ class DBM(EnergyBasedModel):
                 def body(i, log_Z):
                     # increase beta
                     beta_update = self._beta.assign_add(1. / tf.cast(self._n_betas, dtype=self._tf_dtype))
-                    with tf.control_dependencies([beta_update]):
+                    with tf.control_dependencies([beta_update, tf.Print('beta', [self._beta])]):
 
                         # + log p_i(x_i)
                         log_Z += self._unnormalized_log_prob_H0()

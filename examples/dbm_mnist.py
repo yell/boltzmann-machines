@@ -71,7 +71,7 @@ def main():
                         help='maximum number of mean-field updates per weight update')
     parser.add_argument('--mf-tol', type=float, default=1e-7, metavar='TOL',
                         help='mean-field tolerance')
-    parser.add_argument('--lr', type=float, default=1e-3, metavar='LR',
+    parser.add_argument('--lr', type=float, default=5e-4, metavar='LR',
                         help='initial learning rate')
     parser.add_argument('--l2', type=float, default=1e-7, metavar='L2',
                         help='L2 weight decay coefficient')
@@ -245,8 +245,7 @@ def main():
         return mean
 
     # f(100)
-    log_Z = f(200)
-    # f(1000)
+    log_Z = f(1000)
 
     # print dbm.log_proba(X_val, log_Z=355.87)
     print dbm.log_proba(X_val, log_Z=log_Z).mean()
