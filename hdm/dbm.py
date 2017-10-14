@@ -151,6 +151,7 @@ class DBM(EnergyBasedModel):
         self._n_mf_updates = None
         self._sample_v = None
         self._log_Z = None
+        self._log_proba = None
 
     def load_rbms(self, rbms):
         if rbms is not None:
@@ -679,6 +680,29 @@ class DBM(EnergyBasedModel):
 
                         tf.add_to_collection('log_Z', log_Z)
 
+    def _make_log_proba(self):
+        with tf.name_scope('log_proba'):
+            n_mf_updates, mu_updates = self._make_mf()
+            with tf.control_dependencies(mu_updates):
+                t1 = tf.matmul(self._X_batch, self._W[0])
+                T1 = tf.reduce_sum(t1 * self._mu[0], axis=1)
+                t2 = tf.matmul(self._mu[0], self._W[1])
+                T2 = tf.reduce_sum(t2 * self._mu[1], axis=1)
+                T3 = tf.einsum('ij,j->i', self._X_batch, self._vb)
+                T4 = tf.einsum('ij,j->i', self._mu[0], self._hb[0])
+                T5 = tf.einsum('ij,j->i', self._mu[1], self._hb[1])
+                minus_E = T1 + T2 + T3 + T4 + T5
+
+                s1 = tf.clip_by_value(self._mu[0], 1e-7, 1. - 1e-7)
+                s2 = tf.clip_by_value(self._mu[1], 1e-7, 1. - 1e-7)
+                S1 = -s1 * tf.log(s1) - (1. - s1) * tf.log(1. - s1)
+                S2 = -s2 * tf.log(s2) - (1. - s2) * tf.log(1. - s2)
+                H = tf.reduce_sum(S1, axis=1) + tf.reduce_sum(S2, axis=1)
+
+        log_P = minus_E + H
+        log_P -= tf.cast(tf.log(2.),dtype=self._tf_dtype) * tf.cast(self._n_hiddens[1], dtype=self._tf_dtype)
+        tf.add_to_collection('log_proba', log_P)
+
 
     def _make_tf_model(self):
         self._make_constants()
@@ -687,7 +711,9 @@ class DBM(EnergyBasedModel):
 
         self._make_train_op()
         self._make_sample_v()
+
         self._make_ais()
+        self._make_log_proba()
 
 
     def _make_tf_feed_dict(self, X_batch=None, n_gibbs_steps=None, n_betas=None):
@@ -795,16 +821,17 @@ class DBM(EnergyBasedModel):
     @run_in_tf_session(update_seed=True)
     def sample_v(self, n_gibbs_steps=0, save_model=False):
         self._sample_v = tf.get_collection('sample_v')[0]
-        v = self._tf_session.run(self._sample_v,
-                                 feed_dict=self._make_tf_feed_dict(n_gibbs_steps=n_gibbs_steps))
+        v = self._sample_v.eval(feed_dict=self._make_tf_feed_dict(n_gibbs_steps=n_gibbs_steps))
         if save_model:
             self._save_model()
         return v
 
     @run_in_tf_session(update_seed=True)
-    def log_Z(self, n_betas=10, n_gibbs_steps=5):
+    def log_Z(self, n_betas=100, n_gibbs_steps=5):
         """Estimate log partition function using Annealed Importance Sampling.
         Currently implemented only for 2-layer binary BM.
+        AIS is run on a state space x = {h_1} with v and h_2
+        analytically marginalized out, as in [1].
         """
         assert self.n_layers == 2
         self._log_Z = tf.get_collection('log_Z')[0]
@@ -812,3 +839,18 @@ class DBM(EnergyBasedModel):
                                      feed_dict=self._make_tf_feed_dict(n_gibbs_steps=n_gibbs_steps,
                                                                        n_betas=n_betas))
         return log_Z
+
+    @run_in_tf_session()
+    def log_proba(self, X_test, log_Z):
+        """Estimate variational lower-bound on a test set.
+        Currently implemented only for 2-layer binary BM.
+        """
+        assert self.n_layers == 2
+        self._log_proba = tf.get_collection('log_proba')[0]
+        P = np.zeros(len(X_test))
+        start = 0
+        for X_b in batch_iter(X_test, batch_size=self.batch_size, verbose=self.verbose):
+            P_b = self._log_proba.eval(feed_dict=self._make_tf_feed_dict(X_b))
+            P[start:(start + self.batch_size)] = P_b
+            start += self.batch_size
+        return P - log_Z
