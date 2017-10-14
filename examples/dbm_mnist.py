@@ -168,7 +168,7 @@ def main():
             metrics_config=dict(
                 msre=True,
                 pll=True,
-                train_metrics_every_iter=1000,
+                train_metrics_every_iter=2000,
             ),
             verbose=True,
             display_filters=False,
