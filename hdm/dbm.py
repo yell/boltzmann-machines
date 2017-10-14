@@ -701,7 +701,7 @@ class DBM(EnergyBasedModel):
 
         log_P = minus_E + H
         T = tf.cast(self._n_hiddens[1], dtype=self._tf_dtype)
-        T *= tf.cast(tf.log(2.),dtype=self._tf_dtype)
+        T *= tf.cast(tf.log(2.), dtype=self._tf_dtype)
         log_P -= T
         tf.add_to_collection('log_proba', log_P)
 
