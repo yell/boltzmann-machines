@@ -134,9 +134,11 @@ def main():
         rbm1.fit(X)
 
     # freeze RBM #1 and extract features Q = P_{RBM1}(h|v=X)
-    print "\nExtracting features from RBM #1 ...\n\n"
-    Z = rbm1.transform(X)
-    print Z.shape
+    Z = None
+    if not args.load_rbm2 or not args.load_dbm:
+        print "\nExtracting features from RBM #1 ...\n\n"
+        Z = rbm1.transform(X)
+        print Z.shape
 
     # pre-train RBM #2
     if args.load_rbm2:
@@ -192,17 +194,17 @@ def main():
             rbm2 = rbm2_new
             rbm2.fit(Z)
 
-    # freeze RBM #2 and extract features G = P_{RBM2}(h|v=Q)
-    print "\nExtracting features from RBM #2 ...\n\n"
-    Q = rbm2.transform(Z)
-    print Q.shape
-
     # jointly train DBM
     if args.load_dbm:
         print "\nLoading DBM ...\n\n"
         dbm = DBM.load_model(args.load_dbm)
-        dbm.load_rbms([rbm1, rbm2]) # !!!
+        dbm.load_rbms([rbm1, rbm2])  # !!!
     else:
+        # freeze RBM #2 and extract features G = P_{RBM2}(h|v=Q)
+        print "\nExtracting features from RBM #2 ...\n\n"
+        Q = rbm2.transform(Z)
+        print Q.shape
+
         print "\nTraining DBM ...\n\n"
         dbm = DBM(rbms=[rbm1, rbm2],
                   n_particles=args.n_particles,
@@ -223,8 +225,8 @@ def main():
                   sparsity_targets=args.sparsity_target,
                   sparsity_costs=args.sparsity_cost,
                   sparsity_damping=args.sparsity_damping,
-                  train_metrics_every_iter=500,
-                  val_metrics_every_epoch=2,
+                  train_metrics_every_iter=1,
+                  val_metrics_every_epoch=1,
                   random_seed=2222,
                   verbose=True,
                   tf_dtype='float32',
@@ -241,19 +243,18 @@ def main():
 
     f(100)
     f(1000)
-    f(10000)
 
     # # g_i = p(h_{L-1}|v=x_i)
     # G = dbm.transform(X)
     # print G.shape, G.min(), G.max(), G.mean(), G.sum()
     #
-    # V = dbm.sample_v(n_gibbs_steps=10)
-    # print V.shape, V.min(), V.max(), V.mean(), V.sum()
-    # from hdm.utils import plot_matrices
-    # import matplotlib.pyplot as plt
-    # fig = plt.figure(figsize=(10, 10))
-    # plot_matrices(V, shape=(28, 28), imshow_params={'cmap': plt.cm.gray})
-    # plt.show()
+    V = dbm.sample_v(n_gibbs_steps=10)
+    print V.shape, V.min(), V.max(), V.mean(), V.sum()
+    from hdm.utils import plot_matrices
+    import matplotlib.pyplot as plt
+    fig = plt.figure(figsize=(10, 10))
+    plot_matrices(V, shape=(28, 28), imshow_params={'cmap': plt.cm.gray})
+    plt.show()
 
 
 if __name__ == '__main__':
