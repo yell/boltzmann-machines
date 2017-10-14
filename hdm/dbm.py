@@ -700,7 +700,9 @@ class DBM(EnergyBasedModel):
                 H = tf.reduce_sum(S1, axis=1) + tf.reduce_sum(S2, axis=1)
 
         log_P = minus_E + H
-        log_P -= tf.cast(tf.log(2.),dtype=self._tf_dtype) * tf.cast(self._n_hiddens[1], dtype=self._tf_dtype)
+        T = tf.cast(self._n_hiddens[1], dtype=self._tf_dtype)
+        T *= tf.cast(tf.log(2.),dtype=self._tf_dtype)
+        log_P -= T
         tf.add_to_collection('log_proba', log_P)
 
 
