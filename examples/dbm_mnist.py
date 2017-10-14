@@ -15,6 +15,7 @@ Links
 print __doc__
 
 
+import os
 import argparse
 import numpy as np
 
@@ -28,8 +29,8 @@ from hdm.utils.dataset import load_mnist
 def main():
     # training settings
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-
-    # data-related
+    parser.add_argument('--gpu', type=str, default='0', metavar='ID',
+                        help="ID of the GPU to train on (or '' to train on CPU)")
     parser.add_argument('--n-train', type=int, default=59000, metavar='N',
                         help='number of training examples')
     parser.add_argument('--n-val', type=int, default=1000, metavar='N',
@@ -84,6 +85,7 @@ def main():
                         help='decay rate for hidden activations probs')
 
     args = parser.parse_args()
+    os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
     if len(args.epochs) == 1: args.epochs *= 3
     if len(args.batch_size) == 1: args.batch_size *= 3
     if len(args.sparsity_target) == 1: args.sparsity_target *= 2

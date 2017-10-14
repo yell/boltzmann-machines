@@ -14,6 +14,7 @@ The code uses early stopping so max number of MLP epochs is often not reached.
 print __doc__
 
 
+import os
 import argparse
 import numpy as np
 from keras import regularizers
@@ -34,6 +35,8 @@ from hdm.utils.optimizers import MultiAdam
 def main():
     # training settings
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--gpu', type=str, default='0', metavar='ID',
+                        help="ID of the GPU to train on (or '' to train on CPU)")
     parser.add_argument('--n-train', type=int, default=55000, metavar='N',
                         help='number of training examples')
     parser.add_argument('--n-val', type=int, default=5000, metavar='N',
@@ -87,7 +90,9 @@ def main():
                         help='input batch size for training MLP')
     parser.add_argument('--mlp-save-prefix', type=str, default='../data/rbm_', metavar='PREFIX',
                         help='prefix to save MLP predictions and targets')
+
     args = parser.parse_args()
+    os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
     if args.load == '': args.load = args.model_dirpath
 
     # prepare data
