@@ -388,7 +388,7 @@ class DBM(EnergyBasedModel):
     def _make_mf(self):
         """Run mean-field updates for current mini-batch"""
         with tf.name_scope('mean_field'):
-            # randomly initialize mu_new
+            # initialize mu_new using approximate inference [1]
             init_ops = []
             for i in xrange(self.n_layers):
                 if i == 0:
