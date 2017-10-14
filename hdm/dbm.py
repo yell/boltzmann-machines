@@ -475,16 +475,6 @@ class DBM(EnergyBasedModel):
 
         with tf.control_dependencies([v_update, v_new_update] + H_updates + H_new_updates + mu_updates):
 
-            # visualize hidden activation means
-            if self.display_hidden_activations:
-                with tf.name_scope('hidden_activations_visualization'):
-                    for i in xrange(self.n_layers):
-                        h_means_display = self._H[i][:, :self.display_hidden_activations]
-                        h_means_display = tf.cast(h_means_display, tf.float32)
-                        h_means_display = tf.expand_dims(h_means_display, 0)
-                        h_means_display = tf.expand_dims(h_means_display, -1)
-                        tf.summary.image('hidden_activation_means', h_means_display)
-
             # encoded data, used by the transform method
             with tf.name_scope('transform'):
                 transform_op = tf.identity(self._mu[-1])
@@ -522,7 +512,7 @@ class DBM(EnergyBasedModel):
             # apply sparsity targets if needed
             with tf.name_scope('sparsity_targets'):
                 for i in xrange(self.n_layers):
-                    q_means = tf.reduce_sum(self._mu[i], axis=0)
+                    q_means = tf.reduce_sum(self._H[i], axis=0)
                     q_update = self._q_means[i].assign(self._sparsity_damping * self._q_means[i] + \
                                                        (1 - self._sparsity_damping) * q_means[i])
                     sparsity_penalty = self._sparsity_costs[i] * (q_update - self._sparsity_targets[i])
