@@ -39,12 +39,12 @@ def main():
     # common
     parser.add_argument('--n-hiddens', type=int, default=[512, 1024], metavar='N', nargs='+',
                         help='numbers of hidden units')
-    parser.add_argument('--epochs', type=int, default=[56, 112, 500], metavar='N', nargs='+',
+    parser.add_argument('--epochs', type=int, default=[64, 120, 500], metavar='N', nargs='+',
                         help='number of epochs to train')
     parser.add_argument('--batch-size', type=int, default=[48, 48, 100], metavar='B', nargs='+',
                         help='input batch size for training, `--n-train` and `--n-val`' + \
                              'must be divisible by this number (for DBM)')
-    parser.add_argument('--increase-n-gibbs-steps-every', type=int, default=16, metavar='I',
+    parser.add_argument('--increase-n-gibbs-steps-every', type=int, default=20, metavar='I',
                         help='increase number of Gibbs steps every specified number of epochs for RBM #2')
 
     # dirpaths
@@ -148,11 +148,11 @@ def main():
         rbm2 = BernoulliRBM.load_model(args.load_rbm2)
     else:
         print "\nTraining RBM #2 ...\n\n"
-        rbm2_learning_rate = 0.02
+        rbm2_learning_rate = 0.01
         rbm2_config = dict(
             n_visible=args.n_hiddens[0],
             n_hidden=args.n_hiddens[1],
-            W_init=0.008,
+            W_init=0.005,
             vb_init=0.,
             hb_init=0.,
             n_gibbs_steps=1,
@@ -160,7 +160,7 @@ def main():
             momentum=[0.5] * 5 + [0.9],
             max_epoch=args.increase_n_gibbs_steps_every,
             batch_size=args.batch_size[1],
-            l2=5e-4,
+            l2=2e-4,
             sample_h_states=True,
             sample_v_states=True,
             sparsity_cost=0.,
@@ -227,8 +227,8 @@ def main():
                   sparsity_targets=args.sparsity_target,
                   sparsity_costs=args.sparsity_cost,
                   sparsity_damping=args.sparsity_damping,
-                  train_metrics_every_iter=1,
-                  val_metrics_every_epoch=1,
+                  train_metrics_every_iter=500,
+                  val_metrics_every_epoch=2,
                   random_seed=2222,
                   verbose=True,
                   tf_dtype='float32',
@@ -245,11 +245,10 @@ def main():
         return mean
 
     # f(100)
-    log_Z = f(1000)
+    # log_Z = f(1000)
 
     # print dbm.log_proba(X_val, log_Z=355.87)
-    print dbm.log_proba(X_val, log_Z=log_Z).mean()
-
+    # print dbm.log_proba(X_val, log_Z=log_Z).mean()
 
     # g_i = p(h_{L-1}|v=x_i)
     # G = dbm.transform(X)
