@@ -57,7 +57,6 @@ class DBM(EnergyBasedModel):
                  train_metrics_every_iter=10, val_metrics_every_epoch=1,
                  verbose=False, save_after_each_epoch=False,
                  display_filters=24, display_particles=24, v_shape=(28, 28),
-                 display_hidden_activations=24,
                  model_path='dbm_model/', *args, **kwargs):
         super(DBM, self).__init__(model_path=model_path, *args, **kwargs)
         self.n_layers = None
@@ -95,7 +94,6 @@ class DBM(EnergyBasedModel):
         self.display_filters = display_filters
         self.display_particles = display_particles
         self.v_shape = v_shape
-        self.display_hidden_activations = display_hidden_activations
 
         # current epoch and iter
         self.epoch = 0
@@ -329,15 +327,6 @@ class DBM(EnergyBasedModel):
                     self._H.append(h)
                     self._H_new.append(h_new)
 
-        # visualize visible negative particles
-        if self.display_particles:
-            with tf.name_scope('particles_visualization'):
-                V = self._v[:self.display_particles, :]
-                V_display = tf.reshape(V, [self.display_particles, self.v_shape[0],
-                                                                   self.v_shape[1], 1])
-                V_display = tf.cast(V_display, tf.float32)
-                tf.summary.image('negative_particles', V_display, max_outputs=self.display_filters)
-
         # initialize current inv temperature for AIS
         self._beta = tf.Variable(tf.constant(0., dtype=self._tf_dtype), name='beta')
         self._x_ais = tf.Variable(tf.zeros([self.n_particles, self.n_hiddens[0]], dtype=self._tf_dtype), name='x_ais')
@@ -434,7 +423,7 @@ class DBM(EnergyBasedModel):
                 mu_updates = [ self._mu[i].assign(mu[i]) for i in xrange(self.n_layers) ]
             return n_mf_updates, mu_updates
 
-    def _make_particles_update(self, n_steps=None):
+    def _make_particles_update(self, n_steps=None, sample=True):
         """Update negative particles by running Gibbs sampler
         for specified number of steps.
         """
@@ -446,7 +435,7 @@ class DBM(EnergyBasedModel):
 
             def body(step, max_step, v, H, v_new, H_new):
                 v, H, v_new, H_new = self._make_gibbs_step(v, H, v_new, H_new,
-                                                           update_v=True, sample=True)
+                                                           update_v=True, sample=sample)
                 return step + 1, max_step, v_new, H_new, v, H  # swap particles
 
             _, _, v, H, v_new, H_new = tf.while_loop(cond=cond, body=body,
@@ -479,6 +468,24 @@ class DBM(EnergyBasedModel):
             with tf.name_scope('transform'):
                 transform_op = tf.identity(self._mu[-1])
                 tf.add_to_collection('transform_op', transform_op)
+
+            # visualize particles
+            if self.display_particles:
+                with tf.name_scope('particles_visualization'):
+                    v_means, H_means, _, _ = self._make_particles_update(sample=False)
+
+                    V = v_means[:self.display_particles, :]
+                    V_display = tf.reshape(V, [self.display_particles, self.v_shape[0],
+                                               self.v_shape[1], 1])
+                    V_display = tf.cast(V_display, tf.float32)
+                    tf.summary.image('visible_activations_means', V_display, max_outputs=self.display_filters)
+
+                    for i in xrange(self.n_layers):
+                        h_means_display = H_means[i][:, :self.display_particles]
+                        h_means_display = tf.cast(h_means_display, tf.float32)
+                        h_means_display = tf.expand_dims(h_means_display, 0)
+                        h_means_display = tf.expand_dims(h_means_display, -1)
+                        tf.summary.image('hidden_activations_means', h_means_display)
 
             # compute gradients estimates (= positive - negative associations)
             with tf.name_scope('grads_estimates'):
