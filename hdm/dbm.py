@@ -636,10 +636,11 @@ class DBM(EnergyBasedModel):
             # x_1 ~ Ber(0.5) of size (M, H_1)
             x = tf.cast(Bernoulli(logits=tf.zeros(self._x_ais.get_shape())).sample(), dtype=self._tf_dtype)
             x_update = self._x_ais.assign(x)
-            with tf.control_dependencies([x_update]):
 
-                # -log p_0(x_1)
-                log_Z = -self._unnormalized_log_prob_H0()
+            # -log p_0(x_1)
+            log_Z = -self._unnormalized_log_prob_H0()
+
+            with tf.control_dependencies([x_update, log_Z]):
 
                 def cond(i, log_Z):
                     return i < self._n_betas - 1
