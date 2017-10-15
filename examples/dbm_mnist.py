@@ -249,7 +249,7 @@ def main():
              M=args.max_norm, C=args.sparsity_cost[0])
 
 
-    log_Z, (_, high) = dbm.log_Z(n_runs=100, n_betas=500, n_gibbs_steps=10)
+    log_Z, (_, high) = dbm.log_Z(n_runs=100, n_betas=1000, n_gibbs_steps=10)
     log_p = dbm.log_proba(X_val, log_Z=log_Z).mean()
     print "{0:.3f}".format(log_p)
 
