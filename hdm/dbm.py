@@ -121,7 +121,8 @@ class DBM(EnergyBasedModel):
         self._momentum = None
         self._n_gibbs_steps = None
         self._X_batch = None
-        self._n_betas = None
+        self._delta_beta = None
+        self._n_ais_runs = None
 
         # tf vars
         self._W = []
@@ -140,9 +141,6 @@ class DBM(EnergyBasedModel):
         self._v_new = None
         self._H = []
         self._H_new = []
-
-        self._beta = None
-        self._x_ais = None
 
         # tf operations
         self._train_op = None
@@ -210,7 +208,8 @@ class DBM(EnergyBasedModel):
             self._momentum = tf.placeholder(self._tf_dtype, [], name='momentum')
             self._n_gibbs_steps = tf.placeholder(tf.int32, [], name='n_gibbs_steps')
             self._X_batch = tf.placeholder(self._tf_dtype, [None, self.n_visible], name='X_batch')
-            self._n_betas = tf.placeholder(tf.int32, [], name='n_betas')
+            self._delta_beta = tf.placeholder(self._tf_dtype, [], name='delta_beta')
+            self._n_ais_runs = tf.placeholder(tf.int32, [], name='n_ais_runs')
 
     def _make_vars(self):
         # compose weights and biases of DBM from trained RBMs' ones
@@ -328,12 +327,6 @@ class DBM(EnergyBasedModel):
                     self._H.append(h)
                     self._H_new.append(h_new)
 
-        # initialize current inv temperature for AIS
-        with tf.name_scope('AIS_variables'):
-            self._beta = tf.Variable(tf.constant(0., dtype=self._tf_dtype), name='beta')
-            self._x_ais = tf.Variable(tf.zeros([self.n_particles, self.n_hiddens[0]], dtype=self._tf_dtype),
-                                      name='x_ais')
-
 
     def _make_gibbs_step(self, v, H, v_new, H_new, update_v=True, sample=True):
         """Compute one Gibbs step."""
@@ -422,6 +415,7 @@ class DBM(EnergyBasedModel):
                                                     [tf.TensorShape([None, n]) for n in self.n_hiddens],
                                                     [tf.TensorShape([None, n]) for n in self.n_hiddens]],
                                   back_prop=False,
+                                  parallel_iterations=1,
                                   name='mean_field_updates')
                 mu_updates = [ self._mu[i].assign(mu[i]) for i in xrange(self.n_layers) ]
             return n_mf_updates, mu_updates
@@ -446,6 +440,7 @@ class DBM(EnergyBasedModel):
                                                                 n_steps,
                                                                 self._v, self._H,
                                                                 self._v_new, self._H_new],
+                                                     parallel_iterations=1,
                                                      back_prop=False)
             v_update = self._v.assign(v)
             v_new_update = self._v_new.assign(v_new)
@@ -588,100 +583,92 @@ class DBM(EnergyBasedModel):
         tf.add_to_collection('sample_v', sample_v)
 
 
-    def _unnormalized_log_prob_H0(self):
-        t1 = tf.einsum('ij,j->i', self._x_ais, self._hb[0])
-        T1 = tf.matmul(a=self._x_ais, b=self._W[0], transpose_b=True) + self._vb
-        T1 *= self._beta
-        t2 = tf.reduce_sum(tf.nn.softplus(T1), axis=1)
-        T2 = tf.matmul(self._x_ais, self._W[1]) + self._hb[1]
-        T2 *= self._beta
-        t3 = tf.reduce_sum(tf.nn.softplus(T2), axis=1)
-        return t1 + t2 + t3
+    def _unnormalized_log_prob_H0(self, x, beta):
+        T1 = tf.einsum('ij,j->i', x, self._hb[0])
+        T1 *= beta
+        t2 = tf.matmul(x, b=self._W[0], transpose_b=True) + self._vb
+        t2 *= beta
+        T2 = tf.reduce_sum(tf.nn.softplus(t2), axis=1)
+        t3 = tf.matmul(x, self._W[1]) + self._hb[1]
+        t3 *= beta
+        T3 = tf.reduce_sum(tf.nn.softplus(t3), axis=1)
+        return T1 + T2 + T3
 
-    def _make_ais_next_sample(self):
+    def _make_ais_next_sample(self, x, beta):
         def cond(step, max_step, x):
             return step < max_step
 
         def body(step, max_step, x):
             # v_hat <- P(v|h=x)
             T1 = tf.matmul(a=x, b=self._W[0], transpose_b=True)
-            v = self._v_layer.activation(self._beta * T1, self._beta * self._vb)
+            v = self._v_layer.activation(beta * T1, beta * self._vb)
             if self.sample_v_states:
                 v = self._v_layer.sample(means=v)
 
             # h2_hat <- P(h2|h=x)
             T2 = tf.matmul(x, self._W[1])
-            h2 = self._h_layers[1].activation(self._beta * T2, self._beta * self._hb[1])
+            h2 = self._h_layers[1].activation(beta * T2, beta * self._hb[1])
             if self.sample_h_states[1]:
                 h2 = self._h_layers[1].sample(means=h2)
 
             # x_hat <- P(h|v=v_hat, h2=h2_hat)
             T3 = tf.matmul(v, self._W[0])
             T4 = tf.matmul(a=h2, b=self._W[1], transpose_b=True)
-            x_hat = self._h_layers[0].activation(self._beta * (T3 + T4), self._beta * self._hb[0])
+            x_hat = self._h_layers[0].activation(beta * (T3 + T4), beta * self._hb[0])
             if self.sample_h_states[0]:
                 x_hat = self._h_layers[0].sample(means=x_hat)
 
             return step + 1, max_step, x_hat
 
-        _, _, x = tf.while_loop(cond=cond, body=body,
-                                loop_vars=[tf.constant(0),
-                                           self._n_gibbs_steps,
-                                           self._x_ais],
-                                back_prop=False)
-        x_update = self._x_ais.assign(x)
-        return x_update
+        _, _, x_new = tf.while_loop(cond=cond, body=body,
+                                    loop_vars=[tf.constant(0),
+                                               self._n_gibbs_steps,
+                                               x],
+                                    parallel_iterations=1,
+                                    back_prop=False)
+        return x_new
 
     def _make_ais(self):
         with tf.name_scope('annealed_importance_sampling'):
 
             # x_1 ~ Ber(0.5) of size (M, H_1)
-            x = tf.cast(Bernoulli(logits=tf.zeros(self._x_ais.get_shape())).sample(), dtype=self._tf_dtype)
-            x_update = self._x_ais.assign(x)
-            with tf.control_dependencies([x_update]):
+            logits = tf.zeros([self._n_ais_runs, self._n_hiddens[0]])
+            x = tf.cast(Bernoulli(logits=logits).sample(), dtype=self._tf_dtype)
 
-                # -log p_0(x_1)
-                log_Z = -self._unnormalized_log_prob_H0()
+            # -log p_0(x_1)
+            l1 = -self._unnormalized_log_prob_H0(x, 0.)
 
-                def cond(i, log_Z):
-                    return i < self._n_betas - 1
+            def cond(log_Z, x, beta):
+                return beta < 1.
 
-                def body(i, log_Z):
-                    # increase beta
-                    beta_update = self._beta.assign_add(1. / tf.cast(self._n_betas, dtype=self._tf_dtype))
-                    with tf.control_dependencies([beta_update, tf.Print('beta', [self._beta])]):
+            def body(log_Z, x, beta):
+                # + log p_i(x_i)
+                T1 = self._unnormalized_log_prob_H0(x, beta)
+                # x_{i + 1} ~ T_i(x_{i + 1} | x_i)
+                x_new = self._make_ais_next_sample(x, beta)
+                # -log p_i(x_{i + 1})
+                T2 = -self._unnormalized_log_prob_H0(x_new, beta)
+                return log_Z + T1 + T2, x_new, beta + self._delta_beta
 
-                        # + log p_i(x_i)
-                        log_Z += self._unnormalized_log_prob_H0()
+            L1, x_new, _ = tf.while_loop(cond=cond, body=body,
+                                         loop_vars=[l1, x, self._delta_beta],
+                                         back_prop=False,
+                                         parallel_iterations=1)
+            # + log p_M(x_M)
+            L2 = self._unnormalized_log_prob_H0(x_new, 1.)
 
-                        # x_{i + 1} ~ T_i(x_{i + 1} | x_i)
-                        x_update = self._make_ais_next_sample()
-                        with tf.control_dependencies([x_update]):
+            # + log(Z_0) = (V + H_2) * log(2)
+            log_Z0 = self._n_visible + self._n_hiddens[1]
+            log_Z0 = tf.cast(log_Z0, dtype=self._tf_dtype)
+            log_Z0 *= tf.cast(tf.log(2.), dtype=self._tf_dtype)
 
-                            # -log p_i(x_{i + 1})
-                            log_Z -= self._unnormalized_log_prob_H0()
-                            return i + 1, log_Z
+            log_Z = L1 + L2 + log_Z0
 
-                _, log_Z = tf.while_loop(cond=cond, body=body,
-                                         loop_vars=[tf.constant(0), log_Z],
-                                         back_prop=False)
-                with tf.control_dependencies([log_Z]):
-
-                    beta_update = self._beta.assign(1.)
-                    with tf.control_dependencies([beta_update]):
-
-                        # + log p_M(x_M)
-                        log_Z += self._unnormalized_log_prob_H0()
-
-                        # + log(Z_0) = H_1 * log(2)
-                        log_Z0 = tf.cast(self._n_hiddens[0], dtype=self._tf_dtype)
-                        log_Z0 *= tf.cast(tf.log(2.), dtype=self._tf_dtype)
-                        log_Z += log_Z0
-
-                        tf.add_to_collection('log_Z', log_Z)
+        tf.add_to_collection('log_Z', log_Z)
 
     def _make_log_proba(self):
         with tf.name_scope('log_proba'):
+
             n_mf_updates, mu_updates = self._make_mf()
             with tf.control_dependencies(mu_updates):
                 t1 = tf.matmul(self._X_batch, self._W[0])
@@ -699,10 +686,8 @@ class DBM(EnergyBasedModel):
                 S2 = -s2 * tf.log(s2) - (1. - s2) * tf.log(1. - s2)
                 H = tf.reduce_sum(S1, axis=1) + tf.reduce_sum(S2, axis=1)
 
-        log_P = minus_E + H
-        T = tf.cast(self._n_hiddens[1], dtype=self._tf_dtype)
-        T *= tf.cast(tf.log(2.), dtype=self._tf_dtype)
-        log_P -= T
+                log_P = minus_E + H
+
         tf.add_to_collection('log_proba', log_P)
 
 
@@ -718,16 +703,22 @@ class DBM(EnergyBasedModel):
         self._make_log_proba()
 
 
-    def _make_tf_feed_dict(self, X_batch=None, n_gibbs_steps=None, n_betas=None):
+    def _make_tf_feed_dict(self, X_batch=None, delta_beta=None, n_ais_runs=None, n_gibbs_steps=None):
         d = {}
         d['learning_rate'] = self.learning_rate[min(self.epoch, len(self.learning_rate) - 1)]
         d['momentum'] = self.momentum[min(self.epoch, len(self.momentum) - 1)]
+
         if X_batch is not None:
             d['X_batch'] = X_batch
-        d['n_gibbs_steps'] = self.n_gibbs_steps[min(self.epoch, len(self.n_gibbs_steps) - 1)] \
-                             if n_gibbs_steps is None else n_gibbs_steps
-        if n_betas is not None:
-            d['n_betas'] = n_betas
+        if delta_beta is not None:
+            d['delta_beta'] = delta_beta
+        if n_ais_runs is not None:
+            d['n_ais_runs'] = n_ais_runs
+        if n_gibbs_steps is not None:
+            d['n_gibbs_steps'] = n_gibbs_steps
+        else:
+            d['n_gibbs_steps'] = self.n_gibbs_steps[min(self.epoch, len(self.n_gibbs_steps) - 1)]
+
         # prepend name of the scope, and append ':0'
         feed_dict = {}
         for k, v in d.items():
@@ -741,7 +732,7 @@ class DBM(EnergyBasedModel):
             if self.iter % self.train_metrics_every_iter == 0:
                 msre, n_mf_upds, _, s = self._tf_session.run([self._msre, self._n_mf_updates,
                                                               self._train_op, self._tf_merged_summaries],
-                                                             feed_dict=self._make_tf_feed_dict(X_batch))
+                                                              feed_dict=self._make_tf_feed_dict(X_batch))
                 train_msres.append(msre)
                 train_n_mf_updates.append(n_mf_upds)
                 self._tf_train_writer.add_summary(s, self.iter)
@@ -755,7 +746,7 @@ class DBM(EnergyBasedModel):
         val_msres, val_n_mf_updates = [], []
         for X_vb in batch_iter(X_val, batch_size=self.batch_size):
             msre, n_mf_upds = self._tf_session.run([self._msre, self._n_mf_updates],
-                                                   feed_dict=self._make_tf_feed_dict(X_vb))
+                                                    feed_dict=self._make_tf_feed_dict(X_vb))
             val_msres.append(msre)
             val_n_mf_updates.append(n_mf_upds)
         mean_msre = np.mean(val_msres)
@@ -829,17 +820,19 @@ class DBM(EnergyBasedModel):
         return v
 
     @run_in_tf_session(update_seed=True)
-    def log_Z(self, n_betas=100, n_gibbs_steps=5):
+    def log_Z(self, n_betas=100, n_runs=100, n_gibbs_steps=5):
         """Estimate log partition function using Annealed Importance Sampling.
         Currently implemented only for 2-layer binary BM.
         AIS is run on a state space x = {h_1} with v and h_2
         analytically marginalized out, as in [1].
         """
         assert self.n_layers == 2
+        assert n_betas > 1
         self._log_Z = tf.get_collection('log_Z')[0]
         log_Z = self._tf_session.run(self._log_Z,
-                                     feed_dict=self._make_tf_feed_dict(n_gibbs_steps=n_gibbs_steps,
-                                                                       n_betas=n_betas))
+                                     feed_dict=self._make_tf_feed_dict(delta_beta=1./n_betas,
+                                                                       n_ais_runs=n_runs,
+                                                                       n_gibbs_steps=n_gibbs_steps))
         return log_Z
 
     @run_in_tf_session()
