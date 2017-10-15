@@ -633,27 +633,30 @@ class DBM(EnergyBasedModel):
 
             # x_1 ~ Ber(0.5) of size (M, H_1)
             logits = tf.zeros([self._n_ais_runs, self._n_hiddens[0]])
-            x = tf.cast(Bernoulli(logits=logits).sample(), dtype=self._tf_dtype)
+            T = Bernoulli(logits=logits).sample()
+            x = tf.cast(T, dtype=self._tf_dtype)
 
             # -log p_0(x_1)
             l1 = -self._unnormalized_log_prob_H0(x, 0.)
 
-            def cond(log_Z, x, beta):
-                return beta < 1.
+            def cond(log_Z, x, beta, delta_beta):
+                return beta < 1. - delta_beta + 1e-5
 
-            def body(log_Z, x, beta):
-                # + log p_i(x_i)
-                T1 = self._unnormalized_log_prob_H0(x, beta)
-                # x_{i + 1} ~ T_i(x_{i + 1} | x_i)
-                x_new = self._make_ais_next_sample(x, beta)
-                # -log p_i(x_{i + 1})
-                T2 = -self._unnormalized_log_prob_H0(x_new, beta)
-                return log_Z + T1 + T2, x_new, beta + self._delta_beta
+            def body(log_Z, x, beta, delta_beta):
+                with tf.control_dependencies([tf.Print('beta', [beta])]):
+                    # + log p_i(x_i)
+                    T1 = self._unnormalized_log_prob_H0(x, beta)
+                    # x_{i + 1} ~ T_i(x_{i + 1} | x_i)
+                    x_new = self._make_ais_next_sample(x, beta)
+                    # -log p_i(x_{i + 1})
+                    T2 = -self._unnormalized_log_prob_H0(x_new, beta)
+                    return log_Z + T1 + T2, x_new, beta + delta_beta, delta_beta
 
-            L1, x_new, _ = tf.while_loop(cond=cond, body=body,
-                                         loop_vars=[l1, x, self._delta_beta],
-                                         back_prop=False,
-                                         parallel_iterations=1)
+            L1, x_new, _, _ = tf.while_loop(cond=cond, body=body,
+                                            loop_vars=[l1, x, self._delta_beta,
+                                                              self._delta_beta],
+                                            back_prop=False,
+                                            parallel_iterations=1)
             # + log p_M(x_M)
             L2 = self._unnormalized_log_prob_H0(x_new, 1.)
 
