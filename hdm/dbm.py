@@ -40,12 +40,18 @@ class DBM(EnergyBasedModel):
 
     References
     ----------
-    [1] Salakhutdinov, R. and Hinton, G. (2009). Deep Boltzmann machines.
+    [1] Salakhutdinov, R. and Hinton, G. Deep Boltzmann machines (2009).
         In AISTATS 2009
     [2] Salakhutdinov, R. Learning Deep Boltzmann Machines, Matlab code.
         url: https://www.cs.toronto.edu/~rsalakhu/DBM.html
-    [3] Goodfellow, I. et. al. (2013). Joint Training of Deep Boltzmann machines
-        for Classification.
+    [3] Goodfellow, I. et. al. Joint Training of Deep Boltzmann machines
+        for Classification (2013).
+    [4] Monvaton, G. and Mueller, K.-R. Deep boltzmann machines and
+        centering trick (2012). In Neural Networks: Tricks of the trade,
+        pp. 621-637, Springer, 2012.
+    [5] Hinton, G. and Salakhutdinov, R. A better way to pretrain deep
+        boltzmann machines. In Advances in Neural Information Processing
+        Systems, pp. 2447-2455, 2012.
     """
     def __init__(self, rbms=None,
                  n_particles=100, v_particle_init=None, h_particles_init=None,
@@ -586,13 +592,14 @@ class DBM(EnergyBasedModel):
     def _unnormalized_log_prob_H0(self, x, beta):
         T1 = tf.einsum('ij,j->i', x, self._hb[0])
         T1 *= beta
-        t2 = tf.matmul(x, b=self._W[0], transpose_b=True) + self._vb
-        t2 *= beta
-        T2 = tf.reduce_sum(tf.nn.softplus(t2), axis=1)
-        t3 = tf.matmul(x, self._W[1]) + self._hb[1]
-        t3 *= beta
-        T3 = tf.reduce_sum(tf.nn.softplus(t3), axis=1)
-        return T1 + T2 + T3
+        log_p = T1
+        T2 = tf.matmul(x, b=self._W[0], transpose_b=True) + self._vb
+        T2 *= beta
+        log_p += tf.reduce_sum(tf.nn.softplus(T2), axis=1)
+        T3 = tf.matmul(x, self._W[1]) + self._hb[1]
+        T3 *= beta
+        log_p += tf.reduce_sum(tf.nn.softplus(T3), axis=1)
+        return log_p
 
     def _make_ais_next_sample(self, x, beta):
         def cond(step, max_step, x):
@@ -631,41 +638,43 @@ class DBM(EnergyBasedModel):
     def _make_ais(self):
         with tf.name_scope('annealed_importance_sampling'):
 
-            # x_1 ~ Ber(0.5) of size (M, H_1)
+            # x_0 ~ Ber(0.5) of size (M, H_1)
             logits = tf.zeros([self._n_ais_runs, self._n_hiddens[0]])
             T = Bernoulli(logits=logits).sample()
-            x = tf.cast(T, dtype=self._tf_dtype)
+            x_0 = tf.cast(T, dtype=self._tf_dtype)
+
+            # x_1 ~ T_1(x_1 | x_0)
+            x_1 = self._make_ais_next_sample(x_0, self._delta_beta)
 
             # -log p_0(x_1)
-            l1 = -self._unnormalized_log_prob_H0(x, 0.)
+            log_Z = -self._unnormalized_log_prob_H0(x_1, 0.)
 
             def cond(log_Z, x, beta, delta_beta):
                 return beta < 1. - delta_beta + 1e-5
 
             def body(log_Z, x, beta, delta_beta):
-                with tf.control_dependencies([tf.Print('beta', [beta])]):
-                    # + log p_i(x_i)
-                    T1 = self._unnormalized_log_prob_H0(x, beta)
-                    # x_{i + 1} ~ T_i(x_{i + 1} | x_i)
-                    x_new = self._make_ais_next_sample(x, beta)
-                    # -log p_i(x_{i + 1})
-                    T2 = -self._unnormalized_log_prob_H0(x_new, beta)
-                    return log_Z + T1 + T2, x_new, beta + delta_beta, delta_beta
+                # with tf.control_dependencies([tf.Print('beta', [beta])]):
+                # + log p_i(x_i)
+                log_Z += self._unnormalized_log_prob_H0(x, beta)
+                # x_{i + 1} ~ T_{i + 1}(x_{i + 1} | x_i)
+                x_new = self._make_ais_next_sample(x, beta + delta_beta)
+                # -log p_i(x_{i + 1})
+                log_Z -= self._unnormalized_log_prob_H0(x_new, beta)
+                return log_Z, x_new, beta + delta_beta, delta_beta
 
-            L1, x_new, _, _ = tf.while_loop(cond=cond, body=body,
-                                            loop_vars=[l1, x, self._delta_beta,
-                                                              self._delta_beta],
-                                            back_prop=False,
-                                            parallel_iterations=1)
+            log_Z, x_M, _, _ = tf.while_loop(cond=cond, body=body,
+                                             loop_vars=[log_Z, x_1, self._delta_beta,
+                                                                    self._delta_beta],
+                                             back_prop=False,
+                                             parallel_iterations=1)
             # + log p_M(x_M)
-            L2 = self._unnormalized_log_prob_H0(x_new, 1.)
+            log_Z += self._unnormalized_log_prob_H0(x_M, 1.)
 
-            # + log(Z_0) = (V + H_2) * log(2)
-            log_Z0 = self._n_visible + self._n_hiddens[1]
+            # + log(Z_0) = (V + H_1 + H_2) * log(2)
+            log_Z0 = self._n_visible + self._n_hiddens[0] + self._n_hiddens[1]
             log_Z0 = tf.cast(log_Z0, dtype=self._tf_dtype)
             log_Z0 *= tf.cast(tf.log(2.), dtype=self._tf_dtype)
-
-            log_Z = L1 + L2 + log_Z0
+            log_Z += log_Z0
 
         tf.add_to_collection('log_Z', log_Z)
 
@@ -675,13 +684,12 @@ class DBM(EnergyBasedModel):
             n_mf_updates, mu_updates = self._make_mf()
             with tf.control_dependencies(mu_updates):
                 t1 = tf.matmul(self._X_batch, self._W[0])
-                T1 = tf.reduce_sum(t1 * self._mu[0], axis=1)
+                minus_E = tf.reduce_sum(t1 * self._mu[0], axis=1)
                 t2 = tf.matmul(self._mu[0], self._W[1])
-                T2 = tf.reduce_sum(t2 * self._mu[1], axis=1)
-                T3 = tf.einsum('ij,j->i', self._X_batch, self._vb)
-                T4 = tf.einsum('ij,j->i', self._mu[0], self._hb[0])
-                T5 = tf.einsum('ij,j->i', self._mu[1], self._hb[1])
-                minus_E = T1 + T2 + T3 + T4 + T5
+                minus_E += tf.reduce_sum(t2 * self._mu[1], axis=1)
+                minus_E += tf.einsum('ij,j->i', self._X_batch, self._vb)
+                minus_E += tf.einsum('ij,j->i', self._mu[0], self._hb[0])
+                minus_E += tf.einsum('ij,j->i', self._mu[1], self._hb[1])
 
                 s1 = tf.clip_by_value(self._mu[0], 1e-7, 1. - 1e-7)
                 s2 = tf.clip_by_value(self._mu[1], 1e-7, 1. - 1e-7)
@@ -689,9 +697,9 @@ class DBM(EnergyBasedModel):
                 S2 = -s2 * tf.log(s2) - (1. - s2) * tf.log(1. - s2)
                 H = tf.reduce_sum(S1, axis=1) + tf.reduce_sum(S2, axis=1)
 
-                log_P = minus_E + H
+                log_p = minus_E + H
 
-        tf.add_to_collection('log_proba', log_P)
+        tf.add_to_collection('log_proba', log_p)
 
 
     def _make_tf_model(self):
@@ -827,7 +835,7 @@ class DBM(EnergyBasedModel):
         """Estimate log partition function using Annealed Importance Sampling.
         Currently implemented only for 2-layer binary BM.
         AIS is run on a state space x = {h_1} with v and h_2
-        analytically marginalized out, as in [1].
+        analytically marginalized out, as in [1] and using formulae from [4].
         """
         assert self.n_layers == 2
         assert n_betas > 1
@@ -840,7 +848,7 @@ class DBM(EnergyBasedModel):
 
     @run_in_tf_session()
     def log_proba(self, X_test, log_Z):
-        """Estimate variational lower-bound on a test set.
+        """Estimate variational lower-bound on a test set, as in [5].
         Currently implemented only for 2-layer binary BM.
         """
         assert self.n_layers == 2
