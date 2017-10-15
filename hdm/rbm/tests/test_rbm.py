@@ -57,9 +57,9 @@ class TestRBM(object):
                 (GaussianRBM, 'float32'),
         ):
             rbm = C(max_epoch=2,
-                     model_path='test_rbm_1/',
-                     tf_dtype=dtype,
-                     **self.rbm_config)
+                    model_path='test_rbm_1/',
+                    tf_dtype=dtype,
+                    **self.rbm_config)
             rbm.init()
             if dtype == 'float32':
                 assert_almost_equal(rbm.get_tf_params(scope='weights')['W'][0][0], -0.0094548017)
@@ -75,9 +75,9 @@ class TestRBM(object):
         ):
             # train 2 RBMs with same params for 2 epochs
             rbm1 = C(max_epoch=2,
-                    model_path='test_rbm_1/',
-                    tf_dtype=dtype,
-                    **self.rbm_config)
+                     model_path='test_rbm_1/',
+                     tf_dtype=dtype,
+                     **self.rbm_config)
             rbm2 = C(max_epoch=2,
                      model_path='test_rbm_2/',
                      tf_dtype=dtype,
