@@ -900,7 +900,7 @@ class DBM(EnergyBasedModel):
         """Estimate log partition function using Annealed Importance Sampling.
         Currently implemented only for 2-layer binary BM.
         AIS is run on a state space x = {h_1} with v and h_2
-        analytically marginalized out, as in [1] and using formulae from [4].
+        analytically summed out, as in [1] and using formulae from [4].
 
         Returns
         -------

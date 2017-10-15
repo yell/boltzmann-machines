@@ -248,15 +248,15 @@ def main():
 
     log_Z = f(10)
     log_Z = f(100)
-    # log_Z = f(1000)
-    #
+    log_Z = f(1000)
+
     log_p = dbm.log_proba(X_val, log_Z=log_Z).mean()
     print "{0:.3f}".format(log_p)
 
     # g_i = p(h_{L-1}|v=x_i)
     # G = dbm.transform(X)
     # print G.shape, G.min(), G.max(), G.mean(), G.sum()
-    #
+
     # V = dbm.sample_v(n_gibbs_steps=10)
     # print V.shape, V.min(), V.max(), V.mean(), V.sum()
     # from hdm.utils import plot_matrices
