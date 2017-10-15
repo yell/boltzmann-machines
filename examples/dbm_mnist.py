@@ -218,7 +218,7 @@ def main():
                   n_gibbs_steps=args.n_gibbs_steps,
                   max_mf_updates=args.max_mf_updates,
                   mf_tol=args.mf_tol,
-                  learning_rate=np.geomspace(args.lr, 1e-5, 200),
+                  learning_rate=np.geomspace(args.lr, 1e-5, 100),
                   momentum=np.geomspace(0.5, 0.9, 8),
                   max_epoch=args.epochs[2],
                   batch_size=args.batch_size[2],
@@ -241,29 +241,46 @@ def main():
                   model_path=args.dbm_dirpath)
         dbm.fit(X_train, X_val)
 
-    def f(n_b):
-        mean, (low, high) = dbm.log_Z(n_betas=n_b)
-        print "{0} -> {1:.2f}; ({2:.2f}, {3:.2f})".format(n_b, mean, low, high)
-        return mean
-
-    log_Z = f(10)
-    log_Z = f(100)
-    log_Z = f(1000)
-
-    log_p = dbm.log_proba(X_val, log_Z=log_Z).mean()
-    print "{0:.3f}".format(log_p)
-
     # g_i = p(h_{L-1}|v=x_i)
     # G = dbm.transform(X)
     # print G.shape, G.min(), G.max(), G.mean(), G.sum()
 
-    # V = dbm.sample_v(n_gibbs_steps=10)
+    d = dict(N=args.n_gibbs_steps, LR=args.lr, L2=args.l2,
+             M=args.max_norm, C=args.sparsity_cost[0])
+
+
+    log_Z, (_, high) = dbm.log_Z(n_runs=100, n_betas=500, n_gibbs_steps=10)
+    log_p = dbm.log_proba(X_val, log_Z=log_Z).mean()
+    print "{0:.3f}".format(log_p)
+
+
+    V = dbm.sample_v(n_gibbs_steps=10)
     # print V.shape, V.min(), V.max(), V.mean(), V.sum()
-    # from hdm.utils import plot_matrices
-    # import matplotlib.pyplot as plt
-    # fig = plt.figure(figsize=(10, 10))
-    # plot_matrices(V, shape=(28, 28), imshow_params={'cmap': plt.cm.gray})
+    from hdm.utils import plot_matrices
+    import matplotlib.pyplot as plt
+    fig = plt.figure(figsize=(10, 10))
+    plot_matrices(V, shape=(28, 28), imshow_params={'cmap': plt.cm.gray})
     # plt.show()
+
+
+    dir = 'cv/'
+    if not os.path.exists(dir):
+        os.makedirs(dir)
+
+
+    fname = '{log_p:.2f},({log_Z:.2f}, {high:.2f}),N{N}-LR{LR}-L2{L2}-M{M}-C{C}'.\
+            format(log_p=log_p, log_Z=log_Z, high=high, **d)
+    fname += '.png'
+    fname = os.path.join(dir, fname)
+
+
+    plt.savefig(fname, dpi=144)
+
+
+    mpath = '../models/dbm-N{N}-LR{LR}-L2{L2}-M{M}-C{C}/'.format(**d)
+    from shutil import rmtree
+    if os.path.exists(mpath):
+        rmtree(mpath)
 
 
 if __name__ == '__main__':
