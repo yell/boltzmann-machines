@@ -242,22 +242,21 @@ def main():
         dbm.fit(X_train, X_val)
 
     def f(n_b):
-        log_Z = dbm.log_Z(n_betas=n_b)
-        mean = log_Z.mean()
-        std = log_Z.std()
-        print "{0} -> {1:.2f} +- {2:.2f}".format(n_b, mean, std)
+        mean, (low, high) = dbm.log_Z(n_betas=n_b, n_runs=10)
+        print "{0} -> {1:.2f}; ({2:.2f}, {3:.2f})".format(n_b, mean, low, high)
         return mean
 
-    # f(100)
+    log_Z = f(10)
+    log_Z = f(100)
     # log_Z = f(1000)
-
-    # print dbm.log_proba(X_val, log_Z=355.87)
-    # print dbm.log_proba(X_val, log_Z=log_Z).mean()
+    #
+    log_p = dbm.log_proba(X_val, log_Z=log_Z).mean()
+    print "{0:.3f}".format(log_p)
 
     # g_i = p(h_{L-1}|v=x_i)
     # G = dbm.transform(X)
     # print G.shape, G.min(), G.max(), G.mean(), G.sum()
-
+    #
     # V = dbm.sample_v(n_gibbs_steps=10)
     # print V.shape, V.min(), V.max(), V.mean(), V.sum()
     # from hdm.utils import plot_matrices

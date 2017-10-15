@@ -9,6 +9,71 @@ from utils import (make_list_from, batch_iter, epoch_iter,
                    write_during_training)
 
 
+def log_sum_exp(x):
+    """Compute log(sum(exp(x))) in a numerically stable way.
+
+    Examples
+    --------
+    >>> x = [0, 1, 0]
+    >>> log_sum_exp(x) #doctest: +ELLIPSIS
+    1.551...
+    >>> x = [1000, 1001, 1000]
+    >>> log_sum_exp(x) #doctest: +ELLIPSIS
+    1001.551...
+    >>> x = [-1000, -999, -1000]
+    >>> log_sum_exp(x) #doctest: +ELLIPSIS
+    -998.448...
+    """
+    x = np.asarray(x)
+    a = max(x)
+    return a + np.log(sum(np.exp(x - a)))
+
+def log_mean_exp(x):
+    """Compute log(mean(exp(x))) in a numerically stable way.
+
+    Examples
+    --------
+    >>> x = [1, 2, 3]
+    >>> log_mean_exp(x) #doctest: +ELLIPSIS
+    2.308...
+    """
+    return log_sum_exp(x) - np.log(len(x))
+
+def log_diff_exp(x):
+    """Compute log(diff(exp(x))) in a numerically stable way.
+
+    Examples
+    --------
+    >>> log_diff_exp([1, 2, 3]) #doctest: +ELLIPSIS
+    array([ 1.5413...,  2.5413...])
+    >>> [np.log(np.exp(2)-np.exp(1)), np.log(np.exp(3)-np.exp(2))] #doctest: +ELLIPSIS
+    [1.5413..., 2.5413...]
+    """
+    x = np.asarray(x)
+    a = max(x)
+    return a + np.log(np.diff(np.exp(x - a)))
+
+def log_std_exp(x, log_mean_exp_x=None):
+    """Compute log(std(exp(x))) in a numerically stable way.
+
+    Examples
+    --------
+    >>> x = np.arange(8.)
+    >>> print x
+    [ 0.  1.  2.  3.  4.  5.  6.  7.]
+    >>> log_std_exp(x) #doctest: +ELLIPSIS
+    5.875416...
+    >>> np.log(np.std(np.exp(x))) #doctest: +ELLIPSIS
+    5.875416...
+    """
+    x = np.asarray(x)
+    m = log_mean_exp_x
+    if m is None:
+        m = log_mean_exp(x)
+    M = log_mean_exp(2. * x)
+    return 0.5 * log_diff_exp([2. * m, M])[0]
+
+
 class DBM(EnergyBasedModel):
     """Deep Boltzmann Machine.
 
@@ -836,6 +901,13 @@ class DBM(EnergyBasedModel):
         Currently implemented only for 2-layer binary BM.
         AIS is run on a state space x = {h_1} with v and h_2
         analytically marginalized out, as in [1] and using formulae from [4].
+
+        Returns
+        -------
+        log_mean, (log_low, log_high) : float
+            `log_mean` = log(Z_hat)
+            `log_low`  = log(Z_hat - std)
+            `log_high` = log(Z_hat + std)
         """
         assert self.n_layers == 2
         assert n_betas > 1
@@ -844,7 +916,11 @@ class DBM(EnergyBasedModel):
                                      feed_dict=self._make_tf_feed_dict(delta_beta=1./n_betas,
                                                                        n_ais_runs=n_runs,
                                                                        n_gibbs_steps=n_gibbs_steps))
-        return log_Z
+        log_mean = log_mean_exp(log_Z)
+        log_std  = log_std_exp(log_Z, log_mean_exp_x=log_mean)
+        log_high = log_sum_exp([log_std, log_mean])
+        log_low  = log_diff_exp([log_std, log_mean])[0]
+        return log_mean, (log_low, log_high)
 
     @run_in_tf_session()
     def log_proba(self, X_test, log_Z):
@@ -860,3 +936,9 @@ class DBM(EnergyBasedModel):
             P[start:(start + self.batch_size)] = P_b
             start += self.batch_size
         return P - log_Z
+
+
+if __name__ == '__main__':
+    # run corresponding tests
+    from hdm.utils.testing import run_tests
+    run_tests(__file__)
