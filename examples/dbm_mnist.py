@@ -242,7 +242,7 @@ def main():
         dbm.fit(X_train, X_val)
 
     def f(n_b):
-        mean, (low, high) = dbm.log_Z(n_betas=n_b, n_runs=10)
+        mean, (low, high) = dbm.log_Z(n_betas=n_b)
         print "{0} -> {1:.2f}; ({2:.2f}, {3:.2f})".format(n_b, mean, low, high)
         return mean
 
