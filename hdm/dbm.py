@@ -705,7 +705,7 @@ class DBM(EnergyBasedModel):
 
             # x_0 ~ Ber(0.5) of size (M, H_1)
             logits = tf.zeros([self._n_ais_runs, self._n_hiddens[0]])
-            T = Bernoulli(logits=logits).sample()
+            T = Bernoulli(logits=logits).sample(seed=self.make_random_seed())
             x_0 = tf.cast(T, dtype=self._tf_dtype)
 
             # x_1 ~ T_1(x_1 | x_0)
