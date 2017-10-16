@@ -7,7 +7,7 @@ def _is_in_ipython():
 progress_bar = tqdm_notebook if _is_in_ipython() else tqdm
 
 
-def write_duringprogress_barraining(s):
+def write_during_training(s):
     tqdm.write(s)
 
 def batch_iter(X, batch_size=10, verbose=False):
@@ -106,5 +106,5 @@ def unhot(y, n_classes=None):
 
 if __name__ == '__main__':
     # run corresponding tests
-    from testing import runprogress_barests
-    runprogress_barests(__file__)
+    from testing import run_tests
+    run_tests(__file__)
