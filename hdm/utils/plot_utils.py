@@ -82,7 +82,7 @@ def im_reshape(X, n_width=10, n_height=10, shape=None, normalize=False):
     return Z
 
 
-def im_gif(matrices, im, fig, fname='samples.gif', title_func=None,
+def im_gif(matrices, im, fig, fname=None, title_func=None,
            title_params=None, anim_params=None, save_params=None):
     """Animate `matrices`.
 
@@ -120,7 +120,8 @@ def im_gif(matrices, im, fig, fname='samples.gif', title_func=None,
         return im,
 
     anim = FuncAnimation(fig, animate, init_func=init, frames=len(matrices), **anim_params)
-    anim.save(fname, **save_params)
+    if fname:
+        anim.save(fname, **save_params)
     return anim
 
 
