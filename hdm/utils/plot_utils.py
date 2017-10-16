@@ -1,10 +1,11 @@
 import numpy as np
 import seaborn as sns
 from matplotlib import pyplot as plt
+from matplotlib.animation import FuncAnimation
 
 
 def plot_matrices(X, n_width=10, n_height=10, shape=None, title=None, title_params=None, imshow_params=None):
-    """Draw grid of matrices represented by rows of `W`.
+    """Draw grid of matrices represented by rows of `X`.
 
     Returns
     -------
@@ -46,6 +47,48 @@ def plot_matrices(X, n_width=10, n_height=10, shape=None, title=None, title_para
                         bottom='off', top='off', left='off', right='off',
                         labelbottom='off', labelleft='off', labelright='off')
     return im, Z
+
+
+def gif_matrices(matrices, im, fig, fname='samples.gif', title_func=None,
+                 title_params=None, anim_params=None, save_params=None):
+    """Animate `matrices`.
+
+    Parameters
+    ----------
+    matrices : [np.ndarray]
+        list of matrices to animate
+
+    Returns
+    -------
+    anim : matplotlib.animation.FuncAnimation
+    """
+    if title_func is None:
+        title_func = lambda i: str(i)
+
+    title_params = title_params or {}
+    title_params.setdefault('fontsize', 18)
+
+    save_params = save_params or {}
+    save_params.setdefault('dpi', 80)
+    save_params.setdefault('writer', 'imagemagick')
+
+    anim_params = anim_params or {}
+    anim_params.setdefault('interval', 200)
+    anim_params.setdefault('blit', True)
+
+    def init():
+        im.set_array([[]])
+        return im,
+
+    def animate(i):
+        im.set_array(matrices[i])
+        title = title_func(i)
+        im.axes.set_title(title, **title_params)
+        return im,
+
+    anim = FuncAnimation(fig, animate, init_func=init, frames=len(matrices), **anim_params)
+    anim.save(fname, **save_params)
+    return anim
 
 
 def plot_confusion_matrix(C, labels=None, labels_fontsize=None, **heatmap_params):
