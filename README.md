@@ -120,6 +120,12 @@ See [here](docs/virtualenv.md) how to run from a ***virtual environment***.
 </br>
 See [here](docs/docker.md) how to run from a ***docker container***.
 
+To run some notebooks you also need to install [**JSAnimation**](https://github.com/jakevdp/JSAnimation):
+```bash
+git clone https://github.com/jakevdp/JSAnimation
+cd JSAnimation
+python setup.py install
+```
 After installation, tests can be run with:
 ```bash
 make test
