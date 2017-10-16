@@ -11,16 +11,17 @@ def plot_matrices(X, n_width=10, n_height=10, shape=None, normalize=True, title=
     Returns
     -------
     im : matplotlib.image.AxesImage
-    Z : (`n_height` * `shape`[0], `n_width` * `shape`[1], `shape`[2]) np.ndarray
-        reshaped `X` for plotting
+    X_reshaped : (`n_height` * `shape`[0], `n_width` * `shape`[1], `shape`[2]) np.ndarray
     """
     # check params
     X = np.asarray(X)
 
     if shape is None:
         shape = X.shape[1:]
+
     title_params = title_params or {}
     title_params.setdefault('fontsize', 22)
+
     imshow_params = imshow_params or {}
     imshow_params.setdefault('interpolation', 'nearest')
 
