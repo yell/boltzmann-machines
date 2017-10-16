@@ -908,19 +908,21 @@ class DBM(EnergyBasedModel):
             `log_mean` = log(Z_hat)
             `log_low`  = log(Z_hat - std)
             `log_high` = log(Z_hat + std)
+        values : (`n_runs`) np.ndarray
+            All estimates.
         """
         assert self.n_layers == 2
         assert n_betas > 1
         self._log_Z = tf.get_collection('log_Z')[0]
-        log_Z = self._tf_session.run(self._log_Z,
-                                     feed_dict=self._make_tf_feed_dict(delta_beta=1./n_betas,
-                                                                       n_ais_runs=n_runs,
-                                                                       n_gibbs_steps=n_gibbs_steps))
-        log_mean = log_mean_exp(log_Z)
-        log_std  = log_std_exp(log_Z, log_mean_exp_x=log_mean)
+        values = self._tf_session.run(self._log_Z,
+                                      feed_dict=self._make_tf_feed_dict(delta_beta=1./n_betas,
+                                                                        n_ais_runs=n_runs,
+                                                                        n_gibbs_steps=n_gibbs_steps))
+        log_mean = log_mean_exp(values)
+        log_std  = log_std_exp(values, log_mean_exp_x=log_mean)
         log_high = log_sum_exp([log_std, log_mean])
         log_low  = log_diff_exp([log_std, log_mean])[0]
-        return log_mean, (log_low, log_high)
+        return log_mean, (log_low, log_high), values
 
     @run_in_tf_session()
     def log_proba(self, X_test, log_Z):
