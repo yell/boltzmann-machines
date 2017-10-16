@@ -265,7 +265,7 @@ def main():
 
     ############################################
 
-    log_Z, (_, high) = dbm.log_Z(n_runs=100, n_betas=500, n_gibbs_steps=5)
+    log_Z, (_, high) = dbm.log_Z(n_runs=100, n_betas=5000, n_gibbs_steps=5)
     log_p = dbm.log_proba(X_val, log_Z=log_Z).mean()
     print "{0:.3f}".format(log_p)
 
@@ -286,7 +286,7 @@ def main():
     from hdm.utils import im_plot, im_reshape, im_gif
 
     samples = []
-    for i in xrange(32):
+    for i in xrange(50):
         print 100 * i
         V = dbm.sample_v(n_gibbs_steps=100, save_model=True)
         Z = im_reshape(V, shape=(28, 28))
