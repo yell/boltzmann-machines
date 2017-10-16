@@ -4,7 +4,8 @@ from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 
 
-def plot_matrices(X, n_width=10, n_height=10, shape=None, title=None, title_params=None, imshow_params=None):
+def plot_matrices(X, n_width=10, n_height=10, shape=None, normalize=True, title=None,
+                  title_params=None, imshow_params=None):
     """Draw grid of matrices represented by rows of `X`.
 
     Returns
@@ -13,7 +14,6 @@ def plot_matrices(X, n_width=10, n_height=10, shape=None, title=None, title_para
     Z : (`n_height` * `shape`[0], `n_width` * `shape`[1], `shape`[2]) np.ndarray
         reshaped `X` for plotting
     """
-
     # check params
     X = np.asarray(X)
 
@@ -30,12 +30,18 @@ def plot_matrices(X, n_width=10, n_height=10, shape=None, title=None, title_para
         shape = (shape[0], shape[1], 1)
     Y = Y.reshape(-1, *shape)
     Z = np.zeros((n_height * shape[0], n_width * shape[1], shape[2]))
+
     for i in xrange(n_height):
         for j in xrange(n_width):
             ind_Y = n_height * i + j
             if ind_Y < len(Y):
+                Y_i = Y[ind_Y, ...]
+                if normalize:
+                    Y_i -= Y_i.min()
+                    Y_i /= max(Y_i.ptp(), 1e-5)
+                    Y_i /= Y_i.max()
                 Z[i * shape[0]:(i + 1) * shape[0],
-                  j * shape[1]:(j + 1) * shape[1], ...] = Y[ind_Y, ...]
+                  j * shape[1]:(j + 1) * shape[1], ...] = Y_i
     if Z.shape[2] == 1:
         Z = Z[:, :, 0]
 
