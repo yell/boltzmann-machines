@@ -4,18 +4,20 @@ from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 
 
-def plot_matrices(X, n_width=10, n_height=10, shape=None, normalize=True, title=None,
-                  title_params=None, imshow_params=None):
-    """Draw grid of matrices represented by rows of `X`.
-
-    Returns
-    -------
-    im : matplotlib.image.AxesImage
-    X_reshaped : (`n_height` * `shape`[0], `n_width` * `shape`[1], `shape`[2]) np.ndarray
+def tick_params():
+    """Tick params used in `plt.tick_params` or `im.axes.tick_params` to
+    plot images without labels, borders etc..
     """
+    return dict(axis='both', which='both',
+                bottom='off', top='off', left='off', right='off',
+                labelbottom='off', labelleft='off', labelright='off')
+
+
+def im_plot(X, n_width=10, n_height=10, shape=None, normalize=True, title=None,
+            title_params=None, imshow_params=None):
+    """Plot batch of images `X` on a single graph."""
     # check params
     X = np.asarray(X)
-
     if shape is None:
         shape = X.shape[1:]
 
@@ -24,6 +26,37 @@ def plot_matrices(X, n_width=10, n_height=10, shape=None, normalize=True, title=
 
     imshow_params = imshow_params or {}
     imshow_params.setdefault('interpolation', 'nearest')
+
+    # plot
+    for i in xrange(n_height * n_width):
+        if i < len(X):
+            matrix = X[i]
+            if shape is not None:
+                matrix = matrix.reshape(shape)
+            ax = plt.subplot(n_height, n_width, i + 1)
+            for d in ('bottom', 'top', 'left', 'right'):
+                ax.spines[d].set_linewidth(2.)
+            plt.tick_params(**tick_params())
+            plt.imshow(matrix, **imshow_params)
+    if title:
+        plt.suptitle(title, **title_params)
+    plt.subplots_adjust(wspace=0, hspace=0)
+
+
+def im_reshape(X, n_width=10, n_height=10, shape=None, normalize=False):
+    """Reshape batch of images `X` to a single grid-image
+
+    Returns
+    -------
+    X_reshaped : (H, W, C) or (H, W) np.ndarray
+        Where H = `n_height` * `shape`[0],
+              W = `n_width` * `shape`[1],
+              C = `shape`[2] if `shape`[2] > 1 (3 or 4)
+    """
+    # check params
+    X = np.asarray(X)
+    if shape is None:
+        shape = X.shape[1:]
 
     # reshape `X`
     Y = X[:(n_width * n_height), ...].copy()
@@ -46,18 +79,11 @@ def plot_matrices(X, n_width=10, n_height=10, shape=None, normalize=True, title=
     if Z.shape[2] == 1:
         Z = Z[:, :, 0]
 
-    # plot reshaped `X`
-    im = plt.imshow(Z, **imshow_params)
-    if title:
-        im.axes.set_title(title, **title_params)
-    im.axes.tick_params(axis='both', which='both',
-                        bottom='off', top='off', left='off', right='off',
-                        labelbottom='off', labelleft='off', labelright='off')
-    return im, Z
+    return Z
 
 
-def gif_matrices(matrices, im, fig, fname='samples.gif', title_func=None,
-                 title_params=None, anim_params=None, save_params=None):
+def im_gif(matrices, im, fig, fname='samples.gif', title_func=None,
+           title_params=None, anim_params=None, save_params=None):
     """Animate `matrices`.
 
     Parameters
@@ -75,13 +101,13 @@ def gif_matrices(matrices, im, fig, fname='samples.gif', title_func=None,
     title_params = title_params or {}
     title_params.setdefault('fontsize', 18)
 
-    save_params = save_params or {}
-    save_params.setdefault('dpi', 80)
-    save_params.setdefault('writer', 'imagemagick')
-
     anim_params = anim_params or {}
     anim_params.setdefault('interval', 200)
     anim_params.setdefault('blit', True)
+
+    save_params = save_params or {}
+    save_params.setdefault('dpi', 80)
+    save_params.setdefault('writer', 'imagemagick')
 
     def init():
         im.set_array([[]])
