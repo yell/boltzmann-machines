@@ -4,10 +4,10 @@ from tqdm import tqdm, tqdm_notebook
 def _is_in_ipython():
     try: __IPYTHON__; return True
     except NameError: return False
-_t = tqdm_notebook if _is_in_ipython() else tqdm
+progress_bar = tqdm_notebook if _is_in_ipython() else tqdm
 
 
-def write_during_training(s):
+def write_duringprogress_barraining(s):
     tqdm.write(s)
 
 def batch_iter(X, batch_size=10, verbose=False):
@@ -36,13 +36,13 @@ def batch_iter(X, batch_size=10, verbose=False):
     N = len(X)
     n_batches = N / batch_size + (N % batch_size > 0)
     gen = range(n_batches)
-    if verbose: gen = _t(gen, leave=False, ncols=64, desc='epoch')
+    if verbose: gen = progress_bar(gen, leave=False, ncols=64, desc='epoch')
     for i in gen:
         yield X[i*batch_size:(i + 1)*batch_size]
 
 def epoch_iter(start_epoch, max_epoch, verbose=False):
     gen = xrange(start_epoch + 1, max_epoch + 1)
-    if verbose: gen = _t(gen, leave=True, ncols=84, desc='training')
+    if verbose: gen = progress_bar(gen, leave=True, ncols=84, desc='training')
     for epoch in gen:
         yield epoch
 
@@ -106,5 +106,5 @@ def unhot(y, n_classes=None):
 
 if __name__ == '__main__':
     # run corresponding tests
-    from testing import run_tests
-    run_tests(__file__)
+    from testing import runprogress_barests
+    runprogress_barests(__file__)
