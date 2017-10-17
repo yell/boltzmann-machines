@@ -265,7 +265,7 @@ def main():
 
     ############################################
 
-    log_Z, (_, high) = dbm.log_Z(n_runs=100, n_betas=5000, n_gibbs_steps=5)
+    log_Z, (_, high) = dbm.log_Z(n_runs=100, n_betas=10000, n_gibbs_steps=5)
     log_p = dbm.log_proba(X_val, log_Z=log_Z).mean()
     print "{0:.3f}".format(log_p)
 
@@ -275,7 +275,7 @@ def main():
     if not os.path.exists(dir):
         os.makedirs(dir)
 
-    fname = '{log_p:.2f},({log_Z:.2f}, {high:.2f}),N{N}-LR{LR}-L2{L2}-M{M}-C{C}'. \
+    fname = '{log_p:.2f},({log_Z:.2f}, {high:.2f}),LR{LR}-L2{L2}'.\
         format(log_p=log_p, log_Z=log_Z, high=high, **d)
     fname += '.gif'
     fname = os.path.join(dir, fname)
@@ -283,7 +283,7 @@ def main():
     ###############################################
 
     import matplotlib.pyplot as plt
-    from hdm.utils import im_plot, im_reshape, im_gif, tick_params
+    from hdm.utils import im_reshape, im_gif, tick_params
 
     samples = []
     for i in xrange(50):
@@ -300,7 +300,7 @@ def main():
 
     ###############################################
 
-    mpath = '../models/dbm-N{N}-LR{LR}-L2{L2}-M{M}-C{C}/'.format(**d)
+    mpath = '../models/dbm-LR{LR}-L2{L2}/'.format(**d)
     rbm1_logs_path = '../models/dbm_mnist_rbm1/logs/'
     rbm2_logs_path = '../models/dbm_mnist_rbm2/logs/'
     from shutil import rmtree
