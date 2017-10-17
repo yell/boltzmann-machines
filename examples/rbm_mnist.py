@@ -100,10 +100,12 @@ def main():
     X /= 255.
     RNG(seed=42).shuffle(X)
     RNG(seed=42).shuffle(y)
-    X_train = X[:args.n_train]
-    y_train = y[:args.n_train]
-    X_val = X[-args.n_val:]
-    y_val = y[-args.n_val:]
+    n_train = min(len(X), args.n_train)
+    n_val = min(len(X), args.n_val)
+    X_train = X[:n_train]
+    y_train = y[:n_train]
+    X_val = X[-n_val:]
+    y_val = y[-n_val:]
 
     # train and save the RBM model
     if args.load:

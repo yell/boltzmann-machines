@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Train 2-layer Bernoulli DBM on MNIST dataset.
+Train 2-layer Bernoulli DBM on MNIST dataset with pre-training.
 Hyper-parameters are similar to those in MATLAB code [1].
 Some of them were changed for more efficient computation on GPUs,
 another ones to obtain more stable learning (lesser number of "died" units etc.)
@@ -101,8 +101,10 @@ def main():
     X, _ = load_mnist(mode='train', path='../data/')
     X /= 255.
     RNG(seed=42).shuffle(X)
-    X_train = X[:args.n_train]
-    X_val = X[-args.n_val:]
+    n_train = min(len(X), args.n_train)
+    n_val = min(len(X), args.n_val)
+    X_train = X[:n_train]
+    X_val = X[-n_val:]
     X = np.concatenate((X_train, X_val))
 
     # pre-train RBM #1
