@@ -18,9 +18,6 @@ print __doc__
 import os
 import argparse
 import numpy as np
-if not 'DISPLAY' in os.environ:
-    import matplotlib
-    matplotlib.use('Agg')
 
 import env
 from hdm.dbm import DBM
@@ -68,21 +65,21 @@ def main():
     # DBM-related
     parser.add_argument('--n-particles', type=int, default=100, metavar='M',
                         help='number of persistent Markov chains')
-    parser.add_argument('--n-gibbs-steps', type=int, default=5, metavar='N',
+    parser.add_argument('--n-gibbs-steps', type=int, default=1, metavar='N',
                         help='number of Gibbs steps for PCD')
     parser.add_argument('--max-mf-updates', type=int, default=50, metavar='N',
                         help='maximum number of mean-field updates per weight update')
     parser.add_argument('--mf-tol', type=float, default=1e-7, metavar='TOL',
                         help='mean-field tolerance')
-    parser.add_argument('--lr', type=float, default=5e-4, metavar='LR',
+    parser.add_argument('--lr', type=float, default=2e-3, metavar='LR',
                         help='initial learning rate')
     parser.add_argument('--l2', type=float, default=1e-7, metavar='L2',
                         help='L2 weight decay coefficient')
-    parser.add_argument('--max-norm', type=float, default=8., metavar='C',
+    parser.add_argument('--max-norm', type=float, default=6., metavar='C',
                         help='maximum norm constraint')
     parser.add_argument('--sparsity-target', type=float, default=[0.2, 0.1], metavar='T', nargs='+',
                         help='desired probability of hidden activation')
-    parser.add_argument('--sparsity-cost', type=float, default=[1e-3, 1e-3], metavar='C', nargs='+',
+    parser.add_argument('--sparsity-cost', type=float, default=[1e-4, 5e-5], metavar='C', nargs='+',
                         help='controls the amount of sparsity penalty')
     parser.add_argument('--sparsity-damping', type=float, default=0.9, metavar='D',
                         help='decay rate for hidden activations probs')
@@ -145,8 +142,7 @@ def main():
     Z = None
     if not args.load_rbm2 or not args.load_dbm:
         print "\nExtracting features from RBM #1 ...\n\n"
-        Z = np.load('Z.npy')
-        # Z = rbm1.transform(X)
+        Z = rbm1.transform(X)
         print Z.shape
 
     # pre-train RBM #2
@@ -211,8 +207,7 @@ def main():
     else:
         # freeze RBM #2 and extract features G = P_{RBM2}(h|v=Q)
         print "\nExtracting features from RBM #2 ...\n\n"
-        Q = np.load('Z.npy')
-        # Q = rbm2.transform(Z)
+        Q = rbm2.transform(Z)
         print Q.shape
 
         print "\nTraining DBM ...\n\n"
@@ -224,8 +219,8 @@ def main():
                   n_gibbs_steps=args.n_gibbs_steps,
                   max_mf_updates=args.max_mf_updates,
                   mf_tol=args.mf_tol,
-                  learning_rate=np.geomspace(args.lr, 1e-5, 100),
-                  momentum=np.geomspace(0.5, 0.9, 8),
+                  learning_rate=np.geomspace(args.lr, 5e-6, 400),
+                  momentum=np.geomspace(0.5, 0.9, 10),
                   max_epoch=args.epochs[2],
                   batch_size=args.batch_size[2],
                   l2=args.l2,
@@ -246,70 +241,6 @@ def main():
                   tf_saver_params=dict(max_to_keep=1),
                   model_path=args.dbm_dirpath)
         dbm.fit(X_train, X_val)
-
-    # g_i = p(h_{L-1}|v=x_i)
-    # G = dbm.transform(X)
-    # print G.shape, G.min(), G.max(), G.mean(), G.sum()
-
-    ###############################################
-
-    # V = dbm.sample_v(n_gibbs_steps=10)
-    # # print V.shape, V.min(), V.max(), V.mean(), V.sum()
-    # from hdm.utils import plot_matrices
-    # import matplotlib.pyplot as plt
-    # fig = plt.figure(figsize=(10, 10))
-    # plot_matrices(V, shape=(28, 28), imshow_params={'cmap': plt.cm.gray})
-    # # plt.show()
-
-    ###############################################
-
-    d = dict(N=args.n_gibbs_steps, LR=args.lr, L2=args.l2,
-             M=args.max_norm, C=args.sparsity_cost[0])
-
-    ############################################
-
-    log_Z, (_, high), _ = dbm.log_Z(n_runs=100, n_betas=10000, n_gibbs_steps=5)
-    log_p = dbm.log_proba(X_val, log_Z=log_Z).mean()
-    print "{0:.3f}".format(log_p)
-
-    ###############################################
-
-    dir = 'v/'
-    if not os.path.exists(dir):
-        os.makedirs(dir)
-
-    fname = '{log_p:.2f},({log_Z:.2f}, {high:.2f}),LR{LR}-L2{L2}'.\
-        format(log_p=log_p, log_Z=log_Z, high=high, **d)
-    fname += '.gif'
-    fname = os.path.join(dir, fname)
-
-    ###############################################
-
-    import matplotlib.pyplot as plt
-    from hdm.utils import im_reshape, im_gif, tick_params
-
-    samples = []
-    for i in xrange(100):
-        print 100 * i
-        V = dbm.sample_v(n_gibbs_steps=100, save_model=True)
-        Z = im_reshape(V, shape=(28, 28))
-        samples.append(Z)
-
-    fig = plt.figure(figsize=(8, 8))
-    im = plt.imshow(np.zeros((280, 280)), cmap=plt.cm.gray, animated=True, vmin=0., vmax=1.)
-    im.axes.tick_params(**tick_params())
-    im_gif(samples, im, fig, fname,
-           title_func=lambda i: 'Samples generated by DBM after {0} Gibbs steps\n'.format(100 * i))
-
-    ###############################################
-
-    mpath = '../models/dbm-LR{LR}-L2{L2}/'.format(**d)
-    rbm1_logs_path = '../models/dbm_mnist_rbm1/logs/'
-    rbm2_logs_path = '../models/dbm_mnist_rbm2/logs/'
-    from shutil import rmtree
-    for d in (mpath, rbm1_logs_path, rbm2_logs_path):
-        if os.path.exists(d):
-            rmtree(d)
 
 
 if __name__ == '__main__':
