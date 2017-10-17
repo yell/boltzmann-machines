@@ -241,8 +241,8 @@ def main():
                   random_seed=2222,
                   verbose=True,
                   display_filters=10,
-                  display_particles=10,
                   v_shape=(28, 28),
+                  display_particles=10,
                   tf_dtype='float32',
                   tf_saver_params=dict(max_to_keep=1),
                   model_path=args.dbm_dirpath)
