@@ -142,11 +142,12 @@ def main():
         rbm1.fit(X)
 
     # freeze RBM #1 and extract features Q = P_{RBM1}(h|v=X)
-    Z = None
+    Q = None
     if not args.load_rbm2 or not args.load_dbm:
-        print "\nExtracting features from RBM #1 ...\n\n"
-        Z = rbm1.transform(X)
-        print Z.shape
+        print "\nExtracting features from RBM #1 ..."
+        Q = rbm1.transform(X)
+        print Q.shape
+        print "\n"
 
     # pre-train RBM #2
     if args.load_rbm2:
@@ -186,7 +187,7 @@ def main():
         )
         max_epoch = args.increase_n_gibbs_steps_every
         rbm2 = BernoulliRBM(**rbm2_config)
-        rbm2.fit(Z)
+        rbm2.fit(Q)
         rbm2_config['momentum'] = 0.9
         while max_epoch < args.epochs[1]:
             max_epoch += args.increase_n_gibbs_steps_every
@@ -201,7 +202,7 @@ def main():
             rbm2_new = BernoulliRBM(**rbm2_config)
             rbm2_new.init_from(rbm2)
             rbm2 = rbm2_new
-            rbm2.fit(Z)
+            rbm2.fit(Q)
 
     # jointly train DBM
     if args.load_dbm:
@@ -210,16 +211,17 @@ def main():
         dbm.load_rbms([rbm1, rbm2])  # !!!
     else:
         # freeze RBM #2 and extract features G = P_{RBM2}(h|v=Q)
-        print "\nExtracting features from RBM #2 ...\n\n"
-        Q = rbm2.transform(Z)
-        print Q.shape
+        print "\nExtracting features from RBM #2 ..."
+        G = rbm2.transform(Q)
+        print G.shape
+        print "\n"
 
         print "\nTraining DBM ...\n\n"
         dbm = DBM(rbms=[rbm1, rbm2],
                   n_particles=args.n_particles,
                   v_particle_init=X[:args.n_particles].copy(),
-                  h_particles_init=(Z[:args.n_particles].copy(),
-                                    Q[:args.n_particles].copy()),
+                  h_particles_init=(Q[:args.n_particles].copy(),
+                                    G[:args.n_particles].copy()),
                   n_gibbs_steps=args.n_gibbs_steps,
                   max_mf_updates=args.max_mf_updates,
                   mf_tol=args.mf_tol,
@@ -229,22 +231,19 @@ def main():
                   batch_size=args.batch_size[2],
                   l2=args.l2,
                   max_norm=args.max_norm,
-                  display_filters=10,
-                  display_particles=10,
                   sample_v_states=True,
                   sample_h_states=(True, True),
                   sparsity_targets=args.sparsity_target,
                   sparsity_costs=args.sparsity_cost,
                   sparsity_damping=args.sparsity_damping,
-                  train_metrics_every_iter=100,
+                  train_metrics_every_iter=400,
                   val_metrics_every_epoch=2,
                   random_seed=2222,
                   verbose=True,
-                  display_filters=24,
-                  display_particles=24,
+                  display_filters=10,
+                  display_particles=10,
                   v_shape=(28, 28),
                   tf_dtype='float32',
-                  save_after_each_epoch=True,
                   tf_saver_params=dict(max_to_keep=1),
                   model_path=args.dbm_dirpath)
         dbm.fit(X_train, X_val)
