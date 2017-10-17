@@ -30,14 +30,14 @@ def im_plot(X, n_width=10, n_height=10, shape=None, title=None,
     # plot
     for i in xrange(n_height * n_width):
         if i < len(X):
-            matrix = X[i]
+            img = X[i]
             if shape is not None:
-                matrix = matrix.reshape(shape)
+                img = img.reshape(shape)
             ax = plt.subplot(n_height, n_width, i + 1)
             for d in ('bottom', 'top', 'left', 'right'):
                 ax.spines[d].set_linewidth(2.)
             plt.tick_params(**tick_params())
-            plt.imshow(matrix, **imshow_params)
+            plt.imshow(img, **imshow_params)
     if title:
         plt.suptitle(title, **title_params)
     plt.subplots_adjust(wspace=0, hspace=0)
