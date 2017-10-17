@@ -116,6 +116,7 @@ def main():
         print "\nTraining model ...\n\n"
         rbm = BernoulliRBM(n_visible=784,
                            n_hidden=args.n_hidden,
+                           W_init=0.01,
                            vb_init=logit_mean(X_train) if args.vb_init else 0.,
                            hb_init=args.hb_init,
                            n_gibbs_steps=args.n_gibbs_steps,
@@ -124,8 +125,8 @@ def main():
                            max_epoch=args.epochs,
                            batch_size=args.batch_size,
                            l2=args.l2,
-                           sample_h_states=True,
                            sample_v_states=args.sample_v_states,
+                           sample_h_states=True,
                            dropout=args.dropout,
                            sparsity_target=args.sparsity_target,
                            sparsity_cost=args.sparsity_cost,
