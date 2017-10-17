@@ -73,49 +73,67 @@ def load_cifar10(mode='train', path='.'):
     return data, target
 
 
-def flatten_cifar10(X):
-    """Flatten CIFAR-10 data for learning
+def im_flatten(X):
+    """Flatten batch of 3-channel images `X`
+    for learning.
+
+    Parameters
+    ----------
+    X : (n_samples, H, W, 3) np.ndarray
 
     Returns
     -------
-    data : (n_samples, 3072) np.ndarray
+    X : (n_samples, H * W * 3) np.ndarray
     """
     X = np.asarray(X)
     if len(X.shape) == 3:
         X = np.expand_dims(X, 0)
-    X = X.transpose(0, 3, 1, 2).reshape((-1, 3072))
+    n_samples = X.shape[0]
+    X = X.transpose(0, 3, 1, 2).reshape((n_samples, -1))
     if X.shape[0] == 1:
         X = X[0, ...]
     return X
 
 
-def unflatten_cifar10(X):
-    """Convert CIFAR-10 data for visualization.
+def im_unflatten(X):
+    """Convert batch of 3-channel images `X`
+    for visualization.
+
+    Parameters
+    ----------
+    X : (n_samples, D * D * 3) np.ndarray
 
     Returns
     -------
-    data : (n_samples, 32, 32, 3) np.ndarray
+    X : (n_samples, D, D, 3) np.ndarray
 
     Examples
     --------
     >>> import numpy as np
     >>> X = np.random.rand(10, 3072)
     >>> Y = X.copy()
-    >>> np.testing.assert_allclose(X, flatten_cifar10(unflatten_cifar10(Y)))
+    >>> np.testing.assert_allclose(X, im_flatten(im_unflatten(Y)))
     >>> X = np.random.rand(3072)
     >>> Y = X.copy()
-    >>> np.testing.assert_allclose(X, flatten_cifar10(unflatten_cifar10(Y)))
+    >>> np.testing.assert_allclose(X, im_flatten(im_unflatten(Y)))
+    >>> X = np.random.rand(9, 8 * 8 * 3)
+    >>> Y = X.copy()
+    >>> np.testing.assert_allclose(X, im_flatten(im_unflatten(Y)))
     >>> X = np.random.rand(7, 32, 32, 3)
     >>> Y = X.copy()
-    >>> np.testing.assert_allclose(X, unflatten_cifar10(flatten_cifar10(Y)))
+    >>> np.testing.assert_allclose(X, im_unflatten(im_flatten(Y)))
     >>> X = np.random.rand(32, 32, 3)
     >>> Y = X.copy()
-    >>> np.testing.assert_allclose(X, unflatten_cifar10(flatten_cifar10(Y)))
+    >>> np.testing.assert_allclose(X, im_unflatten(im_flatten(Y)))
+    >>> X = np.random.rand(8, 8, 3)
+    >>> Y = X.copy()
+    >>> np.testing.assert_allclose(X, im_unflatten(im_flatten(Y)))
     """
     X = np.asarray(X)
     if len(X.shape) == 1:
         X = np.expand_dims(X, 0)
-    X = X.reshape((-1, 3, 32, 32)).transpose(0, 2, 3, 1)
+    D = int(np.sqrt(X.shape[1]/3))
+    X = X.reshape((-1, 3, D, D)).transpose(0, 2, 3, 1)
     if X.shape[0] == 1:
         X = X[0, ...]
     return X
