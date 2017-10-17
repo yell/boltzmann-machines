@@ -180,6 +180,8 @@ class BaseRBM(EnergyBasedModel):
 
         self.display_filters = display_filters
         self.v_shape = v_shape
+        if len(self.v_shape) == 2:
+            self.v_shape = (self.v_shape[0], self.v_shape[1], 1)
         self.display_hidden_activations = display_hidden_activations
 
         # current epoch and iteration
@@ -278,7 +280,7 @@ class BaseRBM(EnergyBasedModel):
         if self.display_filters:
             with tf.name_scope('filters_visualization'):
                 W_display = tf.reshape(self._W, [self.v_shape[0],
-                                                 self.v_shape[1], self.n_hidden, 1])
+                                                 self.v_shape[1], self.n_hidden, self.v_shape[2]])
                 W_display = tf.transpose(W_display, [2, 0, 1, 3])
                 tf.summary.image('W_filters', W_display, max_outputs=self.display_filters)
 
