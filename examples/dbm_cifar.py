@@ -79,7 +79,7 @@ def main():
 
     # augment data
     X_aug = None
-    X_aug_path = os.path.join(args.data_path, 'X.npy')
+    X_aug_path = os.path.join(args.data_path, 'X_aug.npy')
     augment = True
     if os.path.isfile(X_aug_path):
         print "\nLoading augmented data ..."
