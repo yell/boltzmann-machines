@@ -249,7 +249,6 @@ class DBM(EnergyBasedModel):
             for h in self._h_layers:
                 h.tf_dtype = self._tf_dtype
 
-
     def _make_constants(self):
         with tf.name_scope('constants'):
             self._n_visible = tf.constant(self.n_visible, dtype=tf.int32, name='n_visible')
@@ -398,7 +397,6 @@ class DBM(EnergyBasedModel):
                     h_new = tf.Variable(q_new, dtype=self._tf_dtype, name='h_new')
                     self._H.append(h)
                     self._H_new.append(h_new)
-
 
     def _make_gibbs_step(self, v, H, v_new, H_new, update_v=True, sample=True):
         """Compute one Gibbs step."""
@@ -644,7 +642,6 @@ class DBM(EnergyBasedModel):
             for i in xrange(self.n_layers):
                 tf.summary.scalar('W_norm', W_norms[i])
 
-
     def _make_sample_v(self):
         with tf.name_scope('sample_v'):
             v_update, H_updates, v_new_update, H_new_updates = \
@@ -653,7 +650,6 @@ class DBM(EnergyBasedModel):
                 v_means, _, _, _ = self._make_particles_update(sample=False)
                 sample_v = self._v.assign(v_means)
         tf.add_to_collection('sample_v', sample_v)
-
 
     def _unnormalized_log_prob_H0(self, x, beta):
         T1 = tf.einsum('ij,j->i', x, self._hb[0])
@@ -767,7 +763,6 @@ class DBM(EnergyBasedModel):
 
         tf.add_to_collection('log_proba', log_p)
 
-
     def _make_tf_model(self):
         self._make_constants()
         self._make_placeholders()
@@ -778,7 +773,6 @@ class DBM(EnergyBasedModel):
 
         self._make_ais()
         self._make_log_proba()
-
 
     def _make_tf_feed_dict(self, X_batch=None, delta_beta=None, n_ais_runs=None, n_gibbs_steps=None):
         d = {}
@@ -874,7 +868,6 @@ class DBM(EnergyBasedModel):
                 # noinspection PyUnresolvedReferences
                 params[k] = v.tolist()
         return params
-
 
     @run_in_tf_session()
     def transform(self, X):
