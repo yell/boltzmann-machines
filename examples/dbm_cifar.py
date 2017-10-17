@@ -48,7 +48,7 @@ def main():
                         help='directory for storing augmented data etc.')
 
     # small RBMs related
-    parser.add_argument('--small-lr', type=float, default=5e-4, metavar='LR', nargs='+',
+    parser.add_argument('--small-lr', type=float, default=1e-3, metavar='LR', nargs='+',
                         help='learning rate or sequence of such (per epoch)')
     parser.add_argument('--small-epochs', type=int, default=100, metavar='N',
                         help='number of epochs to train')
@@ -56,7 +56,7 @@ def main():
                         help='input batch size for training')
     parser.add_argument('--small-l2', type=float, default=1e-3, metavar='L2',
                         help='L2 weight decay coefficient')
-    parser.add_argument('--small-dirpath-prefix', type=str, default='../models/rbm_small_', metavar='PREFIX',
+    parser.add_argument('--small-dirpath-prefix', type=str, default='../models/rbm_cifar_small_', metavar='PREFIX',
                         help='directory path prefix to save RBMs trained on patches')
 
 
@@ -134,6 +134,8 @@ def main():
     X_std = X_train.std(axis=0)
     X_train -= X_mean
     X_train /= X_std
+    X_val -= X_mean
+    X_val /= X_std
     np.save(os.path.join(args.data_path, 'X_mean.npy'), X_mean)
     np.save(os.path.join(args.data_path, 'X_std.npy'), X_std)
     print "Augmented mean: ({0:.3f}, ...); std: ({1:.3f}, ...)".format(X_train.mean(axis=0)[0],
@@ -145,6 +147,9 @@ def main():
     X_train = im_unflatten(X_train)
     X_patches = X_train[:, :8, :8, :]
     X_patches = im_flatten(X_patches)
+    X_val = im_unflatten(X_val)
+    X_patches_val = X_val[:, :8, :8, :]
+    X_patches_val = im_flatten(X_patches_val)
     print X_patches.shape
 
     rbm = GaussianRBM(n_visible=8*8*3,
@@ -161,8 +166,8 @@ def main():
                       l2=args.small_l2,
                       sample_v_states=True,
                       sample_h_states=True,
-                      sparsity_target=0.1,
-                      sparsity_cost=1e-4,
+                      sparsity_cost=0.,
+                      dbm_first=True,  # !!!
                       metrics_config=dict(
                           msre=True,
                           feg=True,
@@ -179,7 +184,7 @@ def main():
                       tf_dtype='float32',
                       tf_saver_params=dict(max_to_keep=1),
                       model_path=args.small_dirpath_prefix + '0/')
-    rbm.fit(X_patches)
+    rbm.fit(X_patches, X_patches_val)
 
 
 if __name__ == '__main__':
