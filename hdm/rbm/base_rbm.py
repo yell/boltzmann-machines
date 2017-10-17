@@ -279,14 +279,15 @@ class BaseRBM(EnergyBasedModel):
         # visualize filters
         if self.display_filters:
             with tf.name_scope('filters_visualization'):
-                W_display = tf.reshape(self._W, [self.v_shape[0],
-                                                 self.v_shape[1], self.n_hidden, self.v_shape[2]])
-                W_display = tf.transpose(W_display, [2, 0, 1, 3])
+                W_display = tf.transpose(self._W, [1, 0])
+                W_display = tf.reshape(W_display, [self.n_hidden, self.v_shape[2],
+                                                   self.v_shape[0], self.v_shape[1]])
+                W_display = tf.transpose(W_display, [0, 2, 3, 1])
                 tf.summary.image('W_filters', W_display, max_outputs=self.display_filters)
 
         # initialize gradients accumulators
         with tf.name_scope('grads_accumulators'):
-            dW_init = tf.constant(self._dW_init, dtype=self._tf_dtype) if self._dW_init is not None else\
+            dW_init = tf.constant(self._dW_init, dtype=self._tf_dtype) if self._dW_init is not None else \
                       tf.zeros([self._n_visible, self._n_hidden], dtype=self._tf_dtype)
             dvb_init = tf.constant(self._dvb_init, dtype=self._tf_dtype) if self._dvb_init is not None else \
                        tf.zeros([self._n_visible], dtype=self._tf_dtype)
@@ -603,7 +604,7 @@ class BaseRBM(EnergyBasedModel):
 
     def init_from(self, rbm):
         if type(self) != type(rbm):
-            raise ValueError('an attempt to initialize `{0}` from `{1}`'.\
+            raise ValueError('an attempt to initialize `{0}` from `{1}`'.
                              format(self.__class__.__name__, rbm.__class__.__name__))
         weights = rbm.get_tf_params(scope='weights')
         self.W_init = weights['W']
