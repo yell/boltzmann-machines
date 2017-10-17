@@ -95,7 +95,8 @@ def main():
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
     if args.load == '': args.load = args.model_dirpath
 
-    # prepare data
+    # prepare data (load + normalize + split)
+    print "\nPreparing data ...\n\n"
     X, y = load_mnist(mode='train', path='../data/')
     X /= 255.
     RNG(seed=42).shuffle(X)

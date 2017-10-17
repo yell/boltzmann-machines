@@ -97,7 +97,8 @@ def main():
     if args.load_rbm2 == '': args.load_rbm2 = args.rbm2_dirpath
     if args.load_dbm == '': args.load_dbm = args.dbm_dirpath
 
-    # prepare data
+    # prepare data (load + normalize + split)
+    print "\nPreparing data ...\n\n"
     X, _ = load_mnist(mode='train', path='../data/')
     X /= 255.
     RNG(seed=42).shuffle(X)
