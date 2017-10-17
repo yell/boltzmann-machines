@@ -56,10 +56,12 @@ def main():
                         help='input batch size for training')
     parser.add_argument('--small-l2', type=float, default=1e-3, metavar='L2',
                         help='L2 weight decay coefficient')
+    parser.add_argument('--small-sparsity-target', type=float, default=0.1, metavar='T',
+                        help='desired probability of hidden activation')
+    parser.add_argument('--small-sparsity-cost', type=float, default=1e-5, metavar='C',
+                        help='controls the amount of sparsity penalty')
     parser.add_argument('--small-dirpath-prefix', type=str, default='../models/rbm_cifar_small_', metavar='PREFIX',
                         help='directory path prefix to save RBMs trained on patches')
-
-
 
     args = parser.parse_args()
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
@@ -144,48 +146,61 @@ def main():
 
 
     # train 26 small Gaussian RBMs on patches
-    X_train = im_unflatten(X_train)
-    X_patches = X_train[:, :8, :8, :]
-    X_patches = im_flatten(X_patches)
-    X_val = im_unflatten(X_val)
-    X_patches_val = X_val[:, :8, :8, :]
-    X_patches_val = im_flatten(X_patches_val)
-    print X_patches.shape
+    # TODO: check if trained
 
-    rbm = GaussianRBM(n_visible=8*8*3,
-                      n_hidden=300,
-                      sigma=1.,
-                      W_init=0.001,
-                      vb_init=0.,
-                      hb_init=0.,
-                      n_gibbs_steps=1,
-                      learning_rate=args.small_lr,
-                      momentum=np.geomspace(0.5, 0.9, 8),
-                      max_epoch=args.small_epochs,
-                      batch_size=args.small_batch_size,
-                      l2=args.small_l2,
-                      sample_v_states=True,
-                      sample_h_states=True,
-                      sparsity_target=0.1,
-                      sparsity_cost=1e-4,
-                      dbm_first=True,  # !!!
-                      metrics_config=dict(
-                          msre=True,
-                          feg=True,
-                          train_metrics_every_iter=500,
-                          val_metrics_every_epoch=2,
-                          feg_every_epoch=2,
-                          n_batches_for_feg=50,
-                      ),
-                      verbose=True,
-                      display_filters=12,
-                      v_shape=(8, 8, 3),
-                      display_hidden_activations=24,
-                      random_seed=9000 + 0,
-                      tf_dtype='float32',
-                      tf_saver_params=dict(max_to_keep=1),
-                      model_path=args.small_dirpath_prefix + '0/')
-    rbm.fit(X_patches, X_patches_val)
+    X_train = im_unflatten(X_train)
+    X_val = im_unflatten(X_val)
+
+    small_rbms = []
+
+    # first 16
+    for i in xrange(4):
+        for j in xrange(4):
+
+            if (i, j) != (0, 0):
+                continue
+
+            X_patches   = X_train[:, 8*i:8*(i + 1), 8*j:8*(j + 1), :]
+            X_patches_val = X_val[:, 8*i:8*(i + 1), 8*j:8*(j + 1), :]
+            X_patches     = im_flatten(X_patches)
+            X_patches_val = im_flatten(X_patches_val)
+            print X_patches.shape
+
+            rbm = GaussianRBM(n_visible=8*8*3,
+                              n_hidden=300,
+                              sigma=1.,
+                              W_init=0.001,
+                              vb_init=0.,
+                              hb_init=0.,
+                              n_gibbs_steps=1,
+                              learning_rate=args.small_lr,
+                              momentum=np.geomspace(0.5, 0.9, 8),
+                              max_epoch=args.small_epochs,
+                              batch_size=args.small_batch_size,
+                              l2=args.small_l2,
+                              sample_v_states=True,
+                              sample_h_states=True,
+                              sparsity_target=args.small_sparsity_target,
+                              sparsity_cost=args.small_sparsity_cost,
+                              dbm_first=True,  # !!!
+                              metrics_config=dict(
+                                  msre=True,
+                                  feg=True,
+                                  train_metrics_every_iter=500,
+                                  val_metrics_every_epoch=2,
+                                  feg_every_epoch=2,
+                                  n_batches_for_feg=50,
+                              ),
+                              verbose=True,
+                              display_filters=12,
+                              v_shape=(8, 8, 3),
+                              display_hidden_activations=24,
+                              random_seed=9000 + 0,
+                              tf_dtype='float32',
+                              tf_saver_params=dict(max_to_keep=1),
+                              model_path=args.small_dirpath_prefix + '0/')
+            rbm.fit(X_patches, X_patches_val)
+            small_rbms.append(small_rbms)
 
 
 if __name__ == '__main__':
