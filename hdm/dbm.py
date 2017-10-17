@@ -105,16 +105,17 @@ class DBM(EnergyBasedModel):
 
     References
     ----------
-    [1] Salakhutdinov, R. and Hinton, G. Deep Boltzmann machines (2009).
-        In AISTATS 2009
-    [2] Salakhutdinov, R. Learning Deep Boltzmann Machines, Matlab code.
+    [1] R. Salakhutdinov and G. Hinton. Deep boltzmann machines.
+        In AISTATS, pp. 448-455. 2009
+    [2] Salakhutdinov, R. Learning Deep Boltzmann Machines, MATLAB code.
         url: https://www.cs.toronto.edu/~rsalakhu/DBM.html
-    [3] Goodfellow, I. et. al. Joint Training of Deep Boltzmann machines
-        for Classification (2013).
-    [4] Monvaton, G. and Mueller, K.-R. Deep boltzmann machines and
-        centering trick (2012). In Neural Networks: Tricks of the trade,
+    [3] I.J. Goodfellow, A. Courville, and Y. Bengio. Joint training deep
+        boltzmann machines for classification. arXiv preprint arXiv:1301.3568.
+        2013.
+    [4] G. Monvaton and K.-R. Mueller. Deep boltzmann machines and
+        centering trick. In Neural Networks: Tricks of the trade,
         pp. 621-637, Springer, 2012.
-    [5] Hinton, G. and Salakhutdinov, R. A better way to pretrain deep
+    [5] G. Hinton and R. Salakhutdinov. A better way to pretrain deep
         boltzmann machines. In Advances in Neural Information Processing
         Systems, pp. 2447-2455, 2012.
     """

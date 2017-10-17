@@ -70,13 +70,14 @@ class BaseRBM(EnergyBasedModel):
 
     References
     ----------
-    [1] Goodfellow I. et. al. "Deep Learning".
-    [2] Hinton, G. "A Practical Guide to Training Restricted Boltzmann
-        Machines" UTML TR 2010-003
+    [1] I. Goodfellow, Y. Bengio, and A. Courville. Deep Learning.
+        MIT press, 2016.
+    [2] G. Hinton. A Practical Guide to Training Restricted Boltzmann
+        Machines. UTML TR 2010-003
     [3] Restricted Boltzmann Machines (RBMs), Deep Learning Tutorial
         url: http://deeplearning.net/tutorial/rbm.html
-    [4] Salakhutdinov, R. and Hinton, G. (2009). Deep Boltzmann machines.
-        In AISTATS 2009
+    [4] R. Salakhutdinov and G. Hinton. Deep boltzmann machines.
+        In AISTATS, pp. 448-455. 2009
     """
     def __init__(self,
                  n_visible=784, v_layer_cls=None, v_layer_params=None,
