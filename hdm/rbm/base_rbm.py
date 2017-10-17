@@ -88,8 +88,8 @@ class BaseRBM(EnergyBasedModel):
                  sparsity_target=0.1, sparsity_cost=0., sparsity_damping=0.9,
                  dbm_first=False, dbm_last=False,
                  metrics_config=None, verbose=True, save_after_each_epoch=True,
-                 display_filters=30, v_shape=(28, 28),
-                 display_hidden_activations=24,
+                 display_filters=0, v_shape=(28, 28),
+                 display_hidden_activations=0,
                  model_path='rbm_model/', *args, **kwargs):
         super(BaseRBM, self).__init__(model_path=model_path, *args, **kwargs)
         self.n_visible = n_visible

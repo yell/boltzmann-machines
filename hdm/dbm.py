@@ -128,7 +128,7 @@ class DBM(EnergyBasedModel):
                  sparsity_targets=None, sparsity_costs=None, sparsity_damping=0.9,
                  train_metrics_every_iter=10, val_metrics_every_epoch=1,
                  verbose=False, save_after_each_epoch=False,
-                 display_filters=24, display_particles=24, v_shape=(28, 28),
+                 display_filters=0, display_particles=0, v_shape=(28, 28),
                  model_path='dbm_model/', *args, **kwargs):
         super(DBM, self).__init__(model_path=model_path, *args, **kwargs)
         self.n_layers = None
