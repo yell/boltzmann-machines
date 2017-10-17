@@ -265,7 +265,7 @@ def main():
 
     ############################################
 
-    log_Z, (_, high) = dbm.log_Z(n_runs=100, n_betas=10000, n_gibbs_steps=5)
+    log_Z, (_, high), _ = dbm.log_Z(n_runs=100, n_betas=10000, n_gibbs_steps=5)
     log_p = dbm.log_proba(X_val, log_Z=log_Z).mean()
     print "{0:.3f}".format(log_p)
 
