@@ -29,8 +29,12 @@ from hdm.utils.dataset import load_mnist
 def main():
     # training settings
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    # general
     parser.add_argument('--gpu', type=str, default='0', metavar='ID',
                         help="ID of the GPU to train on (or '' to train on CPU)")
+
+    # data
     parser.add_argument('--n-train', type=int, default=59000, metavar='N',
                         help='number of training examples')
     parser.add_argument('--n-val', type=int, default=1000, metavar='N',
@@ -94,7 +98,7 @@ def main():
     if args.load_rbm2 == '': args.load_rbm2 = args.rbm2_dirpath
     if args.load_dbm == '': args.load_dbm = args.dbm_dirpath
 
-    # prepare data (load + normalize + split)
+    # prepare data (load + scale + split)
     print "\nPreparing data ...\n\n"
     X, _ = load_mnist(mode='train', path='../data/')
     X /= 255.

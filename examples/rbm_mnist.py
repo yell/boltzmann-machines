@@ -95,7 +95,7 @@ def main():
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
     if args.load == '': args.load = args.model_dirpath
 
-    # prepare data (load + normalize + split)
+    # prepare data (load + scale + split)
     print "\nPreparing data ...\n\n"
     X, y = load_mnist(mode='train', path='../data/')
     X /= 255.
