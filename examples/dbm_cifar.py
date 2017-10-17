@@ -47,6 +47,18 @@ def main():
     parser.add_argument('--data-path', type=str, default='../data/', metavar='PATH',
                         help='directory for storing augmented data etc.')
 
+    # small RBMs related
+    parser.add_argument('--small-lr', type=float, default=5e-4, metavar='LR', nargs='+',
+                        help='learning rate or sequence of such (per epoch)')
+    parser.add_argument('--small-epochs', type=int, default=100, metavar='N',
+                        help='number of epochs to train')
+    parser.add_argument('--small-batch-size', type=int, default=48, metavar='B',
+                        help='input batch size for training')
+    parser.add_argument('--small-l2', type=float, default=1e-3, metavar='L2',
+                        help='L2 weight decay coefficient')
+    parser.add_argument('--small-dirpath-prefix', type=str, default='../models/rbm_small_', metavar='PREFIX',
+                        help='directory path prefix to save RBMs trained on patches')
+
 
 
     args = parser.parse_args()
@@ -63,6 +75,7 @@ def main():
     n_val = min(len(X), args.n_val)
     X_train = X[:n_train]
     X_val = X[-n_val:]
+
 
     # augment data
     X_aug = None
@@ -127,11 +140,46 @@ def main():
                                                                        X_train.std(axis=0)[0])
     print "Augmented range: ({0:.3f}, {1:.3f})\n\n".format(X_train.min(), X_train.max())
 
+
     # train 26 small Gaussian RBMs on patches
     X_train = im_unflatten(X_train)
     X_patches = X_train[:, :8, :8, :]
     X_patches = im_flatten(X_patches)
     print X_patches.shape
+
+    rbm = GaussianRBM(n_visible=8*8*3,
+                      n_hidden=300,
+                      sigma=1.,
+                      W_init=0.001,
+                      vb_init=0.,
+                      hb_init=0.,
+                      n_gibbs_steps=1,
+                      learning_rate=args.small_lr,
+                      momentum=np.geomspace(0.5, 0.9, 8),
+                      max_epoch=args.small_epochs,
+                      batch_size=args.small_batch_size,
+                      l2=args.small_l2,
+                      sample_v_states=True,
+                      sample_h_states=True,
+                      sparsity_target=0.1,
+                      sparsity_cost=1e-4,
+                      metrics_config=dict(
+                          msre=True,
+                          feg=True,
+                          train_metrics_every_iter=100,
+                          val_metrics_every_epoch=1,
+                          feg_every_epoch=2,
+                          n_batches_for_feg=50,
+                      ),
+                      verbose=True,
+                      display_filters=12,
+                      v_shape=(8, 8, 3),
+                      display_hidden_activations=24,
+                      random_seed=9000 + 0,
+                      tf_dtype='float32',
+                      tf_saver_params=dict(max_to_keep=1),
+                      model_path=args.small_dirpath_prefix + '0/')
+    rbm.fit(X_patches)
 
 
 if __name__ == '__main__':
