@@ -40,7 +40,11 @@ def main():
     parser.add_argument('--n-val', type=int, default=1000, metavar='N',
                         help='number of validation examples')
 
-    # common
+    # RBM #2 related
+    parser.add_argument('--increase-n-gibbs-steps-every', type=int, default=20, metavar='I',
+                        help='increase number of Gibbs steps every specified number of epochs for RBM #2')
+
+    # common for RBMs and DBM
     parser.add_argument('--n-hiddens', type=int, default=[512, 1024], metavar='N', nargs='+',
                         help='numbers of hidden units')
     parser.add_argument('--epochs', type=int, default=[64, 120, 500], metavar='N', nargs='+',
@@ -48,10 +52,8 @@ def main():
     parser.add_argument('--batch-size', type=int, default=[48, 48, 100], metavar='B', nargs='+',
                         help='input batch size for training, `--n-train` and `--n-val`' + \
                              'must be divisible by this number (for DBM)')
-    parser.add_argument('--increase-n-gibbs-steps-every', type=int, default=20, metavar='I',
-                        help='increase number of Gibbs steps every specified number of epochs for RBM #2')
 
-    # dirpaths
+    # save dirpaths
     parser.add_argument('--rbm1-dirpath', type=str, default='../models/dbm_mnist_rbm1/', metavar='DIRPATH',
                         help='directory path to save RBM #1')
     parser.add_argument('--rbm2-dirpath', type=str, default='../models/dbm_mnist_rbm2/', metavar='DIRPATH',
@@ -59,6 +61,7 @@ def main():
     parser.add_argument('--dbm-dirpath', type=str, default='../models/dbm_mnist/', metavar='DIRPATH',
                         help='directory path to save DBM')
 
+    # load dirpaths
     parser.add_argument('--load-rbm1', type=str, default=None, metavar='DIRPATH',
                         help='directory path to load trained RBM #1')
     parser.add_argument('--load-rbm2', type=str, default=None, metavar='DIRPATH',
@@ -66,7 +69,7 @@ def main():
     parser.add_argument('--load-dbm', type=str, default=None, metavar='DIRPATH',
                         help='directory path to load trained DBM')
 
-    # DBM-related
+    # DBM related
     parser.add_argument('--n-particles', type=int, default=100, metavar='M',
                         help='number of persistent Markov chains')
     parser.add_argument('--n-gibbs-steps', type=int, default=1, metavar='N',

@@ -35,6 +35,8 @@ from hdm.utils.optimizers import MultiAdam
 def main():
     # training settings
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    # general/data
     parser.add_argument('--gpu', type=str, default='0', metavar='ID',
                         help="ID of the GPU to train on (or '' to train on CPU)")
     parser.add_argument('--n-train', type=int, default=55000, metavar='N',
@@ -42,6 +44,7 @@ def main():
     parser.add_argument('--n-val', type=int, default=5000, metavar='N',
                         help='number of validation examples')
 
+    # RBM related
     parser.add_argument('--n-hidden', type=int, default=1024, metavar='N',
                         help='number of hidden units')
     parser.add_argument('--vb-init', action='store_false',
@@ -76,18 +79,19 @@ def main():
     parser.add_argument('--load', type=str, default=None, metavar='DIRPATH',
                         help='directory path to load trained model')
 
+    # MLP related
     parser.add_argument('--mlp-no-init', action='store_true',
-                        help='if enabled, use random initialization for MLP')
+                        help='if enabled, use random initialization')
     parser.add_argument('--mlp-l2', type=float, default=1e-5, metavar='L2',
-                        help='L2 weight decay coefficient for MLP')
+                        help='L2 weight decay coefficient')
     parser.add_argument('--mlp-lrm', type=float, default=(0.1, 1.), metavar='LRM', nargs='+',
-                        help='learning rate multipliers of 1e-3 for MLP')
+                        help='learning rate multipliers of 1e-3')
     parser.add_argument('--mlp-epochs', type=int, default=100, metavar='N',
-                        help='number of epochs to train MLP')
+                        help='number of epochs to train')
     parser.add_argument('--mlp-val-metric', type=str, default='val_acc', metavar='S',
                         help="metric on validation set to perform early stopping, {'val_acc', 'val_loss'}")
     parser.add_argument('--mlp-batch-size', type=int, default=128, metavar='N',
-                        help='input batch size for training MLP')
+                        help='input batch size for training')
     parser.add_argument('--mlp-save-prefix', type=str, default='../data/rbm_', metavar='PREFIX',
                         help='prefix to save MLP predictions and targets')
 
