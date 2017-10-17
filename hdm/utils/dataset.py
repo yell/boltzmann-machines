@@ -73,17 +73,39 @@ def load_cifar10(mode='train', path='.'):
     return data, target
 
 
-def convert_cifar10(X):
+def flatten_cifar10(X):
+    """Flatten CIFAR-10 data for learning
+
+    Returns
+    -------
+    data : (n_samples, 3072) np.ndarray
     """
-    Convert CIFAR-10 data for visualization.
+    X = np.asarray(X)
+    if len(X.shape) == 1:
+        X = np.expand_dims(X, 0)
+    return X.transpose(0, 3, 1, 2).reshape((-1, 3072))
+
+
+def unflatten_cifar10(X):
+    """Convert CIFAR-10 data for visualization.
 
     Returns
     -------
     data : (n_samples, 32, 32, 3) np.ndarray
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> X = np.random.rand(10, 3072)
+    >>> Y = X.copy()
+    >>> np.testing.assert_allclose(X, flatten_cifar10(unflatten_cifar10(Y)))
+    >>> X = np.random.rand(7, 32, 32, 3)
+    >>> Y = X.copy()
+    >>> np.testing.assert_allclose(X, unflatten_cifar10(flatten_cifar10(Y)))
     """
-    X = X.copy()
+    X = np.asarray(X)
     if len(X.shape) == 3:
-        X = X.reshape((1, -1))
+        X = np.expand_dims(X, 0)
     return X.reshape((-1, 3, 32, 32)).transpose(0, 2, 3, 1)
 
 
@@ -129,10 +151,6 @@ def plot_cifar10(X, y, imshow_params=None):
 
 
 if __name__ == '__main__':
-    X, y = load_cifar10(mode='test', path='../../data/')
-    X = convert_cifar10(X[:120])
-    plt.figure(figsize=(12, 8))
-    # plot_cifar10(X, y[:120])
-    from plot_utils import plot_matrices_color
-    plot_matrices_color(X)
-    plt.show()
+    # run corresponding tests
+    from testing import run_tests
+    run_tests(__file__)
