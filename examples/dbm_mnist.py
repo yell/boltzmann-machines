@@ -286,7 +286,7 @@ def main():
     from hdm.utils import im_reshape, im_gif, tick_params
 
     samples = []
-    for i in xrange(50):
+    for i in xrange(100):
         print 100 * i
         V = dbm.sample_v(n_gibbs_steps=100, save_model=True)
         Z = im_reshape(V, shape=(28, 28))
