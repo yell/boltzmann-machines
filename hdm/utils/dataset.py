@@ -81,9 +81,12 @@ def flatten_cifar10(X):
     data : (n_samples, 3072) np.ndarray
     """
     X = np.asarray(X)
-    if len(X.shape) == 1:
+    if len(X.shape) == 3:
         X = np.expand_dims(X, 0)
-    return X.transpose(0, 3, 1, 2).reshape((-1, 3072))
+    X = X.transpose(0, 3, 1, 2).reshape((-1, 3072))
+    if X.shape[0] == 1:
+        X = X[0, ...]
+    return X
 
 
 def unflatten_cifar10(X):
@@ -99,14 +102,23 @@ def unflatten_cifar10(X):
     >>> X = np.random.rand(10, 3072)
     >>> Y = X.copy()
     >>> np.testing.assert_allclose(X, flatten_cifar10(unflatten_cifar10(Y)))
+    >>> X = np.random.rand(3072)
+    >>> Y = X.copy()
+    >>> np.testing.assert_allclose(X, flatten_cifar10(unflatten_cifar10(Y)))
     >>> X = np.random.rand(7, 32, 32, 3)
+    >>> Y = X.copy()
+    >>> np.testing.assert_allclose(X, unflatten_cifar10(flatten_cifar10(Y)))
+    >>> X = np.random.rand(32, 32, 3)
     >>> Y = X.copy()
     >>> np.testing.assert_allclose(X, unflatten_cifar10(flatten_cifar10(Y)))
     """
     X = np.asarray(X)
-    if len(X.shape) == 3:
+    if len(X.shape) == 1:
         X = np.expand_dims(X, 0)
-    return X.reshape((-1, 3, 32, 32)).transpose(0, 2, 3, 1)
+    X = X.reshape((-1, 3, 32, 32)).transpose(0, 2, 3, 1)
+    if X.shape[0] == 1:
+        X = X[0, ...]
+    return X
 
 
 def get_cifar10_label(index):
