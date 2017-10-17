@@ -13,7 +13,7 @@ def tick_params():
                 labelbottom='off', labelleft='off', labelright='off')
 
 
-def im_plot(X, n_width=10, n_height=10, shape=None, normalize=True, title=None,
+def im_plot(X, n_width=10, n_height=10, shape=None, title=None,
             title_params=None, imshow_params=None):
     """Plot batch of images `X` on a single graph."""
     # check params
