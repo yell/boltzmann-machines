@@ -28,23 +28,32 @@ from hdm.rbm import GaussianRBM, MultinomialRBM
 from hdm.utils import RNG, Stopwatch
 from hdm.utils.augmentation import shift, horizontal_mirror
 from hdm.utils.dataset import (load_cifar10,
-                               flatten_cifar10, unflatten_cifar10)
+                               im_flatten, im_unflatten)
 
 
 def main():
     # training settings
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    # general
     parser.add_argument('--gpu', type=str, default='0', metavar='ID',
                         help="ID of the GPU to train on (or '' to train on CPU)")
+
+    # data
     parser.add_argument('--n-train', type=int, default=49000, metavar='N',
                         help='number of training examples')
     parser.add_argument('--n-val', type=int, default=1000, metavar='N',
                         help='number of validation examples')
+    parser.add_argument('--data-path', type=str, default='../data/', metavar='PATH',
+                        help='directory for storing augmented data etc.')
+
+
 
     args = parser.parse_args()
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
 
-    # prepare data (load + normalize + split)
+
+    # prepare data (load + scale + split)
     print "\nPreparing data ..."
     X, _ = load_cifar10(mode='train', path='../data/')
     X = X.astype(np.float32)
@@ -56,13 +65,12 @@ def main():
     X_val = X[-n_val:]
 
     # augment data
-    aug_data_path = '../data/X_aug.npy'
     X_aug = None
-
+    X_aug_path = os.path.join(args.data_path, 'X.npy')
     augment = True
-    if os.path.isfile(aug_data_path):
+    if os.path.isfile(X_aug_path):
         print "\nLoading augmented data ..."
-        X_aug = np.load(aug_data_path)
+        X_aug = np.load(X_aug_path)
         print "Checking augmented data ..."
         if 10 * n_train == len(X_aug):
             augment = False
@@ -72,7 +80,7 @@ def main():
         s = Stopwatch(verbose=True).start()
 
         X_aug = np.zeros((10 * n_train, 32, 32, 3), dtype=np.float32)
-        X_train = unflatten_cifar10(X_train)
+        X_train = im_unflatten(X_train)
         X_aug[:n_train] = X_train
         for i in xrange(n_train):
             for k, offset in enumerate((
@@ -94,19 +102,36 @@ def main():
         X_aug = X_aug.astype('uint8')
 
         # flatten to (10 * `n_train`, 3072) shape
-        X_aug = flatten_cifar10(X_aug)
+        X_aug = im_flatten(X_aug)
 
         # save to disk
-        np.save(aug_data_path, X_aug)
+        np.save(X_aug_path, X_aug)
 
         s.elapsed()
         print "\n"
 
-    # normalize augmented data again
+    # convert + scale augmented data again
     X_train = X_aug.astype(np.float32)
     X_train /= 255.
     print "Augmented shape: {0}".format(X_train.shape)
-    print "Augmented range: {0}\n\n".format((X_train.min(), X_train.max()))
+    print "Augmented range: {0}".format((X_train.min(), X_train.max()))
+
+    # center and normalize training data
+    X_mean = X_train.mean(axis=0)
+    X_std = X_train.std(axis=0)
+    X_train -= X_mean
+    X_train /= X_std
+    np.save(os.path.join(args.data_path, 'X_mean.npy'), X_mean)
+    np.save(os.path.join(args.data_path, 'X_std.npy'), X_std)
+    print "Augmented mean: ({0:.3f}, ...); std: ({1:.3f}, ...)".format(X_train.mean(axis=0)[0],
+                                                                       X_train.std(axis=0)[0])
+    print "Augmented range: ({0:.3f}, {1:.3f})\n\n".format(X_train.min(), X_train.max())
+
+    # train 26 small Gaussian RBMs on patches
+    X_train = im_unflatten(X_train)
+    X_patches = X_train[:, :8, :8, :]
+    X_patches = im_flatten(X_patches)
+    print X_patches.shape
 
 
 if __name__ == '__main__':
