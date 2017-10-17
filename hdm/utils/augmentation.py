@@ -11,6 +11,6 @@ def shift(x, offset=(0, 0)):
     y = nd.interpolation.shift(x, shift=offset, mode='nearest')
     return y
 
-def mirror(x):
+def horizontal_mirror(x):
     y = np.fliplr(x[:,:,...])
     return y
