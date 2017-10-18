@@ -91,6 +91,7 @@ def main():
     parser.add_argument('--sparsity-damping', type=float, default=0.9, metavar='D',
                         help='decay rate for hidden activations probs')
 
+    # parse and check params
     args = parser.parse_args()
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
     if len(args.epochs) == 1: args.epochs *= 3
