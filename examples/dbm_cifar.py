@@ -342,7 +342,7 @@ def main():
     print "\nAssembling weights for large Gaussian RBM ...\n\n"
     W, vb, hb = make_large_weights( small_rbms )
 
-    # pre-train large Gaussian RBM
+    # pre-train large Gaussian RBM (G-RBM)
     if os.path.isdir(args.rbm1_dirpath):
         print "\nLoading G-RBM ...\n\n"
         grbm = GaussianRBM.load_model(args.rbm1_dirpath)
@@ -383,18 +383,26 @@ def main():
         grbm.fit(X_train, X_val)
 
     # extract features Q = P_{G-RBM}(h|v=X)
-    Q = None
     Q_path = os.path.join(args.data_path, 'Q_cifar.npy')
+    Q_val_path = os.path.join(args.data_path, 'Q_val_cifar.npy')
+    print "\nExtracting features from G-RBM ..."
     if os.path.isfile(Q_path):
-        print "\nLoading G-RBM features ..."
         Q = np.load(Q_path)
     else:
-        print "\nExtracting features from G-RBM ..."
         Q = grbm.transform(X_train).astype('float32')
-        print Q.shape
         np.save(Q_path, Q)
+    if os.path.isfile(Q_val_path):
+        Q_val = np.load(Q_val_path)
+    else:
+        Q_val = grbm.transform(X_val).astype('float32')
+        np.save(Q_val_path, Q_val)
+
+
 
     print Q.shape
+
+    # pre-train Multinomial RBM (M-RBM)
+
 
     ## NETFLIX PAPER ##
     """
