@@ -244,14 +244,14 @@ def main():
                         help='directory path prefix to save RBMs trained on patches')
 
     # common for RBMs and DBM
-    parser.add_argument('--lr', type=float, default=[1e-4, 1e-2, 1e-3], metavar='LR', nargs='+',
+    parser.add_argument('--lr', type=float, default=[5e-4, 1e-3, 1e-3], metavar='LR', nargs='+',
                         help='learning rate (initial for DBM)')
     parser.add_argument('--epochs', type=int, default=[72, 120, 300], metavar='N', nargs='+',
                         help='number of epochs to train')
     parser.add_argument('--batch-size', type=int, default=[100, 100, 100], metavar='B', nargs='+',
                         help='input batch size for training, `--n-train` and `--n-val`' + \
                              'must be divisible by this number (for DBM)')
-    parser.add_argument('--l2', type=float, default=[5e-4, 1e-3, 1e-7], metavar='L2', nargs='+',
+    parser.add_argument('--l2', type=float, default=[1e-4, 1e-3, 1e-7], metavar='L2', nargs='+',
                         help='L2 weight decay coefficient')
 
     # save dirpaths
