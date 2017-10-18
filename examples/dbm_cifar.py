@@ -243,22 +243,26 @@ def main():
     parser.add_argument('--small-dirpath-prefix', type=str, default='../models/rbm_cifar_small_', metavar='PREFIX',
                         help='directory path prefix to save RBMs trained on patches')
 
+    # RBM #2 related
+    parser.add_argument('--increase-n-gibbs-steps-every', type=int, default=16, metavar='I',
+                        help='increase number of Gibbs steps every specified number of epochs for RBM #2')
+
     # common for RBMs and DBM
-    parser.add_argument('--lr', type=float, default=[5e-4, 1e-4, 1e-3], metavar='LR', nargs='+',
+    parser.add_argument('--lr', type=float, default=[5e-4, 2e-4, 1e-3], metavar='LR', nargs='+',
                         help='(initial) learning rates')
-    parser.add_argument('--epochs', type=int, default=[72, 100, 300], metavar='N', nargs='+',
+    parser.add_argument('--epochs', type=int, default=[72, 96, 200], metavar='N', nargs='+',
                         help='number of epochs to train')
     parser.add_argument('--batch-size', type=int, default=[100, 100, 100], metavar='B', nargs='+',
                         help='input batch size for training, `--n-train` and `--n-val`' + \
                              'must be divisible by this number (for DBM)')
-    parser.add_argument('--l2', type=float, default=[1e-3, 0.01, 1e-7], metavar='L2', nargs='+',
+    parser.add_argument('--l2', type=float, default=[1e-3, 0.1, 1e-7], metavar='L2', nargs='+',
                         help='L2 weight decay coefficient')
 
     # save dirpaths
     parser.add_argument('--rbm1-dirpath', type=str, default='../models/rbm1_cifar/', metavar='DIRPATH',
-                        help='directory path to save RBM #1')
+                        help='directory path to save Gaussian RBM')
     parser.add_argument('--rbm2-dirpath', type=str, default='../models/rbm2_cifar/', metavar='DIRPATH',
-                        help='directory path to save RBM #2')
+                        help='directory path to save Multinomial RBM')
     parser.add_argument('--dbm-dirpath', type=str, default='../models/dbm_cifar/', metavar='DIRPATH',
                         help='directory path to save DBM')
 
@@ -399,22 +403,28 @@ def main():
         np.save(Q_val_path, Q_val)
 
     # pre-train Multinomial RBM (M-RBM)
-    mrbm = MultinomialRBM(n_visible=300 * 26,
+    if os.path.isdir(args.rbm2_dirpath):
+        print "\nLoading M-RBM ...\n\n"
+        mrbm = MultinomialRBM.load_model(args.rbm2_dirpath)
+    else:
+        print "\nTraining M-RBM ...\n\n"
+        mrbm_lr = args.lr[1]
+        mrbm_config = dict(n_visible=300 * 26,
                           n_hidden=500,
                           n_samples=500,
                           W_init=0.001,
                           hb_init=0.,
                           vb_init=0.,
-                          n_gibbs_steps=5,
-                          learning_rate=args.lr[1],
+                          n_gibbs_steps=1,
+                          learning_rate=mrbm_lr,
                           momentum=np.geomspace(0.5, 0.9, 8),
-                          max_epoch=args.epochs[1],
+                          max_epoch=args.increase_n_gibbs_steps_every,
                           batch_size=args.batch_size[1],
                           L2=args.l2[1],
                           sample_h_states=True,
                           sample_v_states=True,
-                          sparsity_target=0.1,
-                          sparsity_cost=1e-3,
+                          sparsity_target=0.2,
+                          sparsity_cost=1e-2,
                           dbm_last=True,  # !!!
                           metrics_config=dict(
                               msre=True,
@@ -429,8 +439,26 @@ def main():
                           display_hidden_activations=100,
                           random_seed=2222,
                           tf_dtype='float32',
+                          tf_saver_params=dict(max_to_keep=1),
                           model_path=args.rbm2_dirpath)
-    mrbm.fit(Q, Q_val)
+        max_epoch = args.increase_n_gibbs_steps_every
+        mrbm = MultinomialRBM(**mrbm_config)
+        mrbm.fit(Q, Q_val)
+        mrbm_config['momentum'] = 0.9
+        while max_epoch < args.epochs[1]:
+            max_epoch += args.increase_n_gibbs_steps_every
+            max_epoch = min(max_epoch, args.epochs[1])
+            mrbm_config['max_epoch'] = max_epoch
+            mrbm_config['n_gibbs_steps'] += 1
+            mrbm_config['learning_rate'] = mrbm_lr / float(mrbm_config['n_gibbs_steps'])
+
+            print "\nNumber of Gibbs steps = {0}, learning rate = {1:.6f} ...\n\n". \
+                format(mrbm_config['n_gibbs_steps'], mrbm_config['learning_rate'])
+
+            mrbm_new = MultinomialRBM(**mrbm_config)
+            mrbm_new.init_from(mrbm)
+            mrbm = mrbm_new
+            mrbm.fit(Q, Q_val)
 
 
 if __name__ == '__main__':
