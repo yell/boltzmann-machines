@@ -246,7 +246,7 @@ def main():
     # common for RBMs and DBM
     parser.add_argument('--lr', type=float, default=[1e-4, 1e-2, 1e-3], metavar='LR', nargs='+',
                         help='learning rate (initial for DBM)')
-    parser.add_argument('--epochs', type=int, default=[64, 120, 300], metavar='N', nargs='+',
+    parser.add_argument('--epochs', type=int, default=[72, 120, 300], metavar='N', nargs='+',
                         help='number of epochs to train')
     parser.add_argument('--batch-size', type=int, default=[100, 100, 100], metavar='B', nargs='+',
                         help='input batch size for training, `--n-train` and `--n-val`' + \
