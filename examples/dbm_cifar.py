@@ -28,6 +28,54 @@ from hdm.utils.dataset import (load_cifar10,
                                im_flatten, im_unflatten)
 
 
+def make_augmentation(X_train, n_train, args):
+    X_aug = None
+    X_aug_path = os.path.join(args.data_path, 'X_aug.npy')
+    augment = True
+    if os.path.isfile(X_aug_path):
+        print "\nLoading augmented data ..."
+        X_aug = np.load(X_aug_path)
+        print "Checking augmented data ..."
+        if 10 * n_train == len(X_aug):
+            augment = False
+
+    if augment:
+        print "\nAugmenting data ..."
+        s = Stopwatch(verbose=True).start()
+
+        X_aug = np.zeros((10 * n_train, 32, 32, 3), dtype=np.float32)
+        X_train = im_unflatten(X_train)
+        X_aug[:n_train] = X_train
+        for i in xrange(n_train):
+            for k, offset in enumerate((
+                    (1, 0),
+                    (-1, 0),
+                    (0, 1),
+                    (0, -1)
+            )):
+                img = X_train[i].copy()
+                X_aug[(k + 1) * n_train + i] = shift(img, offset=offset)
+        for i in xrange(5 * n_train):
+            X_aug[5 * n_train + i] = horizontal_mirror(X_aug[i].copy())
+
+        # shuffle once again
+        RNG(seed=1337).shuffle(X_aug)
+
+        # convert to 'uint8' type to save disk space
+        X_aug *= 255.
+        X_aug = X_aug.astype('uint8')
+
+        # flatten to (10 * `n_train`, 3072) shape
+        X_aug = im_flatten(X_aug)
+
+        # save to disk
+        np.save(X_aug_path, X_aug)
+
+        s.elapsed()
+        print "\n"
+
+    return X_aug
+
 def make_small_rbms(X_train, X_val, small_rbm_config, args):
     small_rbms = []
 
@@ -107,7 +155,6 @@ def make_small_rbms(X_train, X_val, small_rbm_config, args):
     small_rbms.append(rbm)
     return small_rbms
 
-
 def make_large_weights(small_rbms):
     W = np.zeros((300 * 26, 32, 32, 3), dtype=np.float32)
     vb = np.zeros((32, 32, 3))
@@ -164,7 +211,6 @@ def make_large_weights(small_rbms):
 
     return W, vb, hb
 
-
 def main():
     # training settings
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -219,50 +265,7 @@ def main():
     X_val = X[-n_val:]
 
     # augment data
-    X_aug = None
-    X_aug_path = os.path.join(args.data_path, 'X_aug.npy')
-    augment = True
-    if os.path.isfile(X_aug_path):
-        print "\nLoading augmented data ..."
-        X_aug = np.load(X_aug_path)
-        print "Checking augmented data ..."
-        if 10 * n_train == len(X_aug):
-            augment = False
-
-    if augment:
-        print "\nAugmenting data ..."
-        s = Stopwatch(verbose=True).start()
-
-        X_aug = np.zeros((10 * n_train, 32, 32, 3), dtype=np.float32)
-        X_train = im_unflatten(X_train)
-        X_aug[:n_train] = X_train
-        for i in xrange(n_train):
-            for k, offset in enumerate((
-                ( 1,  0),
-                (-1,  0),
-                ( 0,  1),
-                ( 0, -1)
-            )):
-                img = X_train[i].copy()
-                X_aug[(k + 1) * n_train + i] = shift(img, offset=offset)
-        for i in xrange(5 * n_train):
-            X_aug[5 * n_train + i] = horizontal_mirror(X_aug[i].copy())
-
-        # shuffle once again
-        RNG(seed=1337).shuffle(X_aug)
-
-        # convert to 'uint8' type to save disk space
-        X_aug *= 255.
-        X_aug = X_aug.astype('uint8')
-
-        # flatten to (10 * `n_train`, 3072) shape
-        X_aug = im_flatten(X_aug)
-
-        # save to disk
-        np.save(X_aug_path, X_aug)
-
-        s.elapsed()
-        print "\n"
+    X_aug = make_augmentation(X_train, n_train, args)
 
     # convert + scale augmented data again
     X_train = X_aug.astype(np.float32)
@@ -324,9 +327,6 @@ def main():
     # assemble large weight matrix and biases
     print "\nAssembling weights for large Gaussian RBM ...\n\n"
     W, vb, hb = make_large_weights( small_rbms )
-    print W.shape
-    print vb.shape
-    print hb.shape
 
     # pre-train large Gaussian RBM
     # grbm = GaussianRBM(n_visible=32*32*3,
