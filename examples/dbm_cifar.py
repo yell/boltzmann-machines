@@ -159,6 +159,7 @@ def make_small_rbms(X_train, X_val, small_rbm_config, args):
 
 def make_large_weights(small_rbms):
     W = np.zeros((300 * 26, 32, 32, 3), dtype=np.float32)
+    W[...] = RNG(seed=1234).randn(*W.shape) * 5e-4
     vb = np.zeros((32, 32, 3))
     hb = np.zeros(300 * 26)
 
