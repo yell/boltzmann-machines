@@ -359,7 +359,7 @@ def main():
                        metrics_config=dict(
                            msre=True,
                            feg=True,
-                           train_metrics_every_iter=200,
+                           train_metrics_every_iter=1000,
                            val_metrics_every_epoch=1,
                            feg_every_epoch=2,
                            n_batches_for_feg=50,
@@ -372,6 +372,12 @@ def main():
                        tf_saver_params=dict(max_to_keep=1),
                        model_path=args.rbm1_dirpath)
     grbm.fit(X_train, X_val)
+
+    print "\nExtracting features from RBM #1 ..."
+    Q = grbm.transform(X_train)
+    print Q.shape
+    Q = Q.astype('float32')
+    np.save(os.path.join(args.data_path, 'Q_cifar.npy'), Q)
 
     ## NETFLIX PAPER ##
     """
