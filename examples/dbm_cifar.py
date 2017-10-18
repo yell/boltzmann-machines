@@ -236,22 +236,23 @@ def main():
                         help='input batch size for training')
     parser.add_argument('--small-l2', type=float, default=1e-3, metavar='L2',
                         help='L2 weight decay coefficient')
-    parser.add_argument('--small-sparsity-target', type=float, default=0.1, metavar='T',
-                        help='desired probability of hidden activation')
-    parser.add_argument('--small-sparsity-cost', type=float, default=1e-3, metavar='C',
-                        help='controls the amount of sparsity penalty')
     parser.add_argument('--small-dirpath-prefix', type=str, default='../models/rbm_cifar_small_', metavar='PREFIX',
                         help='directory path prefix to save RBMs trained on patches')
 
     # common for RBMs and DBM
-    parser.add_argument('--epochs', type=int, default=[64, 120, 500], metavar='N', nargs='+',
+    parser.add_argument('--epochs', type=int, default=[64, 120, 300], metavar='N', nargs='+',
                         help='number of epochs to train')
     parser.add_argument('--batch-size', type=int, default=[48, 48, 100], metavar='B', nargs='+',
                         help='input batch size for training, `--n-train` and `--n-val`' + \
                              'must be divisible by this number (for DBM)')
+    parser.add_argument('--l2', type=float, default=[1e-4, 1e-3, 1e-7], metavar='L2', nargs='+',
+                        help='L2 weight decay coefficient')
 
+    # parse and check params
     args = parser.parse_args()
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
+    if len(args.epochs) == 1: args.epochs *= 3
+    if len(args.batch_size) == 1: args.batch_size *= 3
 
     # prepare data (load + scale + split)
     print "\nPreparing data ..."
@@ -304,8 +305,6 @@ def main():
                             l2=args.small_l2,
                             sample_v_states=True,
                             sample_h_states=True,
-                            sparsity_target=args.small_sparsity_target,
-                            sparsity_cost=args.small_sparsity_cost,
                             dbm_first=True,  # !!!
                             metrics_config=dict(
                                 msre=True,
@@ -329,40 +328,42 @@ def main():
     W, vb, hb = make_large_weights( small_rbms )
 
     # pre-train large Gaussian RBM
-    # grbm = GaussianRBM(n_visible=32*32*3,
-    #                    n_hidden=300*26,
-    #                    sigma=1.,
-    #                    W_init=W,
-    #                    vb_init=vb,
-    #                    hb_init=hb,
-    #                    n_gibbs_steps=1,
-    #
-    #                         learning_rate=args.small_lr,
-    #                         momentum=np.geomspace(0.5, 0.9, 8),
-    #                         max_epoch=args.small_epochs,
-    #                         batch_size=args.small_batch_size,
-    #                         l2=args.small_l2,
-    #                         sample_v_states=True,
-    #                         sample_h_states=True,
-    #                         sparsity_target=args.small_sparsity_target,
-    #                         sparsity_cost=args.small_sparsity_cost,
-    #                         dbm_first=True,  # !!!
-    #                         metrics_config=dict(
-    #                             msre=True,
-    #                             feg=True,
-    #                             train_metrics_every_iter=1000,
-    #                             val_metrics_every_epoch=2,
-    #                             feg_every_epoch=2,
-    #                             n_batches_for_feg=50,
-    #                         ),
-    #                         verbose=True,
-    #                         display_filters=12,
-    #                         v_shape=(8, 8, 3),
-    #                         display_hidden_activations=24,
-    #                         tf_dtype='float32',
-    #                         tf_saver_params=dict(max_to_keep=1))
+    grbm = GaussianRBM(n_visible=32*32*3,
+                       n_hidden=300*26,
+                       sigma=1.,
+                       W_init=W,
+                       vb_init=vb,
+                       hb_init=hb,
+                       n_gibbs_steps=1,
+                       learning_rate=5e-4,
+                       momentum=np.geomspace(0.5, 0.9, 8),
+                       max_epoch=args.epochs[0],
+                       batch_size=args.batch_size[0],
+                       l2=args.l2[0],
+                       sample_v_states=True,
+                       sample_h_states=True,
+                       sparsity_target=args.small_sparsity_target,
+                       sparsity_cost=args.small_sparsity_cost,
+                       dbm_first=True,  # !!!
 
-    ################ NETFLIX PAPER #################
+
+
+                            metrics_config=dict(
+                                msre=True,
+                                feg=True,
+                                train_metrics_every_iter=1000,
+                                val_metrics_every_epoch=2,
+                                feg_every_epoch=2,
+                                n_batches_for_feg=50,
+                            ),
+                            verbose=True,
+                            display_filters=12,
+                            v_shape=(8, 8, 3),
+                            display_hidden_activations=24,
+                            tf_dtype='float32',
+                            tf_saver_params=dict(max_to_keep=1))
+
+    ## NETFLIX PAPER ##
     """
     Lr 0.01
     momentum 0.9
