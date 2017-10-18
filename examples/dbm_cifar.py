@@ -213,6 +213,7 @@ def make_large_weights(small_rbms):
 
     return W, vb, hb
 
+
 def main():
     # training settings
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
