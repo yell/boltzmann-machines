@@ -251,7 +251,7 @@ def main():
     parser.add_argument('--batch-size', type=int, default=[100, 100, 100], metavar='B', nargs='+',
                         help='input batch size for training, `--n-train` and `--n-val`' + \
                              'must be divisible by this number (for DBM)')
-    parser.add_argument('--l2', type=float, default=[2e-4, 1e-3, 1e-7], metavar='L2', nargs='+',
+    parser.add_argument('--l2', type=float, default=[5e-4, 1e-3, 1e-7], metavar='L2', nargs='+',
                         help='L2 weight decay coefficient')
 
     # save dirpaths
@@ -397,18 +397,32 @@ def main():
         Q_val = grbm.transform(X_val).astype('float32')
         np.save(Q_val_path, Q_val)
 
-
-
-    print Q.shape
-
     # pre-train Multinomial RBM (M-RBM)
-
-
-    ## NETFLIX PAPER ##
-    """
-    W_std 0.01
-    CD increased over time (for RBM #2)
-    """
+    mrbm = MultinomialRBM(n_visible=300 * 26,
+                          n_hidden=1000,
+                          n_samples=1000,
+                          W_init=0.005,
+                          hb_init=0.,
+                          vb_init=0.,
+                          n_gibbs_steps=1,
+                          learning_rate=args.lr[1],
+                          momentum=np.geomspace(0.5, 0.9, 8),
+                          max_epoch=args.epochs[1],
+                          batch_size=args.batch_size[1],
+                          L2=args.l2[1],
+                          sample_h_states=True,
+                          sample_v_states=False,
+                          sparsity_cost=0.,
+                          metrics_config=dict(
+                              msre=True,
+                              pll=True,
+                              train_metrics_every_iter=20,
+                          ),
+                          verbose=True,
+                          random_seed=2222,
+                          tf_dtype='float32',
+                          model_path=args.rbm2_dirpath)
+    mrbm.fit(Q, Q_val)
 
 
 if __name__ == '__main__':
