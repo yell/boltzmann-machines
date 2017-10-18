@@ -598,8 +598,13 @@ class BaseRBM(EnergyBasedModel):
     def _serialize(self, params):
         for k, v in params.items():
             if isinstance(v, np.ndarray):
-                # noinspection PyUnresolvedReferences
-                params[k] = v.tolist()
+                if v.size >= 2**20:
+                    msg = "WARNING: parameter `{0}` won't be serialized because it is too large"
+                    msg += ' ({1:.2f} Mio parameters)'
+                    print msg.format(k, v.size/float(2**20))
+                    params[k] = None
+                else:
+                    params[k] = v.tolist()
         return params
 
     def init_from(self, rbm):
