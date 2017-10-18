@@ -58,7 +58,7 @@ def main():
                         help='L2 weight decay coefficient')
     parser.add_argument('--small-sparsity-target', type=float, default=0.1, metavar='T',
                         help='desired probability of hidden activation')
-    parser.add_argument('--small-sparsity-cost', type=float, default=1e-5, metavar='C',
+    parser.add_argument('--small-sparsity-cost', type=float, default=1e-3, metavar='C',
                         help='controls the amount of sparsity penalty')
     parser.add_argument('--small-dirpath-prefix', type=str, default='../models/rbm_cifar_small_', metavar='PREFIX',
                         help='directory path prefix to save RBMs trained on patches')
