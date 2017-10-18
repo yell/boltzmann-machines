@@ -297,8 +297,10 @@ def main():
     X_train /= X_std
     X_val -= X_mean
     X_val /= X_std
-    np.save(os.path.join(args.data_path, 'X_mean.npy'), X_mean)
-    np.save(os.path.join(args.data_path, 'X_std.npy'), X_std)
+    mean_path = os.path.join(args.data_path, 'X_mean.npy')
+    std_path = os.path.join(args.data_path, 'X_std.npy')
+    if not os.path.isfile(mean_path): np.save(mean_path, X_mean)
+    if not os.path.isfile(std_path): np.save(std_path, X_std)
     print "Augmented mean: ({0:.3f}, ...); std: ({1:.3f}, ...)".format(X_train.mean(axis=0)[0],
                                                                        X_train.std(axis=0)[0])
     print "Augmented range: ({0:.3f}, {1:.3f})\n\n".format(X_train.min(), X_train.max())
@@ -341,45 +343,54 @@ def main():
     W, vb, hb = make_large_weights( small_rbms )
 
     # pre-train large Gaussian RBM
-    grbm = GaussianRBM(n_visible=32 * 32 * 3,
-                       n_hidden=300 * 26,
-                       sigma=1.,
-                       W_init=W,
-                       vb_init=vb,
-                       hb_init=hb,
-                       n_gibbs_steps=1,
-                       learning_rate=args.lr[0],
-                       momentum=np.geomspace(0.5, 0.9, 8),
-                       max_epoch=args.epochs[0],
-                       batch_size=args.batch_size[0],
-                       l2=args.l2[0],
-                       sample_v_states=True,
-                       sample_h_states=True,
-                       sparsity_cost=0.,
-                       dbm_first=True,  # !!!
-                       metrics_config=dict(
-                           msre=True,
-                           feg=True,
-                           train_metrics_every_iter=1000,
-                           val_metrics_every_epoch=1,
-                           feg_every_epoch=2,
-                           n_batches_for_feg=50,
-                       ),
-                       verbose=True,
-                       display_filters=24,
-                       v_shape=(32, 32, 3),
-                       display_hidden_activations=36,
-                       random_seed=1111,
-                       tf_dtype='float32',
-                       tf_saver_params=dict(max_to_keep=1),
-                       model_path=args.rbm1_dirpath)
-    grbm.fit(X_train, X_val)
+    if not os.path.isdir(args.rbm1_dirpath):
+        print "\nTraining G-RBM ...\n\n"
+        grbm = GaussianRBM(n_visible=32 * 32 * 3,
+                           n_hidden=300 * 26,
+                           sigma=1.,
+                           W_init=W,
+                           vb_init=vb,
+                           hb_init=hb,
+                           n_gibbs_steps=1,
+                           learning_rate=args.lr[0],
+                           momentum=np.geomspace(0.5, 0.9, 8),
+                           max_epoch=args.epochs[0],
+                           batch_size=args.batch_size[0],
+                           l2=args.l2[0],
+                           sample_v_states=True,
+                           sample_h_states=True,
+                           sparsity_cost=0.,
+                           dbm_first=True,  # !!!
+                           metrics_config=dict(
+                               msre=True,
+                               feg=True,
+                               train_metrics_every_iter=1000,
+                               val_metrics_every_epoch=1,
+                               feg_every_epoch=2,
+                               n_batches_for_feg=50,
+                           ),
+                           verbose=True,
+                           display_filters=24,
+                           v_shape=(32, 32, 3),
+                           display_hidden_activations=36,
+                           random_seed=1111,
+                           tf_dtype='float32',
+                           tf_saver_params=dict(max_to_keep=1),
+                           model_path=args.rbm1_dirpath)
+        grbm.fit(X_train, X_val)
 
-    print "\nExtracting features from RBM #1 ..."
-    Q = grbm.transform(X_train)
+    # extract features Q = P_{G-RBM}(h|v=X)
+    Q = None
+    Q_path = os.path.join(args.data_path, 'Q_cifar.npy')
+    if os.path.isfile(Q_path):
+        Q = np.load(Q_path)
+    else:
+        print "\nExtracting features from RBM #1 ..."
+        Q = grbm.transform(X_train).astype('float32')
+        print Q.shape
+        np.save(Q_path, Q)
+
     print Q.shape
-    Q = Q.astype('float32')
-    np.save(os.path.join(args.data_path, 'Q_cifar.npy'), Q)
 
     ## NETFLIX PAPER ##
     """
