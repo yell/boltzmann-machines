@@ -362,7 +362,8 @@ def main():
                            l2=args.l2[0],
                            sample_v_states=True,
                            sample_h_states=True,
-                           sparsity_cost=0.,
+                           sparsity_target=0.1,
+                           sparsity_cost=1e-4,
                            dbm_first=True,  # !!!
                            metrics_config=dict(
                                msre=True,
