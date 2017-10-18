@@ -189,7 +189,7 @@ def main():
             rbm_id = 4 * i + j
             rbm_dirpath = args.small_dirpath_prefix + str(rbm_id) + '/'
 
-            if os.path.isfile(rbm_dirpath):
+            if os.path.isdir(rbm_dirpath):
                 print "\nLoading small RBM #{0} ...\n\n".format(rbm_id)
                 GaussianRBM.load_model(rbm_dirpath)
             else:
@@ -213,7 +213,7 @@ def main():
             rbm_id = 16 + 3 * i + j
             rbm_dirpath = args.small_dirpath_prefix + str(rbm_id) + '/'
 
-            if os.path.isfile(rbm_dirpath):
+            if os.path.isdir(rbm_dirpath):
                 print "\nLoading small RBM #{0} ...\n\n".format(rbm_id)
                 GaussianRBM.load_model(rbm_dirpath)
             else:
@@ -235,7 +235,7 @@ def main():
     rbm_id = 25
     rbm_dirpath = args.small_dirpath_prefix + str(rbm_id) + '/'
 
-    if os.path.isfile(rbm_dirpath):
+    if os.path.isdir(rbm_dirpath):
         print "\nLoading small RBM #{0} ...\n\n".format(rbm_id)
         GaussianRBM.load_model(rbm_dirpath)
     else:
