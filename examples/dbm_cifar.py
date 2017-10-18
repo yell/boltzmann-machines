@@ -343,7 +343,10 @@ def main():
     W, vb, hb = make_large_weights( small_rbms )
 
     # pre-train large Gaussian RBM
-    if not os.path.isdir(args.rbm1_dirpath):
+    if os.path.isdir(args.rbm1_dirpath):
+        print "\nLoading G-RBM ...\n\n"
+        grbm = GaussianRBM.load_model(args.rbm1_dirpath)
+    else:
         print "\nTraining G-RBM ...\n\n"
         grbm = GaussianRBM(n_visible=32 * 32 * 3,
                            n_hidden=300 * 26,
@@ -383,9 +386,10 @@ def main():
     Q = None
     Q_path = os.path.join(args.data_path, 'Q_cifar.npy')
     if os.path.isfile(Q_path):
+        print "\nLoading G-RBM features ..."
         Q = np.load(Q_path)
     else:
-        print "\nExtracting features from RBM #1 ..."
+        print "\nExtracting features from G-RBM ..."
         Q = grbm.transform(X_train).astype('float32')
         print Q.shape
         np.save(Q_path, Q)
