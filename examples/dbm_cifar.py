@@ -171,7 +171,7 @@ def main():
                             metrics_config=dict(
                                 msre=True,
                                 feg=True,
-                                train_metrics_every_iter=500,
+                                train_metrics_every_iter=1000,
                                 val_metrics_every_epoch=2,
                                 feg_every_epoch=2,
                                 n_batches_for_feg=50,
@@ -257,6 +257,10 @@ def main():
                           **rbm_small_config)
         rbm.fit(X_patches, X_patches_val)
     small_rbms.append(small_rbms)
+
+
+    # pre-train large Gaussian RBM
+
 
 
 if __name__ == '__main__':
