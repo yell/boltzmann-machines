@@ -10,7 +10,7 @@ progress_bar = tqdm_notebook if _is_in_ipython() else tqdm
 def write_during_training(s):
     tqdm.write(s)
 
-def batch_iter(X, batch_size=10, verbose=False):
+def batch_iter(X, batch_size=10, verbose=False, desc='epoch'):
     """Divide input data into batches, with optional
     progress bar.
 
@@ -36,7 +36,7 @@ def batch_iter(X, batch_size=10, verbose=False):
     N = len(X)
     n_batches = N / batch_size + (N % batch_size > 0)
     gen = range(n_batches)
-    if verbose: gen = progress_bar(gen, leave=False, ncols=64, desc='epoch')
+    if verbose: gen = progress_bar(gen, leave=False, ncols=64, desc=desc)
     for i in gen:
         yield X[i*batch_size:(i + 1)*batch_size]
 

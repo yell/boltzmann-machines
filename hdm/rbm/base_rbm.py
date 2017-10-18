@@ -631,7 +631,7 @@ class BaseRBM(EnergyBasedModel):
         H = np.zeros((len(X), self.n_hidden), dtype=np.float32)
         start = 0
         for X_b in batch_iter(X, batch_size=self.batch_size,
-                              verbose=self.verbose):
+                              verbose=self.verbose, desc='transform'):
             H_b = self._transform_op.eval(feed_dict=self._make_tf_feed_dict(X_b))
             H[start:(start + self.batch_size)] = H_b
             start += self.batch_size
