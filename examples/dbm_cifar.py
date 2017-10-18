@@ -331,7 +331,6 @@ def main():
                             display_filters=12,
                             v_shape=(8, 8, 3),
                             display_hidden_activations=36,
-                            random_seed=1111,
                             tf_dtype='float32',
                             tf_saver_params=dict(max_to_keep=1))
     small_rbms = make_small_rbms(X_train, X_val, small_rbm_config, args)
@@ -369,6 +368,7 @@ def main():
                        display_filters=24,
                        v_shape=(32, 32, 3),
                        display_hidden_activations=36,
+                       random_seed=1111,
                        tf_dtype='float32',
                        tf_saver_params=dict(max_to_keep=1),
                        model_path=args.rbm1_dirpath)
