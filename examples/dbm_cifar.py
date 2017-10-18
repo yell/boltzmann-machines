@@ -246,7 +246,7 @@ def main():
                         help='learning rate (initial for DBM)')
     parser.add_argument('--epochs', type=int, default=[64, 120, 300], metavar='N', nargs='+',
                         help='number of epochs to train')
-    parser.add_argument('--batch-size', type=int, default=[48, 48, 100], metavar='B', nargs='+',
+    parser.add_argument('--batch-size', type=int, default=[100, 100, 100], metavar='B', nargs='+',
                         help='input batch size for training, `--n-train` and `--n-val`' + \
                              'must be divisible by this number (for DBM)')
     parser.add_argument('--l2', type=float, default=[1e-4, 1e-3, 1e-7], metavar='L2', nargs='+',
