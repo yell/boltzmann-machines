@@ -272,7 +272,7 @@ def main():
 
     # prepare data (load + scale + split)
     print "\nPreparing data ..."
-    X, _ = load_cifar10(mode='train', path='../data/')
+    X, _ = load_cifar10(mode='train', path=args.data_path)
     X = X.astype(np.float32)
     X /= 255.
     RNG(seed=42).shuffle(X)
