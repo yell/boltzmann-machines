@@ -232,7 +232,7 @@ def main():
                         help='directory for storing augmented data etc.')
 
     # small RBMs related
-    parser.add_argument('--small-lr', type=float, default=8e-4, metavar='LR', nargs='+',
+    parser.add_argument('--small-lr', type=float, default=1e-3, metavar='LR', nargs='+',
                         help='learning rate or sequence of such (per epoch)')
     parser.add_argument('--small-epochs', type=int, default=120, metavar='N',
                         help='number of epochs to train')
@@ -244,14 +244,14 @@ def main():
                         help='directory path prefix to save RBMs trained on patches')
 
     # common for RBMs and DBM
-    parser.add_argument('--lr', type=float, default=[2e-4, 2e-4, 1e-3], metavar='LR', nargs='+',
-                        help='learning rate (initial for DBM)')
-    parser.add_argument('--epochs', type=int, default=[72, 120, 300], metavar='N', nargs='+',
+    parser.add_argument('--lr', type=float, default=[5e-4, 1e-4, 1e-3], metavar='LR', nargs='+',
+                        help='(initial) learning rates')
+    parser.add_argument('--epochs', type=int, default=[72, 100, 300], metavar='N', nargs='+',
                         help='number of epochs to train')
     parser.add_argument('--batch-size', type=int, default=[100, 100, 100], metavar='B', nargs='+',
                         help='input batch size for training, `--n-train` and `--n-val`' + \
                              'must be divisible by this number (for DBM)')
-    parser.add_argument('--l2', type=float, default=[1e-4, 1e-3, 1e-7], metavar='L2', nargs='+',
+    parser.add_argument('--l2', type=float, default=[1e-3, 0.01, 1e-7], metavar='L2', nargs='+',
                         help='L2 weight decay coefficient')
 
     # save dirpaths
@@ -320,8 +320,7 @@ def main():
                             l2=args.small_l2,
                             sample_v_states=True,
                             sample_h_states=True,
-                            sparsity_target=0.1,
-                            sparsity_cost=1e-5,
+                            sparsity_cost=0.,
                             dbm_first=True,  # !!!
                             metrics_config=dict(
                                 msre=True,
@@ -405,7 +404,7 @@ def main():
                           W_init=0.001,
                           hb_init=0.,
                           vb_init=0.,
-                          n_gibbs_steps=1,
+                          n_gibbs_steps=5,
                           learning_rate=args.lr[1],
                           momentum=np.geomspace(0.5, 0.9, 8),
                           max_epoch=args.epochs[1],
@@ -413,15 +412,20 @@ def main():
                           L2=args.l2[1],
                           sample_h_states=True,
                           sample_v_states=True,
-                          sparsity_cost=0.,
+                          sparsity_target=0.1,
+                          sparsity_cost=1e-3,
                           dbm_last=True,  # !!!
                           metrics_config=dict(
                               msre=True,
                               pll=True,
+                              feg=True,
                               train_metrics_every_iter=5,
+                              val_metrics_every_epoch=1,
+                              feg_every_epoch=2,
+                              n_batches_for_feg=50,
                           ),
                           verbose=True,
-                          display_hidden_activations=200,
+                          display_hidden_activations=100,
                           random_seed=2222,
                           tf_dtype='float32',
                           model_path=args.rbm2_dirpath)
