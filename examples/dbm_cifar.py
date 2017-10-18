@@ -191,7 +191,7 @@ def main():
 
             if os.path.isdir(rbm_dirpath):
                 print "\nLoading small RBM #{0} ...\n\n".format(rbm_id)
-                GaussianRBM.load_model(rbm_dirpath)
+                rbm = GaussianRBM.load_model(rbm_dirpath)
             else:
                 print "\nTraining small RBM #{0} ...\n\n".format(rbm_id)
                 X_patches   = X_train[:, 8 * i:8 * (i + 1),
@@ -205,7 +205,7 @@ def main():
                                   model_path=rbm_dirpath,
                                   **rbm_small_config)
                 rbm.fit(X_patches, X_patches_val)
-            small_rbms.append(small_rbms)
+            small_rbms.append(rbm)
 
     # next 9
     for i in xrange(3):
@@ -215,7 +215,7 @@ def main():
 
             if os.path.isdir(rbm_dirpath):
                 print "\nLoading small RBM #{0} ...\n\n".format(rbm_id)
-                GaussianRBM.load_model(rbm_dirpath)
+                rbm = GaussianRBM.load_model(rbm_dirpath)
             else:
                 print "\nTraining small RBM #{0} ...\n\n".format(rbm_id)
                 X_patches   = X_train[:, 4 + 8 * i:4 + 8 * (i + 1),
@@ -229,7 +229,7 @@ def main():
                                   model_path=rbm_dirpath,
                                   **rbm_small_config)
                 rbm.fit(X_patches, X_patches_val)
-            small_rbms.append(small_rbms)
+            small_rbms.append(rbm)
 
     # the last one
     rbm_id = 25
@@ -237,7 +237,7 @@ def main():
 
     if os.path.isdir(rbm_dirpath):
         print "\nLoading small RBM #{0} ...\n\n".format(rbm_id)
-        GaussianRBM.load_model(rbm_dirpath)
+        rbm = GaussianRBM.load_model(rbm_dirpath)
     else:
         print "\nTraining small RBM #{0} ...\n\n".format(rbm_id)
         X_patches = X_train.copy() # (N, 32, 32, 3)
@@ -256,11 +256,7 @@ def main():
                           model_path=rbm_dirpath,
                           **rbm_small_config)
         rbm.fit(X_patches, X_patches_val)
-    small_rbms.append(small_rbms)
-
-
-    # pre-train large Gaussian RBM
-
+    small_rbms.append(rbm)
 
 
 if __name__ == '__main__':
