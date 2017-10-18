@@ -66,7 +66,6 @@ def main():
     args = parser.parse_args()
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
 
-
     # prepare data (load + scale + split)
     print "\nPreparing data ..."
     X, _ = load_cifar10(mode='train', path='../data/')
@@ -77,7 +76,6 @@ def main():
     n_val = min(len(X), args.n_val)
     X_train = X[:n_train]
     X_val = X[-n_val:]
-
 
     # augment data
     X_aug = None
@@ -144,9 +142,7 @@ def main():
                                                                        X_train.std(axis=0)[0])
     print "Augmented range: ({0:.3f}, {1:.3f})\n\n".format(X_train.min(), X_train.max())
 
-
     # train 26 small Gaussian RBMs on patches
-
     X_train = im_unflatten(X_train)
     X_val = im_unflatten(X_val)
 
@@ -183,7 +179,7 @@ def main():
                             tf_dtype='float32',
                             tf_saver_params=dict(max_to_keep=1))
 
-    # first 16
+    # first 16 ...
     for i in xrange(4):
         for j in xrange(4):
             rbm_id = 4 * i + j
@@ -207,7 +203,7 @@ def main():
                 rbm.fit(X_patches, X_patches_val)
             small_rbms.append(rbm)
 
-    # next 9
+    # next 9 ...
     for i in xrange(3):
         for j in xrange(3):
             rbm_id = 16 + 3 * i + j
@@ -231,7 +227,7 @@ def main():
                 rbm.fit(X_patches, X_patches_val)
             small_rbms.append(rbm)
 
-    # the last one
+    # ... the last one
     rbm_id = 25
     rbm_dirpath = args.small_dirpath_prefix + str(rbm_id) + '/'
 
@@ -257,6 +253,63 @@ def main():
                           **rbm_small_config)
         rbm.fit(X_patches, X_patches_val)
     small_rbms.append(rbm)
+
+    # assemble large weight matrix and biases
+    print "\nAssembling weights for large Gaussian RBM ...\n\n".format(rbm_id)
+    W = np.zeros((300 * 26, 32, 32, 3), dtype=np.float32)
+    vb = np.zeros((32, 32, 3))
+    hb = np.zeros(300 * 26)
+    for i in xrange(4):
+        for j in xrange(4):
+            rbm_id = 4 * i + j
+            weights = small_rbms[rbm_id].get_tf_params(scope='weights')
+            W_small = weights['W']
+            W_small = W_small.T # (300, 192)
+            W_small = im_unflatten(W_small) # (300, 8, 8, 3)
+            W[300 * rbm_id : 300 * (rbm_id + 1), 8 * i:8 * (i + 1),
+                                                 8 * j:8 * (j + 1), :] = W_small
+            vb[8 * i:8 * (i + 1),
+               8 * j:8 * (j + 1), :] += im_unflatten(weights['vb'])
+            hb[300 * rbm_id : 300 * (rbm_id + 1)] = weights['hb']
+    for i in xrange(3):
+        for j in xrange(3):
+            rbm_id = 16 + 3 * i + j
+            weights = small_rbms[rbm_id].get_tf_params(scope='weights')
+            W_small = weights['W']
+            W_small = W_small.T
+            W_small = im_unflatten(W_small)
+            W[300 * rbm_id : 300 * (rbm_id + 1), 4 + 8 * i:4 + 8 * (i + 1),
+                                                 4 + 8 * j:4 + 8 * (j + 1), :] = W_small
+            vb[4 + 8 * i:4 + 8 * (i + 1),
+               4 + 8 * j:4 + 8 * (j + 1), :] += im_unflatten(weights['vb'])
+            hb[300 * rbm_id: 300 * (rbm_id + 1)] = weights['hb']
+    weights = small_rbms[-1].get_tf_params(scope='weights')
+    W_small = weights['W']
+    W_small = W_small.T
+    W_small = im_unflatten(W_small)
+    vb_small = im_unflatten(weights['vb'])
+    for i in xrange(8):
+        for j in xrange(8):
+            U = W_small[:, i, j, :]
+            U = np.expand_dims(U, -1)
+            U = np.expand_dims(U, -1)
+            U = U.transpose(0, 2, 3, 1)
+            W[-300:, 4 * i:4 * (i + 1),
+                     4 * j:4 * (j + 1), :] = U/16.
+            vb[4 * i:4 * (i + 1),
+               4 * j:4 * (j + 1), :] += vb_small[i, j, :].reshape((1, 1, 3))/16.
+            hb[-300:] = weights['hb']
+    W = im_flatten(W)
+    W = W.T
+    vb /= 2.
+    vb[4:-4, 4:-4, :] /= 1.5
+    vb = im_flatten(vb)
+    print W.shape
+    print vb.shape
+    print hb.shape
+
+    # pre-train large Gaussian RBM
+
 
 
 if __name__ == '__main__':
