@@ -232,7 +232,7 @@ def main():
                         help='directory for storing augmented data etc.')
 
     # small RBMs related
-    parser.add_argument('--small-lr', type=float, default=5e-4, metavar='LR', nargs='+',
+    parser.add_argument('--small-lr', type=float, default=8e-4, metavar='LR', nargs='+',
                         help='learning rate or sequence of such (per epoch)')
     parser.add_argument('--small-epochs', type=int, default=120, metavar='N',
                         help='number of epochs to train')
@@ -244,7 +244,7 @@ def main():
                         help='directory path prefix to save RBMs trained on patches')
 
     # common for RBMs and DBM
-    parser.add_argument('--lr', type=float, default=[5e-4, 1e-3, 1e-3], metavar='LR', nargs='+',
+    parser.add_argument('--lr', type=float, default=[2e-4, 2e-4, 1e-3], metavar='LR', nargs='+',
                         help='learning rate (initial for DBM)')
     parser.add_argument('--epochs', type=int, default=[72, 120, 300], metavar='N', nargs='+',
                         help='number of epochs to train')
@@ -320,7 +320,8 @@ def main():
                             l2=args.small_l2,
                             sample_v_states=True,
                             sample_h_states=True,
-                            sparsity_cost=0.,
+                            sparsity_target=0.1,
+                            sparsity_cost=1e-5,
                             dbm_first=True,  # !!!
                             metrics_config=dict(
                                 msre=True,
@@ -399,9 +400,9 @@ def main():
 
     # pre-train Multinomial RBM (M-RBM)
     mrbm = MultinomialRBM(n_visible=300 * 26,
-                          n_hidden=1000,
-                          n_samples=1000,
-                          W_init=0.005,
+                          n_hidden=500,
+                          n_samples=500,
+                          W_init=0.001,
                           hb_init=0.,
                           vb_init=0.,
                           n_gibbs_steps=1,
@@ -411,14 +412,16 @@ def main():
                           batch_size=args.batch_size[1],
                           L2=args.l2[1],
                           sample_h_states=True,
-                          sample_v_states=False,
+                          sample_v_states=True,
                           sparsity_cost=0.,
+                          dbm_last=True,  # !!!
                           metrics_config=dict(
                               msre=True,
                               pll=True,
-                              train_metrics_every_iter=20,
+                              train_metrics_every_iter=5,
                           ),
                           verbose=True,
+                          display_hidden_activations=200,
                           random_seed=2222,
                           tf_dtype='float32',
                           model_path=args.rbm2_dirpath)
