@@ -210,6 +210,7 @@ class DBM(EnergyBasedModel):
         self._mu = []
         self._mu_new = []
         self._q_means = []
+        self._mu_means = []
 
         self._v = None
         self._v_new = None
@@ -376,6 +377,8 @@ class DBM(EnergyBasedModel):
             for i in xrange(self.n_layers):
                 T = tf.Variable(tf.zeros([self.n_hiddens[i]], dtype=self._tf_dtype), name='q_means')
                 self._q_means.append(T)
+                S = tf.Variable(tf.zeros([self.n_hiddens[i]], dtype=self._tf_dtype), name='mu_means')
+                self._mu_means.append(S)
 
         # initialize negative particles
         with tf.name_scope('negative_particles'):
@@ -593,7 +596,11 @@ class DBM(EnergyBasedModel):
                     q_means = tf.reduce_sum(self._H[i], axis=0)
                     q_update = self._q_means[i].assign(self._sparsity_damping * self._q_means[i] + \
                                                        (1 - self._sparsity_damping) * q_means[i])
+                    mu_means = tf.reduce_sum(self._mu[i], axis=0)
+                    mu_update = self._mu_means[i].assign(self._sparsity_damping * self._mu_means[i] + \
+                                                        (1 - self._sparsity_damping) * mu_means[i])
                     sparsity_penalty = self._sparsity_costs[i] * (q_update - self._sparsity_targets[i])
+                    sparsity_penalty += self._sparsity_costs[i] * (mu_update - self._sparsity_targets[i])
                     dW[i] -= sparsity_penalty
                     dhb[i] -= sparsity_penalty
 
