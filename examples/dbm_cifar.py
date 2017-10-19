@@ -214,6 +214,18 @@ def make_large_weights(small_rbms):
 
     return W, vb, hb
 
+def make_transform(rbm, X, path):
+    H = None
+    transform = True
+    if os.path.isfile(path):
+        H = np.load(path)
+        if len(X) == len(H):
+            transform = False
+    if transform:
+        H = rbm.transform(X).astype('float32')
+        np.save(path, H)
+    return H
+
 
 def main():
     # training settings
@@ -388,24 +400,11 @@ def main():
         grbm.fit(X_train, X_val)
 
     # extract features Q = P_{G-RBM}(h|v=X)
+    print "\nExtracting features from G-RBM ...\n\n"
     Q_train_path = os.path.join(args.data_path, 'Q_train_cifar.npy')
     Q_val_path = os.path.join(args.data_path, 'Q_val_cifar.npy')
-    print "\nExtracting features from G-RBM ..."
-
-    def make_Q(X, n, path):
-        Q = None
-        transform = True
-        if os.path.isfile(path):
-            Q = np.load(path)
-            if n == len(Q):
-                transform = False
-        if transform:
-            Q = grbm.transform(X).astype('float32')
-            np.save(path, Q)
-        return Q
-
-    Q_train = make_Q(X_train, 10 * n_train, Q_train_path)
-    Q_val = make_Q(X_val, n_val, Q_val_path)
+    Q_train = make_transform(grbm, X_train, Q_train_path)
+    Q_val = make_transform(grbm, X_val, Q_val_path)
 
     # pre-train Multinomial RBM (M-RBM)
     if os.path.isdir(args.rbm2_dirpath):
