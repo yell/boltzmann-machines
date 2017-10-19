@@ -626,10 +626,10 @@ class BaseRBM(EnergyBasedModel):
         self.epoch = rbm.epoch
 
     @run_in_tf_session(update_seed=True)
-    def transform(self, X):
+    def transform(self, X, dtype=np.float32):
         """Compute hidden units' activation probabilities."""
         self._transform_op = tf.get_collection('transform_op')[0]
-        H = np.zeros((len(X), self.n_hidden), dtype=np.float32)
+        H = np.zeros((len(X), self.n_hidden), dtype=dtype)
         start = 0
         for X_b in batch_iter(X, batch_size=self.batch_size,
                               verbose=self.verbose, desc='transform'):
