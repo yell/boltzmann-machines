@@ -51,7 +51,7 @@ class MultinomialRBM(BaseRBM):
         M = float(self.n_samples)
         with tf.name_scope('free_energy'):
             # visible bias is scaled as suggested in [1]
-            T1 = -tf.einsum('ij,j->i', v, self._vb) * M
+            T1 = -tf.einsum('ij,j->i', v, self._vb)
             T2 = -tf.matmul(v, self._W)
             h_hat = Multinomial(total_count=M, logits=tf.ones([K])).sample()
             T3 = tf.einsum('ij,j->i', T2, h_hat)

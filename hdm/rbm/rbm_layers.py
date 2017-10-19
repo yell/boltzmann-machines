@@ -69,7 +69,7 @@ class MultinomialLayer(BaseLayer):
 
     def activation(self, x, b):
         # visible bias is scaled as suggested in [1]
-        t = tf.nn.softmax(x + float(self.n_samples) * b)
+        t = tf.nn.softmax(x + b)
         return self.n_samples * t
 
     def _sample(self, means):
