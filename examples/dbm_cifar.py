@@ -278,6 +278,24 @@ def main():
     parser.add_argument('--dbm-dirpath', type=str, default='../models/dbm_cifar/', metavar='DIRPATH',
                         help='directory path to save DBM')
 
+    # DBM related
+    parser.add_argument('--n-particles', type=int, default=100, metavar='M',
+                        help='number of persistent Markov chains')
+    parser.add_argument('--n-gibbs-steps', type=int, default=1, metavar='N',
+                        help='number of Gibbs steps for PCD')
+    parser.add_argument('--max-mf-updates', type=int, default=50, metavar='N',
+                        help='maximum number of mean-field updates per weight update')
+    parser.add_argument('--mf-tol', type=float, default=1e-7, metavar='TOL',
+                        help='mean-field tolerance')
+    parser.add_argument('--max-norm', type=float, default=8., metavar='C',
+                        help='maximum norm constraint')
+    parser.add_argument('--sparsity-target', type=float, default=[0.2, 0.1], metavar='T', nargs='+',
+                        help='desired probability of hidden activation')
+    parser.add_argument('--sparsity-cost', type=float, default=[1e-5, 1e-5], metavar='C', nargs='+',
+                        help='controls the amount of sparsity penalty')
+    parser.add_argument('--sparsity-damping', type=float, default=0.9, metavar='D',
+                        help='decay rate for hidden activations probs')
+
     # parse and check params
     args = parser.parse_args()
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
@@ -472,6 +490,38 @@ def main():
     G_val = make_transform(grbm, Q_val, G_val_path)
 
     print G_train.shape, G_val.shape
+
+    print "\nTraining DBM ...\n\n"
+    dbm = DBM(rbms=[grbm, mrbm],
+              n_particles=args.n_particles,
+              v_particle_init=X_train[:args.n_particles].copy(),
+              h_particles_init=(Q_train[:args.n_particles].copy(),
+                                G_train[:args.n_particles].copy()),
+              n_gibbs_steps=args.n_gibbs_steps,
+              max_mf_updates=args.max_mf_updates,
+              mf_tol=args.mf_tol,
+              learning_rate=np.geomspace(args.lr[2], 5e-6, args.epochs[2]),
+              momentum=np.geomspace(0.5, 0.9, 10),
+              max_epoch=args.epochs[2],
+              batch_size=args.batch_size[2],
+              l2=args.l2[2],
+              max_norm=args.max_norm,
+              sample_v_states=True,
+              sample_h_states=(True, True),
+              sparsity_targets=args.sparsity_target,
+              sparsity_costs=args.sparsity_cost,
+              sparsity_damping=args.sparsity_damping,
+              train_metrics_every_iter=400,
+              val_metrics_every_epoch=2,
+              random_seed=3333,
+              verbose=True,
+              display_filters=12,
+              v_shape=(32, 32, 3),
+              display_particles=36,
+              tf_dtype='float32',
+              tf_saver_params=dict(max_to_keep=1),
+              model_path=args.dbm_dirpath)
+    dbm.fit(X_train, X_val)
 
 
 if __name__ == '__main__':
