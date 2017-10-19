@@ -507,7 +507,7 @@ class DBM(EnergyBasedModel):
                 mu_updates = [ self._mu[i].assign(mu[i]) for i in xrange(self.n_layers) ]
             return n_mf_updates, mu_updates
 
-    def _make_particles_update(self, n_steps=None, sample=True):
+    def _make_particles_update(self, n_steps=None, sample=True, G_fed=False):
         """Update negative particles by running Gibbs sampler
         for specified number of steps.
         """
@@ -519,7 +519,8 @@ class DBM(EnergyBasedModel):
 
             def body(step, max_step, v, H, v_new, H_new):
                 v, H, v_new, H_new = self._make_gibbs_step(v, H, v_new, H_new,
-                                                           update_v=True, sample=sample)
+                                                           update_v=True, update_h_last=not G_fed,
+                                                           sample=sample)
                 return step + 1, max_step, v_new, H_new, v, H  # swap particles
 
             _, _, v, H, v_new, H_new = tf.while_loop(cond=cond, body=body,
@@ -669,7 +670,8 @@ class DBM(EnergyBasedModel):
     def _make_sample_v(self):
         with tf.name_scope('sample_v'):
             v_update, H_updates, v_new_update, H_new_updates = \
-                self._make_particles_update(n_steps=self._n_gibbs_steps)
+                tf.cond(self._G_fed, lambda: self._make_particles_update(n_steps=self._n_gibbs_steps, G_fed=True),
+                                     lambda: self._make_particles_update(n_steps=self._n_gibbs_steps, G_fed=False))
             with tf.control_dependencies([v_update, v_new_update] + H_updates + H_new_updates):
                 v_means, _, _, _ = self._make_particles_update(sample=False)
                 sample_v = self._v.assign(v_means)
@@ -936,6 +938,15 @@ class DBM(EnergyBasedModel):
     def sample_v(self, n_gibbs_steps=0, save_model=False):
         self._sample_v = tf.get_collection('sample_v')[0]
         v = self._sample_v.eval(feed_dict=self._make_tf_feed_dict(n_gibbs_steps=n_gibbs_steps))
+        if save_model:
+            self._save_model()
+        return v
+
+    @run_in_tf_session(update_seed=True)
+    def sample_v_given_h_last(self, G, n_gibbs_steps=0, save_model=False):
+        self._sample_v = tf.get_collection('sample_v')[0]
+        v = self._sample_v.eval(feed_dict=self._make_tf_feed_dict(n_gibbs_steps=n_gibbs_steps,
+                                                                  G_batch=G))
         if save_model:
             self._save_model()
         return v
