@@ -165,7 +165,7 @@ class TensorFlowModel(BaseModel):
         # (tf model will be loaded once any computation will be needed)
         return model
 
-    def _fit(self, X, X_val=None):
+    def _fit(self, X, X_val=None, *args, **kwargs):
         """Class-specific `fit` routine."""
         raise NotImplementedError('`fit` is not implemented')
 
@@ -177,10 +177,10 @@ class TensorFlowModel(BaseModel):
         return self
 
     @run_in_tf_session(check_initialized=False, update_seed=True)
-    def fit(self, X, X_val=None):
+    def fit(self, X, X_val=None, *args, **kwargs):
         """Fit the model according to the given training data."""
         self.initialized = True
-        self._fit(X, X_val=X_val)
+        self._fit(X, X_val=X_val, *args, **kwargs)
         self._save_model()
         return self
 

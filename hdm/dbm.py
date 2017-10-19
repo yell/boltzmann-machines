@@ -195,6 +195,8 @@ class DBM(EnergyBasedModel):
         self._momentum = None
         self._n_gibbs_steps = None
         self._X_batch = None
+        self._G_batch = None
+        self._G_fed = None
         self._delta_beta = None
         self._n_ais_runs = None
 
@@ -283,6 +285,8 @@ class DBM(EnergyBasedModel):
             self._momentum = tf.placeholder(self._tf_dtype, [], name='momentum')
             self._n_gibbs_steps = tf.placeholder(tf.int32, [], name='n_gibbs_steps')
             self._X_batch = tf.placeholder(self._tf_dtype, [None, self.n_visible], name='X_batch')
+            self._G_batch = tf.placeholder(self._tf_dtype, [None, self.n_hiddens[-1]], name='G_batch')
+            self._G_fed = tf.placeholder(tf.bool, [], name='G_fed')
             self._delta_beta = tf.placeholder(self._tf_dtype, [], name='delta_beta')
             self._n_ais_runs = tf.placeholder(tf.int32, [], name='n_ais_runs')
 
@@ -404,7 +408,7 @@ class DBM(EnergyBasedModel):
                     self._H.append(h)
                     self._H_new.append(h_new)
 
-    def _make_gibbs_step(self, v, H, v_new, H_new, update_v=True, sample=True):
+    def _make_gibbs_step(self, v, H, v_new, H_new, update_v=True, update_h_last=True, sample=True):
         """Compute one Gibbs step."""
         with tf.name_scope('gibbs_step'):
 
@@ -430,12 +434,13 @@ class DBM(EnergyBasedModel):
 
             # update last hidden layer
             if self.n_layers >= 2:
-                with tf.name_scope('means_h{0}_hat_given_h{1}_hat'.format(self.n_layers - 1, self.n_layers - 2)):
-                    T = tf.matmul(H_new[-2], self._W[-1])
-                    H_new[-1] = self._h_layers[-1].activation(T, self._hb[-1])
-                if sample and self.sample_h_states[-1]:
-                    with tf.name_scope('sample_h{0}_hat_given_h{1}_hat'.format(self.n_layers - 1, self.n_layers - 2)):
-                        H_new[-1] = self._h_layers[-1].sample(means=H_new[-1])
+                if update_h_last:
+                    with tf.name_scope('means_h{0}_hat_given_h{1}_hat'.format(self.n_layers - 1, self.n_layers - 2)):
+                        T = tf.matmul(H_new[-2], self._W[-1])
+                        H_new[-1] = self._h_layers[-1].activation(T, self._hb[-1])
+                    if sample and self.sample_h_states[-1]:
+                        with tf.name_scope('sample_h{0}_hat_given_h{1}_hat'.format(self.n_layers - 1, self.n_layers - 2)):
+                            H_new[-1] = self._h_layers[-1].sample(means=H_new[-1])
 
             # update visible layer if needed
             if update_v:
@@ -448,7 +453,7 @@ class DBM(EnergyBasedModel):
 
         return v, H, v_new, H_new
 
-    def _make_mf(self):
+    def _make_mf(self, G_fed=False):
         """Run mean-field updates for current mini-batch"""
         with tf.name_scope('mean_field'):
             # initialize mu_new using approximate inference [1]
@@ -460,8 +465,13 @@ class DBM(EnergyBasedModel):
                     T = tf.matmul(self._H[i - 1], self._W[i])
                     if i < self.n_layers - 1:
                         T *= 2.
-                q_new = self._h_layers[i].activation(T, self._hb[i])
-                init_op = tf.assign(self._mu_new[i], q_new, name='approx_inference')
+                if G_fed and i == self.n_layers - 1:
+                    q_new = self._G_batch
+                    q_new = tf.identity(q_new, name='G_batch')
+                else:
+                    q_new = self._h_layers[i].activation(T, self._hb[i])
+                    q_new = tf.identity(q_new, name='approx_inference')
+                init_op = tf.assign(self._mu_new[i], q_new)
                 init_ops.append(init_op)
 
             # run mean-field updates until convergence
@@ -472,7 +482,8 @@ class DBM(EnergyBasedModel):
 
             def body(step, max_step, tol, X_batch, mu, mu_new):
                 _, mu, _, mu_new = self._make_gibbs_step(X_batch, mu, X_batch, mu_new,
-                                                         update_v=False, sample=False)
+                                                         update_v=False, update_h_last=not G_fed,
+                                                         sample=False)
                 return step + 1, max_step, tol, X_batch, mu_new, mu  # swap mu and mu_new
 
             with tf.control_dependencies(init_ops):  # make sure mu's are initialized
@@ -530,7 +541,8 @@ class DBM(EnergyBasedModel):
 
     def _make_train_op(self):
         # run mean-field updates for current mini-batch
-        n_mf_updates, mu_updates = self._make_mf()
+        n_mf_updates, mu_updates = tf.cond(self._G_fed, lambda: self._make_mf(G_fed=True),
+                                                        lambda: self._make_mf(G_fed=False))
 
         # update negative particles by running Gibbs sampler
         # for specified number of steps
@@ -786,7 +798,8 @@ class DBM(EnergyBasedModel):
         self._make_ais()
         self._make_log_proba()
 
-    def _make_tf_feed_dict(self, X_batch=None, delta_beta=None, n_ais_runs=None, n_gibbs_steps=None):
+    def _make_tf_feed_dict(self, X_batch=None, delta_beta=None, n_ais_runs=None, n_gibbs_steps=None,
+                                 G_batch=None):
         d = {}
         d['learning_rate'] = self.learning_rate[min(self.epoch, len(self.learning_rate) - 1)]
         d['momentum'] = self.momentum[min(self.epoch, len(self.momentum) - 1)]
@@ -801,6 +814,12 @@ class DBM(EnergyBasedModel):
             d['n_gibbs_steps'] = n_gibbs_steps
         else:
             d['n_gibbs_steps'] = self.n_gibbs_steps[min(self.epoch, len(self.n_gibbs_steps) - 1)]
+        if G_batch is not None:
+            d['G_batch'] = G_batch
+            d['G_fed'] = True
+        else:
+            d['G_batch'] = 10. * np.random.rand(self.batch_size, self.n_hiddens[-1])
+            d['G_fed'] = False
 
         # prepend name of the scope, and append ':0'
         feed_dict = {}
@@ -808,20 +827,26 @@ class DBM(EnergyBasedModel):
             feed_dict['input_data/{0}:0'.format(k)] = v
         return feed_dict
 
-    def _train_epoch(self, X):
+    def _train_epoch(self, X, G=None):
         train_msres, train_n_mf_updates = [], []
-        for X_batch in batch_iter(X, self.batch_size, verbose=self.verbose):
+        G_batch = None
+        for ind in batch_iter(range(len(X)), self.batch_size, verbose=self.verbose):
+            X_batch = X[ind]
+            if G is not None:
+                G_batch = G[ind]
             self.iter += 1
             if self.iter % self.train_metrics_every_iter == 0:
                 msre, n_mf_upds, _, s = self._tf_session.run([self._msre, self._n_mf_updates,
                                                               self._train_op, self._tf_merged_summaries],
-                                                              feed_dict=self._make_tf_feed_dict(X_batch))
+                                                              feed_dict=self._make_tf_feed_dict(X_batch,
+                                                                                                G_batch=G_batch))
                 train_msres.append(msre)
                 train_n_mf_updates.append(n_mf_upds)
                 self._tf_train_writer.add_summary(s, self.iter)
             else:
                 self._tf_session.run(self._train_op,
-                                     feed_dict=self._make_tf_feed_dict(X_batch))
+                                     feed_dict=self._make_tf_feed_dict(X_batch,
+                                                                       G_batch=G_batch))
         return (np.mean(train_msres) if train_msres else None,
                 np.mean(train_n_mf_updates) if train_n_mf_updates else None)
 
@@ -841,7 +866,7 @@ class DBM(EnergyBasedModel):
         self._tf_val_writer.add_summary(s, self.iter)
         return mean_msre, mean_n_mf_updates
 
-    def _fit(self, X, X_val=None):
+    def _fit(self, X, X_val=None, G=None):
         # load ops requested
         self._train_op = tf.get_collection('train_op')[0]
         self._msre = tf.get_collection('msre')[0]
@@ -851,7 +876,7 @@ class DBM(EnergyBasedModel):
         val_msre, val_n_mf_updates = None, None
         for self.epoch in epoch_iter(start_epoch=self.epoch, max_epoch=self.max_epoch,
                                      verbose=self.verbose):
-            train_msre, train_n_mf_updates = self._train_epoch(X)
+            train_msre, train_n_mf_updates = self._train_epoch(X, G)
 
             # run validation metrics if needed
             if X_val is not None and self.epoch % self.val_metrics_every_epoch == 0:
