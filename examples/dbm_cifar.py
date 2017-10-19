@@ -260,14 +260,14 @@ def main():
                         help='increase number of Gibbs steps every specified number of epochs for RBM #2')
 
     # common for RBMs and DBM
-    parser.add_argument('--lr', type=float, default=[5e-4, 5e-5, 1e-4], metavar='LR', nargs='+',
+    parser.add_argument('--lr', type=float, default=[5e-4, 5e-5, 5e-5], metavar='LR', nargs='+',
                         help='(initial) learning rates')
     parser.add_argument('--epochs', type=int, default=[72, 80, 200], metavar='N', nargs='+',
                         help='number of epochs to train')
     parser.add_argument('--batch-size', type=int, default=[100, 100, 100], metavar='B', nargs='+',
                         help='input batch size for training, `--n-train` and `--n-val`' + \
                              'must be divisible by this number (for DBM)')
-    parser.add_argument('--l2', type=float, default=[2e-3, 0.05, 1e-7], metavar='L2', nargs='+',
+    parser.add_argument('--l2', type=float, default=[2e-3, 0.05, 1e-6], metavar='L2', nargs='+',
                         help='L2 weight decay coefficient')
 
     # save dirpaths
@@ -285,13 +285,13 @@ def main():
                         help='number of Gibbs steps for PCD')
     parser.add_argument('--max-mf-updates', type=int, default=50, metavar='N',
                         help='maximum number of mean-field updates per weight update')
-    parser.add_argument('--mf-tol', type=float, default=1e-7, metavar='TOL',
+    parser.add_argument('--mf-tol', type=float, default=1e-11, metavar='TOL',
                         help='mean-field tolerance')
-    parser.add_argument('--max-norm', type=float, default=8., metavar='C',
+    parser.add_argument('--max-norm', type=float, default=4., metavar='C',
                         help='maximum norm constraint')
-    parser.add_argument('--sparsity-target', type=float, default=[0.2, 0.1], metavar='T', nargs='+',
+    parser.add_argument('--sparsity-target', type=float, default=[0.2, 0.2], metavar='T', nargs='+',
                         help='desired probability of hidden activation')
-    parser.add_argument('--sparsity-cost', type=float, default=[1e-5, 1e-5], metavar='C', nargs='+',
+    parser.add_argument('--sparsity-cost', type=float, default=[1e-4, 1e-3], metavar='C', nargs='+',
                         help='controls the amount of sparsity penalty')
     parser.add_argument('--sparsity-damping', type=float, default=0.9, metavar='D',
                         help='decay rate for hidden activations probs')
@@ -500,7 +500,7 @@ def main():
               n_gibbs_steps=args.n_gibbs_steps,
               max_mf_updates=args.max_mf_updates,
               mf_tol=args.mf_tol,
-              learning_rate=np.geomspace(args.lr[2], 5e-6, args.epochs[2]),
+              learning_rate=np.geomspace(args.lr[2], 1e-6, args.epochs[2]),
               momentum=np.geomspace(0.5, 0.9, 10),
               max_epoch=args.epochs[2],
               batch_size=args.batch_size[2],
@@ -511,7 +511,7 @@ def main():
               sparsity_targets=args.sparsity_target,
               sparsity_costs=args.sparsity_cost,
               sparsity_damping=args.sparsity_damping,
-              train_metrics_every_iter=400,
+              train_metrics_every_iter=10,
               val_metrics_every_epoch=2,
               random_seed=3333,
               verbose=True,
