@@ -432,8 +432,8 @@ def main():
         print "\nTraining M-RBM ...\n\n"
         mrbm_lr = args.lr[1]
         mrbm_config = dict(n_visible=300 * 26,
-                           n_hidden=500,
-                           n_samples=500,
+                           n_hidden=512,
+                           n_samples=512,
                            W_init=0.001,
                            hb_init=0.,
                            vb_init=0.,
