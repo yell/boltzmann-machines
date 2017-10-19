@@ -260,9 +260,9 @@ def main():
                         help='increase number of Gibbs steps every specified number of epochs for RBM #2')
 
     # common for RBMs and DBM
-    parser.add_argument('--lr', type=float, default=[5e-4, 5e-5, 1e-4], metavar='LR', nargs='+',
+    parser.add_argument('--lr', type=float, default=[5e-4, 5e-5, 4e-5], metavar='LR', nargs='+',
                         help='(initial) learning rates')
-    parser.add_argument('--epochs', type=int, default=[72, 80, 200], metavar='N', nargs='+',
+    parser.add_argument('--epochs', type=int, default=[72, 80, 100], metavar='N', nargs='+',
                         help='number of epochs to train')
     parser.add_argument('--batch-size', type=int, default=[100, 100, 100], metavar='B', nargs='+',
                         help='input batch size for training, `--n-train` and `--n-val`' + \
@@ -522,7 +522,12 @@ def main():
               tf_saver_params=dict(max_to_keep=1),
               model_path=args.dbm_dirpath)
     dbm.fit(X_train, X_val)
-    print dbm.reconstruct(X_val).shape
+    # im = dbm.sample_v(n_gibbs_steps=10)
+    # print im.mean()
+    # im = dbm.sample_v(n_gibbs_steps=10)
+    # print im.mean()
+    # im = dbm.sample_v_given_h_last(512.*np.random.rand(100, 512), n_gibbs_steps=10)
+    # print im.mean()
 
 
 if __name__ == '__main__':
