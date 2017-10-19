@@ -59,8 +59,8 @@ class MultinomialRBM(BaseRBM):
             fe += -tf.lgamma(M + K) + tf.lgamma(M + 1) + tf.lgamma(K)
         return fe
 
-    def transform(self, X):
-        H = super(MultinomialRBM, self).transform(X)
+    def transform(self, *args, **kwargs):
+        H = super(MultinomialRBM, self).transform(*args, **kwargs)
         H /= float(self.n_samples)
         return H
 
