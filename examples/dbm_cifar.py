@@ -222,7 +222,7 @@ def make_transform(rbm, X, path):
         if len(X) == len(H):
             transform = False
     if transform:
-        H = rbm.transform(X).astype('float32')
+        H = rbm.transform(X, dtype=np.float32)
         np.save(path, H)
     return H
 
