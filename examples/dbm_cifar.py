@@ -250,7 +250,7 @@ def main():
                         help='number of epochs to train')
     parser.add_argument('--small-batch-size', type=int, default=48, metavar='B',
                         help='input batch size for training')
-    parser.add_argument('--small-l2', type=float, default=1e-3, metavar='L2',
+    parser.add_argument('--small-l2', type=float, default=2e-3, metavar='L2',
                         help='L2 weight decay coefficient')
     parser.add_argument('--small-dirpath-prefix', type=str, default='../models/rbm_cifar_small_', metavar='PREFIX',
                         help='directory path prefix to save RBMs trained on patches')
@@ -260,14 +260,14 @@ def main():
                         help='increase number of Gibbs steps every specified number of epochs for RBM #2')
 
     # common for RBMs and DBM
-    parser.add_argument('--lr', type=float, default=[5e-4, 8e-5, 1e-4], metavar='LR', nargs='+',
+    parser.add_argument('--lr', type=float, default=[5e-4, 5e-5, 1e-4], metavar='LR', nargs='+',
                         help='(initial) learning rates')
     parser.add_argument('--epochs', type=int, default=[72, 96, 200], metavar='N', nargs='+',
                         help='number of epochs to train')
     parser.add_argument('--batch-size', type=int, default=[100, 100, 100], metavar='B', nargs='+',
                         help='input batch size for training, `--n-train` and `--n-val`' + \
                              'must be divisible by this number (for DBM)')
-    parser.add_argument('--l2', type=float, default=[1e-3, 0.01, 1e-7], metavar='L2', nargs='+',
+    parser.add_argument('--l2', type=float, default=[2e-3, 0.01, 1e-7], metavar='L2', nargs='+',
                         help='L2 weight decay coefficient')
 
     # save dirpaths
@@ -426,9 +426,9 @@ def main():
                            batch_size=args.batch_size[1],
                            l2=args.l2[1],
                            sample_h_states=True,
-                           sample_v_states=False,
+                           sample_v_states=True,
                            sparsity_target=0.1,
-                           sparsity_cost=5e-5,
+                           sparsity_cost=5e-6,
                            dbm_last=True,  # !!!
                            metrics_config=dict(
                                msre=True,
@@ -454,7 +454,7 @@ def main():
             max_epoch = min(max_epoch, args.epochs[1])
             mrbm_config['max_epoch'] = max_epoch
             mrbm_config['n_gibbs_steps'] += 1
-            mrbm_config['learning_rate'] = mrbm_lr * 2. / (1. + mrbm_config['n_gibbs_steps'])
+            mrbm_config['learning_rate'] = mrbm_lr / float(mrbm_config['n_gibbs_steps'])
 
             print "\nNumber of Gibbs steps = {0}, learning rate = {1:.6f} ...\n\n". \
                 format(mrbm_config['n_gibbs_steps'], mrbm_config['learning_rate'])
