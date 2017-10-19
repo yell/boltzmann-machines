@@ -255,7 +255,7 @@ def main():
     parser.add_argument('--batch-size', type=int, default=[100, 100, 100], metavar='B', nargs='+',
                         help='input batch size for training, `--n-train` and `--n-val`' + \
                              'must be divisible by this number (for DBM)')
-    parser.add_argument('--l2', type=float, default=[1e-3, 0.1, 1e-7], metavar='L2', nargs='+',
+    parser.add_argument('--l2', type=float, default=[1e-3, 0.05, 1e-7], metavar='L2', nargs='+',
                         help='L2 weight decay coefficient')
 
     # save dirpaths
@@ -388,19 +388,24 @@ def main():
         grbm.fit(X_train, X_val)
 
     # extract features Q = P_{G-RBM}(h|v=X)
-    Q_path = os.path.join(args.data_path, 'Q_cifar.npy')
+    Q_train_path = os.path.join(args.data_path, 'Q_train_cifar.npy')
     Q_val_path = os.path.join(args.data_path, 'Q_val_cifar.npy')
     print "\nExtracting features from G-RBM ..."
-    if os.path.isfile(Q_path):
-        Q = np.load(Q_path)
-    else:
-        Q = grbm.transform(X_train).astype('float32')
-        np.save(Q_path, Q)
-    if os.path.isfile(Q_val_path):
-        Q_val = np.load(Q_val_path)
-    else:
-        Q_val = grbm.transform(X_val).astype('float32')
-        np.save(Q_val_path, Q_val)
+
+    def make_Q(X, n, path):
+        Q = None
+        transform = True
+        if os.path.isfile(path):
+            Q = np.load(path)
+            if n == len(Q):
+                transform = False
+        if transform:
+            Q = grbm.transform(X).astype('float32')
+            np.save(path, Q)
+        return Q
+
+    Q_train = make_Q(X_train, 10 * n_train, Q_train_path)
+    Q_val = make_Q(X_val, n_val, Q_val_path)
 
     # pre-train Multinomial RBM (M-RBM)
     if os.path.isdir(args.rbm2_dirpath):
@@ -420,11 +425,11 @@ def main():
                           momentum=np.geomspace(0.5, 0.9, 8),
                           max_epoch=args.increase_n_gibbs_steps_every,
                           batch_size=args.batch_size[1],
-                          L2=args.l2[1],
+                          l2=args.l2[1],
                           sample_h_states=True,
                           sample_v_states=True,
                           sparsity_target=0.2,
-                          sparsity_cost=1e-2,
+                          sparsity_cost=1e-3,
                           dbm_last=True,  # !!!
                           metrics_config=dict(
                               msre=True,
@@ -443,7 +448,7 @@ def main():
                           model_path=args.rbm2_dirpath)
         max_epoch = args.increase_n_gibbs_steps_every
         mrbm = MultinomialRBM(**mrbm_config)
-        mrbm.fit(Q, Q_val)
+        mrbm.fit(Q_train, Q_val)
         mrbm_config['momentum'] = 0.9
         while max_epoch < args.epochs[1]:
             max_epoch += args.increase_n_gibbs_steps_every
@@ -458,7 +463,7 @@ def main():
             mrbm_new = MultinomialRBM(**mrbm_config)
             mrbm_new.init_from(mrbm)
             mrbm = mrbm_new
-            mrbm.fit(Q, Q_val)
+            mrbm.fit(Q_train, Q_val)
 
 
 if __name__ == '__main__':
