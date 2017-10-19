@@ -464,6 +464,15 @@ def main():
             mrbm = mrbm_new
             mrbm.fit(Q_train, Q_val)
 
+    # extract features G = P_{M-RBM}(h|v=Q)
+    print "\nExtracting features from M-RBM ...\n\n"
+    G_train_path = os.path.join(args.data_path, 'G_train_cifar.npy')
+    G_val_path = os.path.join(args.data_path, 'G_val_cifar.npy')
+    G_train = make_transform(grbm, Q_train, G_train_path)
+    G_val = make_transform(grbm, Q_val, G_val_path)
+
+    print G_train.shape, G_val.shape
+
 
 if __name__ == '__main__':
     main()
