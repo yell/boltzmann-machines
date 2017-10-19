@@ -166,6 +166,8 @@ class DBM(EnergyBasedModel):
         self.display_filters = display_filters
         self.display_particles = display_particles
         self.v_shape = v_shape
+        if len(self.v_shape) == 2:
+            self.v_shape = (self.v_shape[0], self.v_shape[1], 1)
 
         # current epoch and iter
         self.epoch = 0
@@ -334,10 +336,10 @@ class DBM(EnergyBasedModel):
                 for i in xrange(self.n_layers):
                     if i > 0:
                         W = tf.matmul(W, self._W[i])
-                    W_display = tf.reshape(W, [self.v_shape[0],
-                                               self.v_shape[1], self.n_hiddens[i], 1])
-                    W_display = tf.transpose(W_display, [2, 0, 1, 3])
-                    W_display = tf.cast(W_display, tf.float32)
+                    W_display = tf.transpose(W, [1, 0])
+                    W_display = tf.reshape(W_display, [self.n_hiddens[i], self.v_shape[2],
+                                                       self.v_shape[0], self.v_shape[1]])
+                    W_display = tf.transpose(W_display, [0, 2, 3, 1])
                     tf.summary.image('W_filters', W_display, max_outputs=self.display_filters)
 
         # initialize gradients accumulators
@@ -543,8 +545,9 @@ class DBM(EnergyBasedModel):
                     v_means, H_means, _, _ = self._make_particles_update(sample=False)
 
                     V = v_means[:self.display_particles, :]
-                    V_display = tf.reshape(V, [self.display_particles, self.v_shape[0],
-                                               self.v_shape[1], 1])
+                    V_display = tf.reshape(V, [self.display_particles, self.v_shape[2],
+                                               self.v_shape[0], self.v_shape[1]])
+                    V_display = tf.transpose(V_display, [0, 2, 3, 1])
                     V_display = tf.cast(V_display, tf.float32)
                     tf.summary.image('visible_activations_means', V_display, max_outputs=self.display_filters)
 
