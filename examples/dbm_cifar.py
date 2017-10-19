@@ -260,7 +260,7 @@ def main():
                         help='increase number of Gibbs steps every specified number of epochs for RBM #2')
 
     # common for RBMs and DBM
-    parser.add_argument('--lr', type=float, default=[5e-4, 5e-5, 5e-5], metavar='LR', nargs='+',
+    parser.add_argument('--lr', type=float, default=[5e-4, 5e-5, 1e-4], metavar='LR', nargs='+',
                         help='(initial) learning rates')
     parser.add_argument('--epochs', type=int, default=[72, 80, 200], metavar='N', nargs='+',
                         help='number of epochs to train')
@@ -522,6 +522,7 @@ def main():
               tf_saver_params=dict(max_to_keep=1),
               model_path=args.dbm_dirpath)
     dbm.fit(X_train, X_val)
+    print dbm.reconstruct(X_val).shape
 
 
 if __name__ == '__main__':

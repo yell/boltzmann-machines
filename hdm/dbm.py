@@ -221,6 +221,7 @@ class DBM(EnergyBasedModel):
         self._train_op = None
         self._transform_op = None
         self._msre = None
+        self._reconstruction = None
         self._n_mf_updates = None
         self._sample_v = None
         self._log_Z = None
@@ -644,6 +645,7 @@ class DBM(EnergyBasedModel):
                 msre = tf.reduce_mean(tf.square(self._X_batch - v_means))
                 tf.add_to_collection('msre', msre)
 
+            tf.add_to_collection('reconstruction', v_means)
             tf.add_to_collection('n_mf_updates', n_mf_updates)
 
             # collect summaries
@@ -885,11 +887,25 @@ class DBM(EnergyBasedModel):
         self._transform_op = tf.get_collection('transform_op')[0]
         G = np.zeros((len(X), self.n_hiddens[-1]))
         start = 0
-        for X_b in batch_iter(X, batch_size=self.batch_size, verbose=self.verbose):
+        for X_b in batch_iter(X, batch_size=self.batch_size,
+                              verbose=self.verbose, desc='transform'):
             G_b = self._transform_op.eval(feed_dict=self._make_tf_feed_dict(X_b))
             G[start:(start + self.batch_size)] = G_b
             start += self.batch_size
         return G
+
+    @run_in_tf_session(update_seed=True)
+    def reconstruct(self, X):
+        """Compute p(v|h_0=q, h...)=p(v|h_0=q), where q=p(h_0|v=x)"""
+        self._reconstruction = tf.get_collection('reconstruction')[0]
+        X_recon = np.zeros_like(X)
+        start = 0
+        for X_b in batch_iter(X, batch_size=self.batch_size,
+                              verbose=self.verbose, desc='reconstruction'):
+            X_recon_b = self._reconstruction.eval(feed_dict=self._make_tf_feed_dict(X_b))
+            X_recon[start:(start + self.batch_size)] = X_recon_b
+            start += self.batch_size
+        return X_recon
 
     @run_in_tf_session(update_seed=True)
     def sample_v(self, n_gibbs_steps=0, save_model=False):
