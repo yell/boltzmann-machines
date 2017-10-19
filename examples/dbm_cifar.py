@@ -260,7 +260,7 @@ def main():
                         help='increase number of Gibbs steps every specified number of epochs for RBM #2')
 
     # common for RBMs and DBM
-    parser.add_argument('--lr', type=float, default=[5e-4, 1e-4, 1e-3], metavar='LR', nargs='+',
+    parser.add_argument('--lr', type=float, default=[5e-4, 8e-5, 1e-4], metavar='LR', nargs='+',
                         help='(initial) learning rates')
     parser.add_argument('--epochs', type=int, default=[72, 96, 200], metavar='N', nargs='+',
                         help='number of epochs to train')
@@ -414,37 +414,37 @@ def main():
         print "\nTraining M-RBM ...\n\n"
         mrbm_lr = args.lr[1]
         mrbm_config = dict(n_visible=300 * 26,
-                          n_hidden=500,
-                          n_samples=500,
-                          W_init=0.001,
-                          hb_init=0.,
-                          vb_init=0.,
-                          n_gibbs_steps=1,
-                          learning_rate=mrbm_lr,
-                          momentum=np.geomspace(0.5, 0.9, 8),
-                          max_epoch=args.increase_n_gibbs_steps_every,
-                          batch_size=args.batch_size[1],
-                          l2=args.l2[1],
-                          sample_h_states=True,
-                          sample_v_states=True,
-                          sparsity_target=0.1,
-                          sparsity_cost=1e-4,
-                          dbm_last=True,  # !!!
-                          metrics_config=dict(
-                              msre=True,
-                              pll=True,
-                              feg=True,
-                              train_metrics_every_iter=5,
-                              val_metrics_every_epoch=1,
-                              feg_every_epoch=2,
-                              n_batches_for_feg=50,
-                          ),
-                          verbose=True,
-                          display_hidden_activations=100,
-                          random_seed=2222,
-                          tf_dtype='float32',
-                          tf_saver_params=dict(max_to_keep=1),
-                          model_path=args.rbm2_dirpath)
+                           n_hidden=500,
+                           n_samples=500,
+                           W_init=0.001,
+                           hb_init=0.,
+                           vb_init=0.,
+                           n_gibbs_steps=1,
+                           learning_rate=mrbm_lr,
+                           momentum=np.geomspace(0.5, 0.9, 8),
+                           max_epoch=args.increase_n_gibbs_steps_every,
+                           batch_size=args.batch_size[1],
+                           l2=args.l2[1],
+                           sample_h_states=True,
+                           sample_v_states=False,
+                           sparsity_target=0.1,
+                           sparsity_cost=5e-5,
+                           dbm_last=True,  # !!!
+                           metrics_config=dict(
+                               msre=True,
+                               pll=True,
+                               feg=True,
+                               train_metrics_every_iter=5,
+                               val_metrics_every_epoch=1,
+                               feg_every_epoch=2,
+                               n_batches_for_feg=50,
+                           ),
+                           verbose=True,
+                           display_hidden_activations=100,
+                           random_seed=2222,
+                           tf_dtype='float32',
+                           tf_saver_params=dict(max_to_keep=1),
+                           model_path=args.rbm2_dirpath)
         max_epoch = args.increase_n_gibbs_steps_every
         mrbm = MultinomialRBM(**mrbm_config)
         mrbm.fit(Q_train, Q_val)
@@ -454,7 +454,7 @@ def main():
             max_epoch = min(max_epoch, args.epochs[1])
             mrbm_config['max_epoch'] = max_epoch
             mrbm_config['n_gibbs_steps'] += 1
-            mrbm_config['learning_rate'] = mrbm_lr / float(mrbm_config['n_gibbs_steps'])
+            mrbm_config['learning_rate'] = mrbm_lr * 2. / (1. + mrbm_config['n_gibbs_steps'])
 
             print "\nNumber of Gibbs steps = {0}, learning rate = {1:.6f} ...\n\n". \
                 format(mrbm_config['n_gibbs_steps'], mrbm_config['learning_rate'])
