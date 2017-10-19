@@ -262,12 +262,12 @@ def main():
     # common for RBMs and DBM
     parser.add_argument('--lr', type=float, default=[5e-4, 5e-5, 1e-4], metavar='LR', nargs='+',
                         help='(initial) learning rates')
-    parser.add_argument('--epochs', type=int, default=[72, 96, 200], metavar='N', nargs='+',
+    parser.add_argument('--epochs', type=int, default=[72, 80, 200], metavar='N', nargs='+',
                         help='number of epochs to train')
     parser.add_argument('--batch-size', type=int, default=[100, 100, 100], metavar='B', nargs='+',
                         help='input batch size for training, `--n-train` and `--n-val`' + \
                              'must be divisible by this number (for DBM)')
-    parser.add_argument('--l2', type=float, default=[2e-3, 0.01, 1e-7], metavar='L2', nargs='+',
+    parser.add_argument('--l2', type=float, default=[2e-3, 0.005, 1e-7], metavar='L2', nargs='+',
                         help='L2 weight decay coefficient')
 
     # save dirpaths
@@ -427,8 +427,8 @@ def main():
                            l2=args.l2[1],
                            sample_h_states=True,
                            sample_v_states=True,
-                           sparsity_target=0.1,
-                           sparsity_cost=5e-6,
+                           sparsity_target=0.2,
+                           sparsity_cost=1e-4,
                            dbm_last=True,  # !!!
                            metrics_config=dict(
                                msre=True,
