@@ -9,7 +9,7 @@ test:
 clean:
 	find . -name '*.pyc' -type f -delete
 	rm -f 'random_state.json'
-	rm -f 'hdm/utils/random_state.json'
+	rm -f 'bm/utils/random_state.json'
 
 data:
 	./data/fetch_mnist.sh

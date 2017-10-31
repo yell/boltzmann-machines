@@ -20,11 +20,11 @@ import argparse
 import numpy as np
 
 import env
-from hdm.dbm import DBM
-from hdm.rbm import GaussianRBM, MultinomialRBM
-from hdm.utils import RNG, Stopwatch
-from hdm.utils.augmentation import shift, horizontal_mirror
-from hdm.utils.dataset import (load_cifar10,
+from bm.dbm import DBM
+from bm.rbm import GaussianRBM, MultinomialRBM
+from bm.utils import RNG, Stopwatch
+from bm.utils.augmentation import shift, horizontal_mirror
+from bm.utils.dataset import (load_cifar10,
                                im_flatten, im_unflatten)
 
 

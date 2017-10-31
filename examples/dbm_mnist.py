@@ -20,10 +20,10 @@ import argparse
 import numpy as np
 
 import env
-from hdm.dbm import DBM
-from hdm.rbm import BernoulliRBM
-from hdm.utils import RNG
-from hdm.utils.dataset import load_mnist
+from bm.dbm import DBM
+from bm.rbm import BernoulliRBM
+from bm.utils import RNG
+from bm.utils.dataset import load_mnist
 
 
 def main():

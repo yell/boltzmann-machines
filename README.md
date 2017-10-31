@@ -141,3 +141,7 @@ TensorFlow 1.3.0 assumes cuDNN v6.0 by default. If you have different one instal
 
 ## Contributing
 ***TODO***
+
+## TODO
+* Centering trick
+* ELBO and AIS for arbitrary DBM (again, visible and topmost hidden units can be analytically summed out)

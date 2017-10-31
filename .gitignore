@@ -1,13 +1,11 @@
 *.pyc
 *.json
 .idea/*
-.ipynb_checkpoints/*
 .venv/*
 data/*.npy
-data/*idx1-ubyte
-data/*idx3-ubyte
-data/cifar-10-batches-py
+data/mnist/
+data/cifar-10-batches-py/
 notebooks/.ipynb_checkpoints/*
-hdm/test_rbm_1/*
-hdm/test_rbm_2/*
+bm/test_rbm_1/*
+bm/test_rbm_2/*
 models/*
