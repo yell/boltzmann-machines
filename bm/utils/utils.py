@@ -103,6 +103,70 @@ def unhot(y, n_classes=None):
         _, n_classes = y.shape
     return y.dot(np.arange(n_classes))
 
+def log_sum_exp(x):
+    """Compute log(sum(exp(x))) in a numerically stable way.
+
+    Examples
+    --------
+    >>> x = [0, 1, 0]
+    >>> log_sum_exp(x) #doctest: +ELLIPSIS
+    1.551...
+    >>> x = [1000, 1001, 1000]
+    >>> log_sum_exp(x) #doctest: +ELLIPSIS
+    1001.551...
+    >>> x = [-1000, -999, -1000]
+    >>> log_sum_exp(x) #doctest: +ELLIPSIS
+    -998.448...
+    """
+    x = np.asarray(x)
+    a = max(x)
+    return a + np.log(sum(np.exp(x - a)))
+
+def log_mean_exp(x):
+    """Compute log(mean(exp(x))) in a numerically stable way.
+
+    Examples
+    --------
+    >>> x = [1, 2, 3]
+    >>> log_mean_exp(x) #doctest: +ELLIPSIS
+    2.308...
+    """
+    return log_sum_exp(x) - np.log(len(x))
+
+def log_diff_exp(x):
+    """Compute log(diff(exp(x))) in a numerically stable way.
+
+    Examples
+    --------
+    >>> log_diff_exp([1, 2, 3]) #doctest: +ELLIPSIS
+    array([ 1.5413...,  2.5413...])
+    >>> [np.log(np.exp(2)-np.exp(1)), np.log(np.exp(3)-np.exp(2))] #doctest: +ELLIPSIS
+    [1.5413..., 2.5413...]
+    """
+    x = np.asarray(x)
+    a = max(x)
+    return a + np.log(np.diff(np.exp(x - a)))
+
+def log_std_exp(x, log_mean_exp_x=None):
+    """Compute log(std(exp(x))) in a numerically stable way.
+
+    Examples
+    --------
+    >>> x = np.arange(8.)
+    >>> print x
+    [ 0.  1.  2.  3.  4.  5.  6.  7.]
+    >>> log_std_exp(x) #doctest: +ELLIPSIS
+    5.875416...
+    >>> np.log(np.std(np.exp(x))) #doctest: +ELLIPSIS
+    5.875416...
+    """
+    x = np.asarray(x)
+    m = log_mean_exp_x
+    if m is None:
+        m = log_mean_exp(x)
+    M = log_mean_exp(2. * x)
+    return 0.5 * log_diff_exp([2. * m, M])[0]
+
 
 if __name__ == '__main__':
     # run corresponding tests
