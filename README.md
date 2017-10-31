@@ -64,9 +64,6 @@ How to reproduce the last table see [here](docs/rbm_discriminative.md).
 ### DBM MNIST ([script](examples/dbm_mnist.py), *[notebook](notebooks/dbm_mnist.ipynb)*)
 ### DBM CIFAR-10 Naïve (~~[script]()~~, ~~[notebook]()~~)
 ### DBM CIFAR-10 (~~[script]()~~, ~~[notebook]()~~)
-### HDP (~~[script]()~~, ~~[notebook]()~~)
-### HDP-DBM (~~[script]()~~, ~~[notebook]()~~)
-### SB-VAE (~~[script]()~~, ~~[notebook]()~~)
 ### Usage
 Use **script**s for training models from scratch, for instance
 ```
