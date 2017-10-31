@@ -1,21 +1,14 @@
-| Number of intermediate distributions | log(Z_mean) | log(Z-sigma), log(Z+sigma) | Avg. test ELBO |
-| :---: | :---: | :---: | :---: |
-| 20'000 (DBM paper) | 356.18 | 356.06, 356.29 | **-84.62** |
-| 200'000 | 1040.39 | 1040.18, 1040.58 | **-86.37** |
-| 20'000 | 1040.55 | 1039.71, 1041.23 | -86.70 |
-
-
-# Hierarchical-Deep Models
+# Boltzmann Machines
 
 ## Implemented
-### Restricted Boltzmann Machine (RBM)
+### Restricted Boltzmann Machines (RBM)
 * *k-step Contrastive Divergence*: *variable* learning rate and momentum, L2 weight decay, maxnorm, dropout, sparsity targets, ***TODO***: rest;
 * *different types of RBMs*: Bernoulli, Multinomial, Gaussian;
 * *easy to add new type of RBM*: implement new type of stochastic units or create new RBM from existing types of units
 * *visualization in Tensorboard*: learning curves (reconstruction RMSE, pseudo log-likelihood, free energy gap, L2 loss), distribution of weights and weights updates in TensorBoard; hidden activations and weight filters
 * variable number of Gibbs steps withing training is not yet supported, but possible (need to implement `tf.while_loop` with variable number of steps) + see `init_from` method
 
-### Deep Boltzmann Machine (DBM)
+### Deep Boltzmann Machines (DBM)
 * arbitrary number of layers of any types
 * initialize from greedy layer-wise pretrained RBMs and jointly fine-tune using PCD + mean-field approximation
 * one can use `DBM` class with 1 hidden layer to train **RBM** with this more efficient algorithm + generating samples after training + AIS
@@ -24,12 +17,6 @@
 * visualize norms of weights in each layer
 * visualize visible negative particles
 * implemented Annealed Importance Sampling to estimate log partition function
-
-### Hierarchical Dirichlet Prior (HDP)
-***TODO***
-
-### Stick-breaking Variational Autoencoder (SB-VAE)
-***TODO***
 
 ## Features
 * easy to use `sklearn`-like interface
@@ -41,7 +28,7 @@
 * *visualization*: python routines to display images, learned filters, confusion matrices etc.
 
 ## Examples (***TODO*** add demo images, download models)
-### RBM MNIST ([script](examples/rbm_mnist.py), *[notebook](notebooks/rbm_mnist.ipynb)*)
+### 1) RBM MNIST ([script](examples/rbm_mnist.py), *[notebook](notebooks/rbm_mnist.ipynb)*)
 Train RBM on MNIST dataset and use it for classification.
 
 | <div align="center">Algorithm</div> | Test Accuracy, % |
@@ -61,12 +48,16 @@ Also, [one-shot learning idea]:
 
 How to reproduce the last table see [here](docs/rbm_discriminative.md).
 
-### DBM MNIST ([script](examples/dbm_mnist.py), *[notebook](notebooks/dbm_mnist.ipynb)*)
-### DBM CIFAR-10 Naïve (~~[script]()~~, ~~[notebook]()~~)
-### DBM CIFAR-10 (~~[script]()~~, ~~[notebook]()~~)
-### HDP (~~[script]()~~, ~~[notebook]()~~)
-### HDP-DBM (~~[script]()~~, ~~[notebook]()~~)
-### SB-VAE (~~[script]()~~, ~~[notebook]()~~)
+### 2) DBM MNIST ([script](examples/dbm_mnist.py), *[notebook](notebooks/dbm_mnist.ipynb)*)
+
+| Number of intermediate distributions | log(Z_mean) | log(Z-sigma), log(Z+sigma) | Avg. test ELBO |
+| :---: | :---: | :---: | :---: |
+| DBM paper (20'000) | 356.18 | 356.06, 356.29 | **-84.62** |
+| 200'000 | 1040.39 | 1040.18, 1040.58 | **-86.37** |
+| 20'000 | 1040.55 | 1039.71, 1041.23 | -86.70 |
+
+### 3) DBM CIFAR-10 Naïve (~~[script]()~~, ~~[notebook]()~~)
+### 4) DBM CIFAR-10 (~~[script]()~~, ~~[notebook]()~~)
 ### Usage
 Use **script**s for training models from scratch, for instance
 ```
@@ -114,7 +105,7 @@ optional arguments:
 ```
 or download pretrained ones with default parameters using `models/fetch_models.sh`, 
 </br>
-and check **notebook**s for corresponding testing / visualization etc.
+and check **notebook**s for corresponding inference / visualization etc.
 
 ## How to install
 By default, the following commands install (among others) **tensorflow-gpu~=1.3.0**. If you want to install tensorflow without GPU support, replace corresponding line in [requirements.txt](requirements.txt). If you have already tensorflow installed, comment that line but note that for [edward](http://edwardlib.org/) to work correctly, you must have tf>=1.2.0rc installed.
