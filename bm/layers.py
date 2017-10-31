@@ -4,7 +4,7 @@ from tensorflow.contrib.distributions import Bernoulli, Multinomial, Normal
 
 
 class BaseLayer(object):
-    """Helper class that encapsulates one layer of stochastic units in RBM/DBM."""
+    """Helper class that encapsulates one layer of stochastic units."""
     def __init__(self, n_units, tf_dtype=tf.float32):
         super(BaseLayer, self).__init__()
         self.n_units = n_units
@@ -68,7 +68,6 @@ class MultinomialLayer(BaseLayer):
         return tf.identity(t, name='multinomial_init')
 
     def activation(self, x, b):
-        # visible bias is scaled as suggested in [1]
         t = tf.nn.softmax(x + b)
         return self.n_samples * t
 
