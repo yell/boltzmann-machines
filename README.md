@@ -1,4 +1,5 @@
 # Boltzmann Machines
+Goal was to reproduce DBM MNIST (at least there was numbers to compare with) + DBM CIFAR + additional experiments along the way
 
 ## Implemented
 ### Restricted Boltzmann Machines (RBM)
@@ -139,9 +140,11 @@ TensorFlow 1.3.0 assumes cuDNN v6.0 by default. If you have different one instal
 ## Tensorboard visualization
 ***TODO***
 
+## TODO
+* experiment: generate half MNIST digit conditioned on the other half using RBM 
+* feature: Centering trick
+* feature: classification RBMs/DBMs
+* feature: ELBO and AIS for arbitrary DBM (again, visible and topmost hidden units can be analytically summed out) and for RBM (perhaps by using DBM class)
+
 ## Contributing
 ***TODO***
-
-## TODO
-* Centering trick
-* ELBO and AIS for arbitrary DBM (again, visible and topmost hidden units can be analytically summed out)
