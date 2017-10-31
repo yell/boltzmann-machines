@@ -63,7 +63,7 @@ def im_reshape(X, n_width=10, n_height=10, shape=None, normalize=False):
     if len(shape) == 2:
         shape = (shape[0], shape[1], 1)
     Y = Y.reshape(-1, *shape)
-    Z = np.zeros((n_height * shape[0], n_width * shape[1], shape[2]))
+    Z = np.zeros((n_height * shape[0], n_width * shape[1], shape[2]), dtype=Y.dtype)
 
     for i in xrange(n_height):
         for j in xrange(n_width):
