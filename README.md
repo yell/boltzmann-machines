@@ -1,3 +1,10 @@
+| Number of intermediate distributions | log(Z_mean) | log(Z-sigma), log(Z+sigma) | Avg. test ELBO |
+| :---: | :---: | :---: | :---: |
+| 20'000 (DBM paper) | 356.18 | 356.06, 356.29 | **-84.62** |
+| 200'000 | 1040.39 | 1040.18, 1040.58 | **-86.37** |
+| 20'000 | 1040.55 | 1039.71, 1041.23 | -86.70 |
+
+
 # Hierarchical-Deep Models
 
 ## Implemented
