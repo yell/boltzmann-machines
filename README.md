@@ -1,21 +1,14 @@
-| Number of intermediate distributions | log(Z_mean) | log(Z-sigma), log(Z+sigma) | Avg. test ELBO |
-| :---: | :---: | :---: | :---: |
-| 20'000 (DBM paper) | 356.18 | 356.06, 356.29 | **-84.62** |
-| 200'000 | 1040.39 | 1040.18, 1040.58 | **-86.37** |
-| 20'000 | 1040.55 | 1039.71, 1041.23 | -86.70 |
-
-
-# Hierarchical-Deep Models
+# Boltzmann Machines
 
 ## Implemented
-### Restricted Boltzmann Machine (RBM)
+### Restricted Boltzmann Machines (RBM)
 * *k-step Contrastive Divergence*: *variable* learning rate and momentum, L2 weight decay, maxnorm, dropout, sparsity targets, ***TODO***: rest;
 * *different types of RBMs*: Bernoulli, Multinomial, Gaussian;
 * *easy to add new type of RBM*: implement new type of stochastic units or create new RBM from existing types of units
 * *visualization in Tensorboard*: learning curves (reconstruction RMSE, pseudo log-likelihood, free energy gap, L2 loss), distribution of weights and weights updates in TensorBoard; hidden activations and weight filters
 * variable number of Gibbs steps withing training is not yet supported, but possible (need to implement `tf.while_loop` with variable number of steps) + see `init_from` method
 
-### Deep Boltzmann Machine (DBM)
+### Deep Boltzmann Machines (DBM)
 * arbitrary number of layers of any types
 * initialize from greedy layer-wise pretrained RBMs and jointly fine-tune using PCD + mean-field approximation
 * one can use `DBM` class with 1 hidden layer to train **RBM** with this more efficient algorithm + generating samples after training + AIS
@@ -24,12 +17,6 @@
 * visualize norms of weights in each layer
 * visualize visible negative particles
 * implemented Annealed Importance Sampling to estimate log partition function
-
-### Hierarchical Dirichlet Prior (HDP)
-***TODO***
-
-### Stick-breaking Variational Autoencoder (SB-VAE)
-***TODO***
 
 ## Features
 * easy to use `sklearn`-like interface
@@ -62,6 +49,13 @@ Also, [one-shot learning idea]:
 How to reproduce the last table see [here](docs/rbm_discriminative.md).
 
 ### DBM MNIST ([script](examples/dbm_mnist.py), *[notebook](notebooks/dbm_mnist.ipynb)*)
+
+| Number of intermediate distributions | log(Z_mean) | log(Z-sigma), log(Z+sigma) | Avg. test ELBO |
+| :---: | :---: | :---: | :---: |
+| DBM paper (20'000) | 356.18 | 356.06, 356.29 | **-84.62** |
+| 200'000 | 1040.39 | 1040.18, 1040.58 | **-86.37** |
+| 20'000 | 1040.55 | 1039.71, 1041.23 | -86.70 |
+
 ### DBM CIFAR-10 Naïve (~~[script]()~~, ~~[notebook]()~~)
 ### DBM CIFAR-10 (~~[script]()~~, ~~[notebook]()~~)
 ### Usage
