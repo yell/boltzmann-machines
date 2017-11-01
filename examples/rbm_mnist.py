@@ -5,8 +5,8 @@ Train Bernoulli-Bernoulli RBM on MNIST dataset and use for classification.
 
 Momentum is initially 0.5 and gradually increases to 0.9.
 Training time is approx. 2.5 times faster using single-precision rather than double
-with negligible difference in reconstruction error, pseudo log-lik is slightly more noisy
-at the beginning of training though.
+with negligible difference in reconstruction error, pseudo log-likelihood is slightly
+more noisy at the beginning of training though.
 
 After the model is trained, it is discriminatively fine-tuned.
 The code uses early stopping so max number of MLP epochs is often not reached.
@@ -47,6 +47,8 @@ def main():
     # RBM related
     parser.add_argument('--n-hidden', type=int, default=1024, metavar='N',
                         help='number of hidden units')
+    parser.add_argument('--w-init', type=float, default=0.01, metavar='STD',
+                        help='initialize weights from zero-centered Gaussian with this standard deviation')
     parser.add_argument('--vb-init', action='store_false',
                         help='initialize visible biases as logit of mean values of features' + \
                              ', otherwise (if enabled) zero init')
@@ -117,7 +119,7 @@ def main():
         print "\nTraining model ...\n\n"
         rbm = BernoulliRBM(n_visible=784,
                            n_hidden=args.n_hidden,
-                           W_init=0.01,
+                           W_init=args.w_init,
                            vb_init=logit_mean(X_train) if args.vb_init else 0.,
                            hb_init=args.hb_init,
                            n_gibbs_steps=args.n_gibbs_steps,
@@ -166,10 +168,10 @@ def main():
     mlp = Sequential([
         Dense(args.n_hidden, input_shape=(784,),
               kernel_regularizer=regularizers.l2(args.mlp_l2),
-              kernel_initializer=glorot_uniform(1111),
+              kernel_initializer=glorot_uniform(seed=1111),
               **first_layer_params),
         Activation('sigmoid'),
-        Dense(10, kernel_initializer=glorot_uniform(2222)),
+        Dense(10, kernel_initializer=glorot_uniform(seed=2222)),
         Activation('softmax'),
     ])
 
