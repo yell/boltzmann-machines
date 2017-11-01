@@ -23,6 +23,7 @@ def im_plot(X, n_width=10, n_height=10, shape=None, title=None,
 
     title_params = title_params or {}
     title_params.setdefault('fontsize', 22)
+    title_params.setdefault('y', 0.95)
 
     imshow_params = imshow_params or {}
     imshow_params.setdefault('interpolation', 'nearest')
@@ -100,6 +101,7 @@ def im_gif(matrices, im, fig, fname=None, title_func=None,
 
     title_params = title_params or {}
     title_params.setdefault('fontsize', 18)
+    title_params.setdefault('y', 0.95)
 
     anim_params = anim_params or {}
     anim_params.setdefault('interval', 200)
