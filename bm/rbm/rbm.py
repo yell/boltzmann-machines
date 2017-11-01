@@ -70,8 +70,10 @@ class GaussianRBM(BaseRBM):
 
     This implementation does not learn variances, but instead uses
     fixed, predetermined values. Input data should be pre-processed
-    to have zero mean. It can also be normalized to have unit variance,
-    in this case parameter `sigma` can be left 1., as suggested in [1].
+    to have zero mean (or, equivalently, initialize visible biases
+    to the negative mean of data). It can also be normalized to have
+    unit variance. In the latter case use `sigma` equal to 1., as
+    suggested in [1].
 
     Parameters
     ----------

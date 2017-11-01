@@ -6,7 +6,7 @@ from base import DtypeMixin
 
 
 class BaseLayer(DtypeMixin):
-    """Class that encapsulates one layer of stochastic units."""
+    """Class encapsulating one layer of stochastic units."""
     def __init__(self, n_units, *args, **kwargs):
         super(BaseLayer, self).__init__(*args, **kwargs)
         self.n_units = n_units
@@ -16,7 +16,7 @@ class BaseLayer(DtypeMixin):
         raise NotImplementedError('`init` is not implemented')
 
     def activation(self, x, b):
-        """Compute activation of states according to the layer's distribution.
+        """Compute activation of states according to their distribution.
 
         Parameters
         ----------

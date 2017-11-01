@@ -16,13 +16,17 @@ class BaseRBM(EnergyBasedModel):
 
     Parameters
     ----------
+    n_visible : positive int
+        Number of visible units.
+    n_hidden : positive int
+        Number of hidden units.
     W_init : float or (n_visible, n_hidden) iterable
         Weight matrix initialization. If float, initialize from zero-centered
         Gaussian with this standard deviation. If iterable, initialize from it.
     vb_init, hb_init : float or iterable
         Visible and hidden unit bias(es).
     n_gibbs_steps : positive int
-        Number of Gibbs updates per iteration.
+        Number of Gibbs steps per iteration (per weight update).
     learning_rate, momentum : positive float or iterable
         Gradient descent parameters. Values are updated after each epoch.
     max_epoch : positive int
@@ -30,22 +34,21 @@ class BaseRBM(EnergyBasedModel):
     batch_size : positive int
         Input batch size for training.
     l2 : non-negative float
-        l2 weight decay coefficient.
+        L2 weight decay coefficient.
     sample_v_states, sample_h_states : bool
         Whether to sample visible/hidden states, or to use probabilities
         w/o sampling. Note that data driven states for hidden units will
         be sampled regardless of the provided parameters.
-        `transform` will also use probabilities/means of hidden units.
     dropout : None or float in [0, 1]
         If float, interpreted as probability of visible units being on.
     sparsity_target : float in (0, 1)
         Desired probability of hidden activation.
-    sparsity_cost : positive float
+    sparsity_cost : non-negative float
         Controls the amount of sparsity penalty.
     sparsity_damping : float in (0, 1)
         Decay rate for hidden activations probs.
     dbm_first, dbm_last : bool
-        Indicators of whether RBM is first or last in a stack of RBMs used
+        Flag whether RBM is first or last in a stack of RBMs used
         for DBM pre-training to address "double counting evidence" problem [4].
     metrics_config : dict
         Parameters that controls which metrics and how often they are computed.
@@ -63,10 +66,20 @@ class BaseRBM(EnergyBasedModel):
         * msre_fmt : str, default '.4f'
         * pll_fmt : str, default '.3f'
         * feg_fmt : str, default '.2f'
-        * train_metrics_every_iter : int, default 10
-        * val_metrics_every_epoch : int, default 1
-        * feg_every_epoch : int, default 2
-        * n_batches_for_feg : int, default 10
+        * train_metrics_every_iter : non-negative int, default 10
+        * val_metrics_every_epoch : non-negative int, default 1
+        * feg_every_epoch : non-negative int, default 2
+        * n_batches_for_feg : non-negative int, default 10
+    verbose : bool
+        Whether to display progress during training.
+    save_after_each_epoch : bool
+        If False, save model only after the whole training is complete.
+    display_filters : non-negative int
+        Number of weights filters to display during training (in TensorBoard).
+    display_hidden_activations : non-negative int
+        Number of hidden activations to display during training (in TensorBoard).
+    v_shape : (H, W) or (H, W, C) positive integer tuple
+        Shape for displaying filters during training. C should be in {1, 3, 4}.
 
     References
     ----------
@@ -88,8 +101,7 @@ class BaseRBM(EnergyBasedModel):
                  sparsity_target=0.1, sparsity_cost=0., sparsity_damping=0.9,
                  dbm_first=False, dbm_last=False,
                  metrics_config=None, verbose=True, save_after_each_epoch=True,
-                 display_filters=0, v_shape=(28, 28),
-                 display_hidden_activations=0,
+                 display_filters=0, display_hidden_activations=0, v_shape=(28, 28),
                  model_path='rbm_model/', *args, **kwargs):
         super(BaseRBM, self).__init__(model_path=model_path, *args, **kwargs)
         self.n_visible = n_visible
@@ -179,10 +191,10 @@ class BaseRBM(EnergyBasedModel):
         self.save_after_each_epoch = save_after_each_epoch
 
         self.display_filters = display_filters
+        self.display_hidden_activations = display_hidden_activations
         self.v_shape = v_shape
         if len(self.v_shape) == 2:
             self.v_shape = (self.v_shape[0], self.v_shape[1], 1)
-        self.display_hidden_activations = display_hidden_activations
 
         # current epoch and iteration
         self.epoch = 0

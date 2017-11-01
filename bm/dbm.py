@@ -21,6 +21,11 @@ class DBM(EnergyBasedModel):
         to the most hidden ones.
     n_particles : positive int
         Number of "persistent" Markov chains (i.e., "negative" or "fantasy" "particles").
+    v_particle_init : None or (n_particles, n_visible) np.ndarray
+        If provided, initialize visible particle from this matrix,
+        otherwise initialize using resp. stochastic layer initializer.
+    h_particles_init : None or iterable of None or (n_particles, n_hiddens[i]) np.ndarray
+        Same semantics as for `v_particle_init`, but for hidden particles for all layers
     n_gibbs_steps : positive int or iterable
         Number of Gibbs steps for PCD. Values are updated after each epoch.
     max_mf_updates : positive int
@@ -38,7 +43,31 @@ class DBM(EnergyBasedModel):
         L2 weight decay coefficient.
     max_norm : positive float
         Maximum norm constraint. Might be useful to use for this model instead
-        of L2 weight decay as recommended in [3]
+        of L2 weight decay as recommended in [3].
+    sample_v_states : bool
+        Whether to sample visible states, or to use probabilities
+        w/o sampling.
+    sample_h_states : (n_layers,) bool iterable
+        Whether to sample hidden states, or to use probabilities
+        w/o sampling.
+    sparsity_target : float in (0, 1) or iterable
+        Desired probability of hidden activation (for different hidden layers).
+    sparsity_cost : non-negative float or iterable
+        Controls the amount of sparsity penalty (for different hidden layers).
+    sparsity_damping : float in (0, 1)
+        Decay rate for hidden activations probs.
+    train_metrics_every_iter, val_metrics_every_epoch : positive int
+        Control frequency of logging progress
+    verbose : bool
+        Whether to display progress during training.
+    save_after_each_epoch : bool
+        If False, save model only after the whole training is complete.
+    display_filters : non-negative int
+        Number of weights filters to display during training (in TensorBoard).
+    display_particles : non-negative int
+        Number of hidden activations to display during training (in TensorBoard).
+    v_shape : (H, W) or (H, W, C) positive integer tuple
+        Shape for displaying filters during training. C should be in {1, 3, 4}.
 
     References
     ----------
@@ -52,8 +81,8 @@ class DBM(EnergyBasedModel):
     [4] G. Monvaton and K.-R. Mueller. Deep boltzmann machines and
         centering trick. In Neural Networks: Tricks of the trade,
         pp. 621-637, Springer, 2012.
-    [5] G. Hinton and R. Salakhutdinov. A better way to pretrain deep
-        boltzmann machines. In Advances in Neural Information Processing
+    [5] G. Hinton and R. Salakhutdinov. A better way to pretrain Deep
+        Boltzmann Machines. In Advances in Neural Information Processing
         Systems, pp. 2447-2455, 2012.
     """
     def __init__(self, rbms=None,
@@ -62,7 +91,7 @@ class DBM(EnergyBasedModel):
                  learning_rate=0.0005, momentum=0.9, max_epoch=10, batch_size=100,
                  L2=0., max_norm=np.inf,
                  sample_v_states=True, sample_h_states=None,
-                 sparsity_targets=None, sparsity_costs=None, sparsity_damping=0.9,
+                 sparsity_target=0.1, sparsity_cost=0., sparsity_damping=0.9,
                  train_metrics_every_iter=10, val_metrics_every_epoch=1,
                  verbose=False, save_after_each_epoch=True,
                  display_filters=0, display_particles=0, v_shape=(28, 28),
@@ -91,8 +120,12 @@ class DBM(EnergyBasedModel):
         self.sample_v_states = sample_v_states
         self.sample_h_states = sample_h_states or [True] * self.n_layers
 
-        self.sparsity_targets = sparsity_targets or [0.1] * self.n_layers
-        self.sparsity_costs = sparsity_costs or [0.] * self.n_layers
+        self.sparsity_target = make_list_from(sparsity_target)
+        self.sparsity_cost = make_list_from(sparsity_cost)
+        if self.n_layers > 1:
+            for x in (self.sparsity_target, self.sparsity_cost):
+                if len(x) == 1:
+                    x *= self.n_layers
         self.sparsity_damping = sparsity_damping
 
         self.train_metrics_every_iter = train_metrics_every_iter
@@ -202,9 +235,9 @@ class DBM(EnergyBasedModel):
             self._mf_tol = tf.constant(self.mf_tol, dtype=self._tf_dtype, name='mf_tol')
 
             for i in xrange(self.n_layers):
-                T = tf.constant(self.sparsity_targets[i], dtype=self._tf_dtype, name='sparsity_target')
+                T = tf.constant(self.sparsity_target[i], dtype=self._tf_dtype, name='sparsity_target')
                 self._sparsity_targets.append(T)
-                C = tf.constant(self.sparsity_costs[i], dtype=self._tf_dtype, name='sparsity_cost')
+                C = tf.constant(self.sparsity_cost[i], dtype=self._tf_dtype, name='sparsity_cost')
                 self._sparsity_costs.append(C)
             self._sparsity_damping = tf.constant(self.sparsity_damping, dtype=self._tf_dtype, name='sparsity_damping')
 
@@ -847,6 +880,9 @@ class DBM(EnergyBasedModel):
 
     @run_in_tf_session(update_seed=True)
     def sample_v(self, n_gibbs_steps=0, save_model=False):
+        """Compute visible particle activation probabilities
+        after `n_gibbs_steps` chain iterations.
+        """
         self._sample_v = tf.get_collection('sample_v')[0]
         v = self._sample_v.eval(feed_dict=self._make_tf_feed_dict(n_gibbs_steps=n_gibbs_steps))
         if save_model:
