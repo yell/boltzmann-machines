@@ -624,10 +624,10 @@ class BaseRBM(EnergyBasedModel):
     def _serialize(self, params):
         for k, v in params.items():
             if isinstance(v, np.ndarray):
-                if v.size > 10**6:
+                if v.size > 10 ** 6:
                     msg = "WARNING: parameter `{0}` won't be serialized because it is too large:"
                     msg += ' ({1:.2f} > 1 Mio elements)'
-                    msg = msg.format(k, v.size/float(10**6))
+                    msg = msg.format(k, 1e-6 * v.size)
                     write_during_training(msg)
                     params[k] = None
                 else:
