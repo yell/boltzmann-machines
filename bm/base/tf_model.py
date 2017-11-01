@@ -79,11 +79,12 @@ class TensorFlowModel(BaseModel, DtypeMixin):
         model_path : str
             Model dirpath (should contain slash at the end) or filepath
         """
-        paths = {}
         head, tail = os.path.split(model_path)
         if not head: head = '.'
         if not head.endswith('/'): head += '/'
         if not tail: tail = 'model'
+
+        paths = {}
         paths['model_dirpath'] = head
         paths['model_filepath'] = os.path.join(paths['model_dirpath'], tail)
         paths['params_filepath'] = os.path.join(paths['model_dirpath'], 'params.json')

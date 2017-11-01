@@ -48,10 +48,10 @@ def make_augmentation(X_train, n_train, args):
         X_aug[:n_train] = X_train
         for i in xrange(n_train):
             for k, offset in enumerate((
-                    (1, 0),
-                    (-1, 0),
-                    (0, 1),
-                    (0, -1)
+                    ( 1,  0),
+                    (-1,  0),
+                    ( 0,  1),
+                    ( 0, -1)
             )):
                 img = X_train[i].copy()
                 X_aug[(k + 1) * n_train + i] = shift(img, offset=offset)
@@ -93,9 +93,9 @@ def make_small_rbms(X_train, X_val, small_rbm_config, args):
             else:
                 print "\nTraining small RBM #{0} ...\n\n".format(rbm_id)
                 X_patches = X_train[:, 8 * i:8 * (i + 1),
-                            8 * j:8 * (j + 1), :]
+                                       8 * j:8 * (j + 1), :]
                 X_patches_val = X_val[:, 8 * i:8 * (i + 1),
-                                8 * j:8 * (j + 1), :]
+                                         8 * j:8 * (j + 1), :]
                 X_patches = im_flatten(X_patches)
                 X_patches_val = im_flatten(X_patches_val)
 
@@ -117,9 +117,9 @@ def make_small_rbms(X_train, X_val, small_rbm_config, args):
             else:
                 print "\nTraining small RBM #{0} ...\n\n".format(rbm_id)
                 X_patches = X_train[:, 4 + 8 * i:4 + 8 * (i + 1),
-                            4 + 8 * j:4 + 8 * (j + 1), :]
+                                       4 + 8 * j:4 + 8 * (j + 1), :]
                 X_patches_val = X_val[:, 4 + 8 * i:4 + 8 * (i + 1),
-                                4 + 8 * j:4 + 8 * (j + 1), :]
+                                         4 + 8 * j:4 + 8 * (j + 1), :]
                 X_patches = im_flatten(X_patches)
                 X_patches_val = im_flatten(X_patches_val)
 
