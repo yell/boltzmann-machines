@@ -20,7 +20,7 @@ import argparse
 import numpy as np
 
 import env
-from bm.dbm import DBM
+from bm import DBM
 from bm.rbm import GaussianRBM, MultinomialRBM
 from bm.utils import RNG, Stopwatch
 from bm.utils.augmentation import shift, horizontal_mirror
