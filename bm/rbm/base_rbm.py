@@ -36,13 +36,13 @@ class BaseRBM(EnergyBasedModel):
         w/o sampling. Note that data driven states for hidden units will
         be sampled regardless of the provided parameters.
         `transform` will also use probabilities/means of hidden units.
-    dropout : None or float in [0; 1]
+    dropout : None or float in [0, 1]
         If float, interpreted as probability of visible units being on.
-    sparsity_target : float in (0; 1)
+    sparsity_target : float in (0, 1)
         Desired probability of hidden activation.
     sparsity_cost : positive float
         Controls the amount of sparsity penalty.
-    sparsity_damping : float in (0; 1)
+    sparsity_damping : float in (0, 1)
         Decay rate for hidden activations probs.
     dbm_first, dbm_last : bool
         Indicators of whether RBM is first or last in a stack of RBMs used
@@ -230,11 +230,13 @@ class BaseRBM(EnergyBasedModel):
             self._n_visible = tf.constant(self.n_visible, dtype=tf.int32, name='n_visible')
             self._n_hidden = tf.constant(self.n_hidden, dtype=tf.int32, name='n_hidden')
             self._l2 = tf.constant(self.l2, dtype=self._tf_dtype, name='l2_coef')
+
             if self.dropout is not None:
                 self._dropout = tf.constant(self.dropout, dtype=self._tf_dtype, name='dropout_prob')
             self._sparsity_target = tf.constant(self.sparsity_target, dtype=self._tf_dtype, name='sparsity_target')
             self._sparsity_cost = tf.constant(self.sparsity_cost, dtype=self._tf_dtype, name='sparsity_cost')
             self._sparsity_damping = tf.constant(self.sparsity_damping, dtype=self._tf_dtype, name='sparsity_damping')
+
             self._dbm_first = tf.constant(self.dbm_first, dtype=tf.bool, name='is_dbm_first')
             self._dbm_last = tf.constant(self.dbm_last, dtype=tf.bool, name='is_dbm_last')
             t = tf.constant(1., dtype=self._tf_dtype, name="1")
@@ -321,9 +323,9 @@ class BaseRBM(EnergyBasedModel):
     def _means_h_given_v(self, v):
         """Compute means E(h|v)."""
         with tf.name_scope('means_h_given_v'):
-            propup = self._propup_multiplier * self._propup(v)
-            hb     = self._propup_multiplier * self._hb
-            h_means = self._h_layer.activation(x=propup, b=hb)
+            x  = self._propup_multiplier * self._propup(v)
+            hb = self._propup_multiplier * self._hb
+            h_means = self._h_layer.activation(x=x, b=hb)
         return h_means
 
     def _sample_h_given_v(self, h_means):
@@ -335,9 +337,9 @@ class BaseRBM(EnergyBasedModel):
     def _means_v_given_h(self, h):
         """Compute means E(v|h)."""
         with tf.name_scope('means_v_given_h'):
-            propdown = self._propdown_multiplier * self._propdown(h)
-            vb       = self._propdown_multiplier * self._vb
-            v_means = self._v_layer.activation(x=propdown, b=vb)
+            x  = self._propdown_multiplier * self._propdown(h)
+            vb = self._propdown_multiplier * self._vb
+            v_means = self._v_layer.activation(x=x, b=vb)
         return v_means
 
     def _sample_v_given_h(self, v_means):
@@ -453,8 +455,8 @@ class BaseRBM(EnergyBasedModel):
         # Since reconstruction error is fairly poor measure of performance,
         # as this is not what CD-k learning algorithm aims to minimize [2],
         # compute (per sample average) pseudo-loglikelihood (proxy to likelihood)
-        # instead, which not only is much more cheaper to compute, but also is
-        # an asymptotically consistent estimate of the true log-likelihood [1].
+        # instead, which not only is much more cheaper to compute, but also
+        # learning with PLL is asymptotically consistent [1].
         # More specifically, PLL computed using approximation as in [3].
         with tf.name_scope('pseudo_loglik'):
             x = self._X_batch
@@ -561,17 +563,21 @@ class BaseRBM(EnergyBasedModel):
         represents the amount of overfitting.
         """
         self._free_energy_op = tf.get_collection('free_energy_op')[0]
-        train_fes, val_fes = [], []
+
+        train_fes = []
         for _, X_b in zip(xrange(self.metrics_config['n_batches_for_feg']),
                           batch_iter(X, batch_size=self.batch_size)):
             train_fe = self._tf_session.run(self._free_energy_op,
                                             feed_dict=self._make_tf_feed_dict(X_b))
             train_fes.append(train_fe)
+
+        val_fes = []
         for _, X_vb in zip(xrange(self.metrics_config['n_batches_for_feg']),
                            batch_iter(X_val, batch_size=self.batch_size)):
             val_fe = self._tf_session.run(self._free_energy_op,
                                           feed_dict=self._make_tf_feed_dict(X_vb))
             val_fes.append(val_fe)
+
         feg = np.mean(val_fes) - np.mean(train_fes)
         summary_value = [summary_pb2.Summary.Value(tag=self._metrics_names_map['feg'],
                                                    simple_value=feg)]
@@ -582,11 +588,13 @@ class BaseRBM(EnergyBasedModel):
     def _fit(self, X, X_val=None, *args, **kwargs):
         # load ops requested
         self._train_op = tf.get_collection('train_op')[0]
+
         self._train_metrics_map = {}
-        self._val_metrics_map = {}
         for m in self._train_metrics_names:
             if self.metrics_config[m]:
                 self._train_metrics_map[m] = tf.get_collection(m)[0]
+
+        self._val_metrics_map = {}
         for m in self._val_metrics_names:
             if self.metrics_config[m]:
                 self._val_metrics_map[m] = tf.get_collection(m)[0]
@@ -614,25 +622,13 @@ class BaseRBM(EnergyBasedModel):
                 for m, v in sorted(val_results.items()):
                     if v is not None:
                         s += "; val.{0}: {1:{2}}".format(m, v, self.metrics_config['{0}_fmt'.format(m)])
-                if feg is not None: s += " ; feg: {0:{1}}".format(feg, self.metrics_config['feg_fmt'])
+                if feg is not None:
+                    s += " ; feg: {0:{1}}".format(feg, self.metrics_config['feg_fmt'])
                 write_during_training(s)
 
             # save if needed
             if self.save_after_each_epoch:
                 self._save_model(global_step=self.epoch)
-
-    def _serialize(self, params):
-        for k, v in params.items():
-            if isinstance(v, np.ndarray):
-                if v.size > 10 ** 6:
-                    msg = "WARNING: parameter `{0}` won't be serialized because it is too large:"
-                    msg += ' ({1:.2f} > 1 Mio elements)'
-                    msg = msg.format(k, 1e-6 * v.size)
-                    write_during_training(msg)
-                    params[k] = None
-                else:
-                    params[k] = v.tolist()
-        return params
 
     def init_from(self, rbm):
         if type(self) != type(rbm):

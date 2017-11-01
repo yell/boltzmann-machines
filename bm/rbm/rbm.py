@@ -32,7 +32,7 @@ class MultinomialRBM(BaseRBM):
         Number of possible states of a multinomial unit.
     n_samples : int
         Number of softmax units with shared weights
-        (<=> number of samples from one softmax unit).
+        (= number of samples from one softmax unit).
 
     References
     ----------
@@ -70,7 +70,8 @@ class GaussianRBM(BaseRBM):
 
     This implementation does not learn variances, but instead uses
     fixed, predetermined values. Input data should be pre-processed
-    to have zero mean and unit variance, as suggested in [1].
+    to have zero mean. It can also be normalized to have unit variance,
+    in this case parameter `sigma` can be left 1., as suggested in [1].
 
     Parameters
     ----------

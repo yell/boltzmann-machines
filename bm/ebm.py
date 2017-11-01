@@ -12,6 +12,6 @@ class EnergyBasedModel(TensorFlowModel):
 
         Parameters
         ----------
-        v : (B, D) tf.Tensor
+        v : (batch_size, n_visible) tf.Tensor
         """
         raise NotImplementedError('`free_energy` is not implemented')

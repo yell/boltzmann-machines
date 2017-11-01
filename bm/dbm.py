@@ -5,6 +5,7 @@ from tensorflow.contrib.distributions import Bernoulli
 
 from base import run_in_tf_session
 from ebm import EnergyBasedModel
+from layers import BernoulliLayer
 from utils import (make_list_from, write_during_training,
                    batch_iter, epoch_iter,
                    log_sum_exp, log_diff_exp, log_mean_exp, log_std_exp)
@@ -330,7 +331,8 @@ class DBM(EnergyBasedModel):
             for i in xrange(self.n_layers):
                 with tf.name_scope('h_particle'):
                     if self._h_particles_init is not None:
-                        q = tf.constant(self._h_particles_init[i], shape=[self.n_particles, self.n_hiddens[i]],
+                        q = tf.constant(self._h_particles_init[i],
+                                        shape=[self.n_particles, self.n_hiddens[i]],
                                         dtype=self._tf_dtype, name='h_init')
                     else:
                         q = self._h_layers[i].init(batch_size=self._n_particles)
@@ -387,7 +389,8 @@ class DBM(EnergyBasedModel):
     def _make_mf(self):
         """Run mean-field updates for current mini-batch"""
         with tf.name_scope('mean_field'):
-            # initialize mu_new using approximate inference [1]
+            # initialize mu_new using approximate inference
+            # as suggested in [1]
             init_ops = []
             for i in xrange(self.n_layers):
                 if i == 0:
@@ -439,6 +442,7 @@ class DBM(EnergyBasedModel):
         """
         if n_steps is None:
             n_steps = self._n_gibbs_steps
+
         with tf.name_scope('gibbs_chain'):
             def cond(step, max_step, v, H, v_new, H_new):
                 return step < max_step
@@ -448,13 +452,15 @@ class DBM(EnergyBasedModel):
                                                            update_v=True, sample=sample)
                 return step + 1, max_step, v_new, H_new, v, H  # swap particles
 
-            _, _, v, H, v_new, H_new = tf.while_loop(cond=cond, body=body,
-                                                     loop_vars=[tf.constant(0),
-                                                                n_steps,
-                                                                self._v, self._H,
-                                                                self._v_new, self._H_new],
-                                                     parallel_iterations=1,
-                                                     back_prop=False)
+            _, _, v, H, v_new, H_new = \
+                tf.while_loop(cond=cond, body=body,
+                              loop_vars=[tf.constant(0),
+                                         n_steps,
+                                         self._v, self._H,
+                                         self._v_new, self._H_new],
+                              parallel_iterations=1,
+                              back_prop=False)
+
             v_update = self._v.assign(v)
             v_new_update = self._v_new.assign(v_new)
             H_updates = [ self._H[i].assign(H[i]) for i in xrange(self.n_layers) ]
@@ -811,13 +817,6 @@ class DBM(EnergyBasedModel):
             if self.save_after_each_epoch:
                 self._save_model(global_step=self.epoch)
 
-    def _serialize(self, params):
-        for k, v in params.items():
-            if isinstance(v, np.ndarray):
-                # noinspection PyUnresolvedReferences
-                params[k] = v.tolist()
-        return params
-
     @run_in_tf_session()
     def transform(self, X, np_dtype=None):
         """Compute hidden units' (from last layer) activation probabilities."""
@@ -862,6 +861,15 @@ class DBM(EnergyBasedModel):
         analytically summed out, as in [1] and using formulae from [4].
         To obtain reasonable estimate, parameter `n_betas` should be at least 10000 or more.
 
+        Parameters
+        ----------
+        n_betas : >1 int
+            Number of intermediate distributions.
+        n_runs : positive int
+            Number of AIS runs.
+        n_gibbs_steps : positive int
+            Number of Gibbs steps per transition.
+
         Returns
         -------
         log_mean, (log_low, log_high) : float
@@ -872,12 +880,15 @@ class DBM(EnergyBasedModel):
             All estimates.
         """
         assert self.n_layers == 2
-        assert n_betas > 1
+        for L in [self._v_layer] + self._h_layers:
+            assert isinstance(L, BernoulliLayer)
+
         self._log_Z = tf.get_collection('log_Z')[0]
         values = self._tf_session.run(self._log_Z,
                                       feed_dict=self._make_tf_feed_dict(delta_beta=1./n_betas,
                                                                         n_ais_runs=n_runs,
                                                                         n_gibbs_steps=n_gibbs_steps))
+
         log_mean = log_mean_exp(values)
         log_std  = log_std_exp(values, log_mean_exp_x=log_mean)
         log_high = log_sum_exp([log_std, log_mean])
@@ -890,6 +901,9 @@ class DBM(EnergyBasedModel):
         Currently implemented only for 2-layer binary BM.
         """
         assert self.n_layers == 2
+        for L in [self._v_layer] + self._h_layers:
+            assert isinstance(L, BernoulliLayer)
+
         self._log_proba = tf.get_collection('log_proba')[0]
         P = np.zeros(len(X_test))
         start = 0

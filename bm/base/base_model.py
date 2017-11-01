@@ -1,6 +1,8 @@
+import numpy as np
 from copy import deepcopy
 
 from mixin import SeedMixin
+from bm.utils import write_during_training
 
 
 def is_param_name(name):
@@ -51,6 +53,16 @@ class BaseModel(SeedMixin):
 
     def _serialize(self, params):
         """Class-specific parameters serialization routine."""
+        for k, v in params.items():
+            if isinstance(v, np.ndarray):
+                if v.size > 1e6:
+                    msg = "WARNING: parameter `{0}` won't be serialized because it is too large:"
+                    msg += ' ({1:.2f} > 1 Mio elements)'
+                    msg = msg.format(k, 1e-6 * v.size)
+                    write_during_training(msg)
+                    params[k] = None
+                else:
+                    params[k] = v.tolist()
         return params
 
     def _deserialize(self, params):

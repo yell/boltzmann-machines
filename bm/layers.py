@@ -6,7 +6,7 @@ from base import DtypeMixin
 
 
 class BaseLayer(DtypeMixin):
-    """Helper class that encapsulates one layer of stochastic units."""
+    """Class that encapsulates one layer of stochastic units."""
     def __init__(self, n_units, *args, **kwargs):
         super(BaseLayer, self).__init__(*args, **kwargs)
         self.n_units = n_units
@@ -63,11 +63,11 @@ class MultinomialLayer(BaseLayer):
         return tf.identity(t, name='multinomial_init')
 
     def activation(self, x, b):
-        t = tf.nn.softmax(x + b)
-        return self.n_samples * t
+        return self.n_samples * tf.nn.softmax(x + b)
 
     def _sample(self, means):
-        return Multinomial(total_count=self.n_samples, probs=tf.to_float(means / tf.reduce_sum(means)))
+        probs = tf.to_float(means / tf.reduce_sum(means))
+        return Multinomial(total_count=self.n_samples, probs=probs)
 
 
 class GaussianLayer(BaseLayer):

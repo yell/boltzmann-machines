@@ -35,14 +35,14 @@ class TestRBM(object):
             C(n_visible=3, n_hidden=3, W_init=np.zeros((3, 3)))
             C(n_visible=1, n_hidden=1, W_init=np.zeros((1, 1)))
 
-    def check_weights(self, rbm1, rbm2):
+    def compare_weights(self, rbm1, rbm2):
         rbm1_weights = rbm1.get_tf_params(scope='weights')
         rbm2_weights = rbm2.get_tf_params(scope='weights')
         assert_allclose(rbm1_weights['W'], rbm2_weights['W'])
         assert_allclose(rbm1_weights['hb'], rbm2_weights['hb'])
         assert_allclose(rbm1_weights['vb'], rbm2_weights['vb'])
 
-    def check_transforms(self, rbm1, rbm2):
+    def compare_transforms(self, rbm1, rbm2):
         H1 = rbm1.transform(self.X_val)
         H2 = rbm2.transform(self.X_val)
         assert H1.shape == (len(self.X_val), self.n_hidden)
@@ -86,29 +86,29 @@ class TestRBM(object):
             rbm1.fit(self.X)
             rbm2.fit(self.X)
 
-            self.check_weights(rbm1, rbm2)
-            self.check_transforms(rbm1, rbm2)
+            self.compare_weights(rbm1, rbm2)
+            self.compare_transforms(rbm1, rbm2)
 
             # train for 1 more epoch
             rbm1.set_params(max_epoch=rbm1.max_epoch + 1).fit(self.X)
             rbm2.set_params(max_epoch=rbm2.max_epoch + 1).fit(self.X)
 
-            self.check_weights(rbm1, rbm2)
-            self.check_transforms(rbm1, rbm2)
+            self.compare_weights(rbm1, rbm2)
+            self.compare_transforms(rbm1, rbm2)
 
             # load from disk
             rbm1 = C.load_model('test_rbm_1/')
             rbm2 = C.load_model('test_rbm_2/')
 
-            self.check_weights(rbm1, rbm2)
-            self.check_transforms(rbm1, rbm2)
+            self.compare_weights(rbm1, rbm2)
+            self.compare_transforms(rbm1, rbm2)
 
             # train for 1 more epoch
             rbm1.set_params(max_epoch=rbm1.max_epoch + 1).fit(self.X)
             rbm2.set_params(max_epoch=rbm2.max_epoch + 1).fit(self.X)
 
-            self.check_weights(rbm1, rbm2)
-            self.check_transforms(rbm1, rbm2)
+            self.compare_weights(rbm1, rbm2)
+            self.compare_transforms(rbm1, rbm2)
 
             # cleanup
             self.cleanup()
@@ -124,8 +124,8 @@ class TestRBM(object):
         rbm1.fit(self.X, self.X_val)
         rbm2.fit(self.X, self.X_val)
 
-        self.check_weights(rbm1, rbm2)
-        self.check_transforms(rbm1, rbm2)
+        self.compare_weights(rbm1, rbm2)
+        self.compare_transforms(rbm1, rbm2)
 
         # cleanup
         self.cleanup()

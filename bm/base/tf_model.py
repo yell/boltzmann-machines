@@ -150,10 +150,10 @@ class TensorFlowModel(BaseModel, DtypeMixin):
             params = json.load(params_file)
         class_name = params.pop('__class_name__')
         if class_name != cls.__name__:
-            raise RuntimeError("attempt to open {0}'s data with class {1}".format(class_name, cls.__name__))
+            raise RuntimeError("attempt to load {0} with class {1}".format(class_name, cls.__name__))
         model = cls(paths=paths, **params)
         params = model._deserialize(params)
-        model.set_params(**params) # set params which are not among ctor params
+        model.set_params(**params)  # set params which are not among ctor params
 
         # restore random state if needed
         if os.path.isfile(model._random_state_filepath):
