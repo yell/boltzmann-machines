@@ -52,8 +52,8 @@ def main():
                              ', otherwise zero init')
     parser.add_argument('--hb-init', type=float, default=0., metavar='HB',
                         help='initial hidden bias')
-    parser.add_argument('--n-gibbs-steps', type=int, default=1, metavar='N',
-                        help='number of Gibbs updates per iteration')
+    parser.add_argument('--n-gibbs-steps', type=int, default=1, metavar='N', nargs='+',
+                        help='number of Gibbs updates per weights update or sequence of such (per epoch)')
     parser.add_argument('--lr', type=float, default=0.05, metavar='LR', nargs='+',
                         help='learning rate or sequence of such (per epoch)')
     parser.add_argument('--epochs', type=int, default=100, metavar='N',

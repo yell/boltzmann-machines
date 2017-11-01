@@ -128,7 +128,7 @@ class BaseRBM(EnergyBasedModel):
         self._dvb_init = None
         self._dhb_init = None
 
-        self.n_gibbs_steps = n_gibbs_steps
+        self.n_gibbs_steps = make_list_from(n_gibbs_steps)
         self.learning_rate = make_list_from(learning_rate)
         self.momentum = make_list_from(momentum)
         self.max_epoch = max_epoch
@@ -204,6 +204,7 @@ class BaseRBM(EnergyBasedModel):
         # tf input data
         self._learning_rate = None
         self._momentum = None
+        self._n_gibbs_steps = None
         self._X_batch = None
 
         # tf vars
@@ -246,6 +247,7 @@ class BaseRBM(EnergyBasedModel):
         with tf.name_scope('input_data'):
             self._learning_rate = tf.placeholder(self._tf_dtype, [], name='learning_rate')
             self._momentum = tf.placeholder(self._tf_dtype, [], name='momentum')
+            self._n_gibbs_steps = tf.placeholder(tf.int32, [], name='n_gibbs_steps')
             self._X_batch = tf.placeholder(self._tf_dtype, [None, self.n_visible], name='X_batch')
 
     def _make_vars(self):
@@ -344,6 +346,19 @@ class BaseRBM(EnergyBasedModel):
             v_samples = self._v_layer.sample(means=v_means)
         return v_samples
 
+    def _make_gibbs_step(self, h_states):
+        """Compute one Gibbs step."""
+        with tf.name_scope('gibbs_step'):
+            v_states = v_means = self._means_v_given_h(h_states)
+            if self.sample_v_states:
+                v_states = self._sample_v_given_h(v_means)
+
+            h_states = h_means = self._means_h_given_v(v_states)
+            if self.sample_h_states:
+                h_states = self._sample_h_given_v(h_means)
+
+        return v_states, v_means, h_states, h_means
+
     def _make_train_op(self):
         # apply dropout if necessary
         if self.dropout is not None:
@@ -353,19 +368,25 @@ class BaseRBM(EnergyBasedModel):
         with tf.name_scope('gibbs_chain'):
             h0_means = self._means_h_given_v(self._X_batch)
             h0_samples = self._sample_h_given_v(h0_means)
-            h_means, h_samples = None, None
-            v_means, v_samples = None, None
             h_states = h0_samples if self.sample_h_states else h0_means
-            v_states = None
 
-            for _ in xrange(self.n_gibbs_steps):
-                with tf.name_scope('sweep'):
-                    v_states = v_means = self._means_v_given_h(h_states)
-                    if self.sample_v_states:
-                        v_states = self._sample_v_given_h(v_means)
-                    h_states = h_means = self._means_h_given_v(v_states)
-                    if self.sample_h_states:
-                        h_states = self._sample_h_given_v(h_means)
+            def cond(step, max_step, v_states, v_means, h_states, h_means):
+                return step < max_step
+
+            def body(step, max_step, v_states, v_means, h_states, h_means):
+                v_states, v_means, h_states, h_means = self._make_gibbs_step(h_states)
+                return step + 1, max_step, v_states, v_means, h_states, h_means
+
+            _, _, v_states, v_means, _, h_means = \
+                tf.while_loop(cond=cond, body=body,
+                              loop_vars=[tf.constant(0),
+                                         self._n_gibbs_steps,
+                                         tf.zeros_like(self._X_batch),
+                                         tf.zeros_like(self._X_batch),
+                                         h_states,
+                                         tf.zeros_like(h_states)],
+                              back_prop=False,
+                              parallel_iterations=1)
 
         # visualize hidden activation means
         if self.display_hidden_activations:
@@ -472,11 +493,16 @@ class BaseRBM(EnergyBasedModel):
         self._make_vars()
         self._make_train_op()
 
-    def _make_tf_feed_dict(self, X_batch):
+    def _make_tf_feed_dict(self, X_batch, n_gibbs_steps=None):
         d = {}
         d['learning_rate'] = self.learning_rate[min(self.epoch, len(self.learning_rate) - 1)]
         d['momentum'] = self.momentum[min(self.epoch, len(self.momentum) - 1)]
         d['X_batch'] = X_batch
+        if n_gibbs_steps is not None:
+            d['n_gibbs_steps'] = n_gibbs_steps
+        else:
+            d['n_gibbs_steps'] = self.n_gibbs_steps[min(self.epoch, len(self.n_gibbs_steps) - 1)]
+
         # prepend name of the scope, and append ':0'
         feed_dict = {}
         for k, v in d.items():
@@ -553,7 +579,7 @@ class BaseRBM(EnergyBasedModel):
         self._tf_val_writer.add_summary(feg_s, self.iter)
         return feg
 
-    def _fit(self, X, X_val=None):
+    def _fit(self, X, X_val=None, *args, **kwargs):
         # load ops requested
         self._train_op = tf.get_collection('train_op')[0]
         self._train_metrics_map = {}
