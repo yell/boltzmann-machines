@@ -3,7 +3,7 @@ import json
 import tensorflow as tf
 from functools import wraps
 
-from base_model import BaseModel
+from bm.base import BaseModel, DtypeMixin
 
 
 def is_weight_name(name):
@@ -43,8 +43,8 @@ def run_in_tf_session(check_initialized=True, update_seed=False):
     return wrap
 
 
-class TensorFlowModel(BaseModel):
-    def __init__(self, model_path='tf_model/', paths=None, tf_dtype='float32',
+class TensorFlowModel(BaseModel, DtypeMixin):
+    def __init__(self, model_path='tf_model/', paths=None,
                  tf_session_config=None, tf_saver_params=None, json_params=None,
                  *args, **kwargs):
         super(TensorFlowModel, self).__init__(*args, **kwargs)
@@ -57,8 +57,6 @@ class TensorFlowModel(BaseModel):
         self._tf_meta_graph_filepath = None
         self.update_working_paths(model_path=model_path, paths=paths)
 
-        self._tf_dtype = dict(float32=tf.float32,
-                              float64=tf.float64)[tf_dtype]
         self._tf_session_config = tf_session_config or tf.ConfigProto()
         self.tf_saver_params = tf_saver_params or {}
         self.json_params = json_params or {}

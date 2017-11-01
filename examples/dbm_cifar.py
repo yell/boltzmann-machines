@@ -222,7 +222,7 @@ def make_transform(rbm, X, path):
         if len(X) == len(H):
             transform = False
     if transform:
-        H = rbm.transform(X, dtype=np.float32)
+        H = rbm.transform(X, np_dtype=np.float32)
         np.save(path, H)
     return H
 
@@ -368,7 +368,7 @@ def main():
                             display_filters=12,
                             v_shape=(8, 8, 3),
                             display_hidden_activations=36,
-                            tf_dtype='float32',
+                            dtype='float32',
                             tf_saver_params=dict(max_to_keep=1))
     small_rbms = make_small_rbms(X_train, X_val, small_rbm_config, args)
 
@@ -412,7 +412,7 @@ def main():
                            v_shape=(32, 32, 3),
                            display_hidden_activations=36,
                            random_seed=1111,
-                           tf_dtype='float32',
+                           dtype='float32',
                            tf_saver_params=dict(max_to_keep=1),
                            model_path=args.rbm1_dirpath)
         grbm.fit(X_train, X_val)
@@ -460,7 +460,7 @@ def main():
                            verbose=True,
                            display_hidden_activations=100,
                            random_seed=2222,
-                           tf_dtype='float32',
+                           dtype='float32',
                            tf_saver_params=dict(max_to_keep=1),
                            model_path=args.rbm2_dirpath)
         max_epoch = args.increase_n_gibbs_steps_every
@@ -518,7 +518,7 @@ def main():
               display_filters=12,
               v_shape=(32, 32, 3),
               display_particles=36,
-              tf_dtype='float32',
+              dtype='float32',
               tf_saver_params=dict(max_to_keep=1),
               model_path=args.dbm_dirpath)
     dbm.fit(X_train, X_val)

@@ -144,7 +144,7 @@ def main():
                             v_shape=(28, 28),
                             display_hidden_activations=24,
                             random_seed=1337,
-                            tf_dtype='float32',
+                            dtype='float32',
                             tf_saver_params=dict(max_to_keep=1),
                             model_path=args.rbm1_dirpath)
         rbm1.fit(X)
@@ -189,7 +189,7 @@ def main():
             display_filters=0,
             display_hidden_activations=24,
             random_seed=1111,
-            tf_dtype='float32',
+            dtype='float32',
             tf_saver_params=dict(max_to_keep=1),
             model_path=args.rbm2_dirpath
         )
@@ -251,7 +251,7 @@ def main():
                   display_filters=10,
                   v_shape=(28, 28),
                   display_particles=10,
-                  tf_dtype='float32',
+                  dtype='float32',
                   tf_saver_params=dict(max_to_keep=1),
                   model_path=args.dbm_dirpath)
         dbm.fit(X_train, X_val)

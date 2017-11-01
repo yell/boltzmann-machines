@@ -1,15 +1,6 @@
 from copy import deepcopy
 
-from bm.utils import RNG
-
-
-class SeedMixin(object):
-    def __init__(self, random_seed=None):
-        self.random_seed = random_seed
-        self._rng = RNG(seed=self.random_seed)
-
-    def make_random_seed(self):
-        return self._rng.randint(2 ** 31 - 1)
+from mixin import SeedMixin
 
 
 def is_param_name(name):
@@ -17,8 +8,8 @@ def is_param_name(name):
 
 
 class BaseModel(SeedMixin):
-    def __init__(self, random_seed=None, *args, **kwargs):
-        super(BaseModel, self).__init__(random_seed=random_seed)
+    def __init__(self, *args, **kwargs):
+        super(BaseModel, self).__init__(*args, **kwargs)
 
     def get_params(self, deep=True):
         """Get parameters of the model.

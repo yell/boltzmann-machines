@@ -5,8 +5,8 @@ from numpy.testing import (assert_allclose,
                            assert_almost_equal,
                            assert_raises)
 
-from bm.utils import RNG
 from bm.rbm import BernoulliRBM, MultinomialRBM, GaussianRBM
+from bm.utils import RNG
 
 
 class TestRBM(object):
@@ -58,7 +58,7 @@ class TestRBM(object):
         ):
             rbm = C(max_epoch=2,
                     model_path='test_rbm_1/',
-                    tf_dtype=dtype,
+                    dtype=dtype,
                     **self.rbm_config)
             rbm.init()
             if dtype == 'float32':
@@ -76,11 +76,11 @@ class TestRBM(object):
             # train 2 RBMs with same params for 2 epochs
             rbm1 = C(max_epoch=2,
                      model_path='test_rbm_1/',
-                     tf_dtype=dtype,
+                     dtype=dtype,
                      **self.rbm_config)
             rbm2 = C(max_epoch=2,
                      model_path='test_rbm_2/',
-                     tf_dtype=dtype,
+                     dtype=dtype,
                      **self.rbm_config)
 
             rbm1.fit(self.X)

@@ -2,13 +2,14 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.contrib.distributions import Bernoulli, Multinomial, Normal
 
+from base import DtypeMixin
 
-class BaseLayer(object):
+
+class BaseLayer(DtypeMixin):
     """Helper class that encapsulates one layer of stochastic units."""
-    def __init__(self, n_units, tf_dtype=tf.float32):
-        super(BaseLayer, self).__init__()
+    def __init__(self, n_units, *args, **kwargs):
+        super(BaseLayer, self).__init__(*args, **kwargs)
         self.n_units = n_units
-        self.tf_dtype = tf_dtype
 
     def init(self, batch_size):
         """Randomly initialize states according to their distribution."""
@@ -32,7 +33,7 @@ class BaseLayer(object):
 
     def sample(self, means):
         T = self._sample(means).sample()
-        return tf.cast(T, dtype=self.tf_dtype)
+        return tf.cast(T, dtype=self._tf_dtype)
 
 
 class BernoulliLayer(BaseLayer):
@@ -41,7 +42,7 @@ class BernoulliLayer(BaseLayer):
 
     def init(self, batch_size, random_seed=None):
         return tf.random_uniform([batch_size, self.n_units], minval=0., maxval=1.,
-                                 dtype=self.tf_dtype, seed=random_seed, name='bernoulli_init')
+                                 dtype=self._tf_dtype, seed=random_seed, name='bernoulli_init')
 
     def activation(self, x, b):
         return tf.nn.sigmoid(x + b)
@@ -52,18 +53,12 @@ class BernoulliLayer(BaseLayer):
 
 class MultinomialLayer(BaseLayer):
     def __init__(self, n_samples=100, *args, **kwargs):
-        """
-        References
-        ----------
-        [1] R. Salakhutdinov, A. Mnih, and G. Hinton. Restricted boltzmann
-            machines for collaborative filtering, 2007.
-        """
         super(MultinomialLayer, self).__init__(*args, **kwargs)
         self.n_samples = float(n_samples)
 
     def init(self, batch_size, random_seed=None):
         t = tf.random_uniform([batch_size, self.n_units], minval=0., maxval=1.,
-                              dtype=self.tf_dtype, seed=random_seed)
+                              dtype=self._tf_dtype, seed=random_seed)
         t /= tf.reduce_sum(t)
         return tf.identity(t, name='multinomial_init')
 
@@ -82,7 +77,7 @@ class GaussianLayer(BaseLayer):
 
     def init(self, batch_size, random_seed=None):
         t = tf.random_normal([batch_size, self.n_units],
-                             dtype=self.tf_dtype, seed=random_seed)
+                             dtype=self._tf_dtype, seed=random_seed)
         t = tf.multiply(t, self.sigma, name='gaussian_init')
         return t
 
@@ -91,4 +86,4 @@ class GaussianLayer(BaseLayer):
         return t
 
     def _sample(self, means):
-        return Normal(loc=means, scale=tf.cast(self.sigma, dtype=self.tf_dtype))
+        return Normal(loc=means, scale=tf.cast(self.sigma, dtype=self._tf_dtype))

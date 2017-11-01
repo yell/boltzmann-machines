@@ -97,10 +97,10 @@ class BaseRBM(EnergyBasedModel):
 
         v_layer_params = v_layer_params or {}
         v_layer_params.setdefault('n_units', self.n_visible)
-        v_layer_params.setdefault('tf_dtype', self._tf_dtype)
+        v_layer_params.setdefault('dtype', self.dtype)
         h_layer_params = h_layer_params or {}
         h_layer_params.setdefault('n_units', self.n_hidden)
-        h_layer_params.setdefault('tf_dtype', self._tf_dtype)
+        h_layer_params.setdefault('dtype', self.dtype)
         self._v_layer = v_layer_cls(**v_layer_params)
         self._h_layer = h_layer_cls(**h_layer_params)
 
@@ -652,10 +652,12 @@ class BaseRBM(EnergyBasedModel):
         self.epoch = rbm.epoch
 
     @run_in_tf_session(update_seed=True)
-    def transform(self, X, dtype=np.float32):
+    def transform(self, X, np_dtype=None):
         """Compute hidden units' activation probabilities."""
+        np_dtype = np_dtype or self._np_dtype
+
         self._transform_op = tf.get_collection('transform_op')[0]
-        H = np.zeros((len(X), self.n_hidden), dtype=dtype)
+        H = np.zeros((len(X), self.n_hidden), dtype=np_dtype)
         start = 0
         for X_b in batch_iter(X, batch_size=self.batch_size,
                               verbose=self.verbose, desc='transform'):

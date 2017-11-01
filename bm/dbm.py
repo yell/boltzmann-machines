@@ -185,9 +185,9 @@ class DBM(EnergyBasedModel):
             self._h_layers = [rbm._h_layer for rbm in self._rbms]
 
             # ... and update their dtypes
-            self._v_layer.tf_dtype = self._tf_dtype
+            self._v_layer.dtype = self.dtype
             for h in self._h_layers:
-                h.tf_dtype = self._tf_dtype
+                h.dtype = self.dtype
 
     def _make_constants(self):
         with tf.name_scope('constants'):

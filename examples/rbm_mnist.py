@@ -73,7 +73,7 @@ def main():
     parser.add_argument('--sparsity-damping', type=float, default=0.9, metavar='D',
                         help='decay rate for hidden activations probs')
     parser.add_argument('--dtype', type=str, default='float32', metavar='T',
-                        help="datatype precision to use, {'float32', 'float64'}")
+                        help="datatype precision to use")
     parser.add_argument('--model-dirpath', type=str, default='../models/rbm_mnist/', metavar='DIRPATH',
                         help='directory path to save the model')
     parser.add_argument('--load', type=str, default=None, metavar='DIRPATH',
@@ -149,7 +149,7 @@ def main():
                            v_shape=(28, 28),
                            display_hidden_activations=24,
                            random_seed=1337,
-                           tf_dtype=args.dtype,
+                           dtype=args.dtype,
                            tf_saver_params=dict(max_to_keep=1),
                            model_path=args.model_dirpath)
         rbm.fit(X_train, X_val)
