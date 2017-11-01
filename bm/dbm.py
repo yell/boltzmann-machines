@@ -819,10 +819,12 @@ class DBM(EnergyBasedModel):
         return params
 
     @run_in_tf_session()
-    def transform(self, X):
+    def transform(self, X, np_dtype=None):
         """Compute hidden units' (from last layer) activation probabilities."""
+        np_dtype = np_dtype or self._np_dtype
+
         self._transform_op = tf.get_collection('transform_op')[0]
-        G = np.zeros((len(X), self.n_hiddens[-1]))
+        G = np.zeros((len(X), self.n_hiddens[-1]), dtype=np_dtype)
         start = 0
         for X_b in batch_iter(X, batch_size=self.batch_size,
                               verbose=self.verbose, desc='transform'):
