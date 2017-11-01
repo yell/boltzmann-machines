@@ -49,7 +49,7 @@ def main():
                         help='number of hidden units')
     parser.add_argument('--vb-init', action='store_false',
                         help='initialize visible biases as logit of mean values of features' + \
-                             ', otherwise zero init')
+                             ', otherwise (if enabled) zero init')
     parser.add_argument('--hb-init', type=float, default=0., metavar='HB',
                         help='initial hidden bias')
     parser.add_argument('--n-gibbs-steps', type=int, default=1, metavar='N', nargs='+',
@@ -76,8 +76,6 @@ def main():
                         help="datatype precision to use")
     parser.add_argument('--model-dirpath', type=str, default='../models/rbm_mnist/', metavar='DIRPATH',
                         help='directory path to save the model')
-    parser.add_argument('--load', type=str, default=None, metavar='DIRPATH',
-                        help='directory path to load trained model')
 
     # MLP related
     parser.add_argument('--mlp-no-init', action='store_true',
@@ -97,7 +95,6 @@ def main():
 
     args = parser.parse_args()
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
-    if args.load == '': args.load = args.model_dirpath
 
     # prepare data (load + scale + split)
     print "\nPreparing data ...\n\n"
@@ -113,9 +110,9 @@ def main():
     y_val = y[-n_val:]
 
     # train and save the RBM model
-    if args.load:
+    if os.path.isdir(args.model_dirpath):
         print "\nLoading model ...\n\n"
-        rbm = BernoulliRBM.load_model(args.load)
+        rbm = BernoulliRBM.load_model(args.model_dirpath)
     else:
         print "\nTraining model ...\n\n"
         rbm = BernoulliRBM(n_visible=784,
@@ -154,8 +151,8 @@ def main():
                            model_path=args.model_dirpath)
         rbm.fit(X_train, X_val)
 
-    # discriminative fine-tuning: initialize 2-layer MLP with
-    # learned weights and train using backprop
+    # discriminative fine-tuning: initialize MLP with
+    # learned weights, add FC layer and train using backprop
     print "\nDiscriminative fine-tuning ...\n\n"
 
     # define and initialize MLP model

@@ -107,6 +107,7 @@ optional arguments:
 or download pretrained ones with default parameters using `models/fetch_models.sh`, 
 </br>
 and check **notebook**s for corresponding inference / visualization etc.
+Note that training is skipped if there is already a model in `model-dirpath` (you can choose different location for training another model).
 
 ## How to install
 By default, the following commands install (among others) **tensorflow-gpu~=1.3.0**. If you want to install tensorflow without GPU support, replace corresponding line in [requirements.txt](requirements.txt). If you have already tensorflow installed, comment that line but note that for [edward](http://edwardlib.org/) to work correctly, you must have tf>=1.2.0rc installed.
