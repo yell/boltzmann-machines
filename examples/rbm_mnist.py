@@ -32,6 +32,94 @@ from bm.utils.dataset import load_mnist
 from bm.utils.optimizers import MultiAdam
 
 
+def make_rbm(X_train, X_val, args):
+    if os.path.isdir(args.model_dirpath):
+        print "\nLoading model ...\n\n"
+        rbm = BernoulliRBM.load_model(args.model_dirpath)
+    else:
+        print "\nTraining model ...\n\n"
+        rbm = BernoulliRBM(n_visible=784,
+                           n_hidden=args.n_hidden,
+                           W_init=args.w_init,
+                           vb_init=logit_mean(X_train) if args.vb_init else 0.,
+                           hb_init=args.hb_init,
+                           n_gibbs_steps=args.n_gibbs_steps,
+                           learning_rate=args.lr,
+                           momentum=np.geomspace(0.5, 0.9, 8),
+                           max_epoch=args.epochs,
+                           batch_size=args.batch_size,
+                           l2=args.l2,
+                           sample_v_states=args.sample_v_states,
+                           sample_h_states=True,
+                           dropout=args.dropout,
+                           sparsity_target=args.sparsity_target,
+                           sparsity_cost=args.sparsity_cost,
+                           sparsity_damping=args.sparsity_damping,
+                           metrics_config=dict(
+                               msre=True,
+                               pll=True,
+                               feg=True,
+                               train_metrics_every_iter=1000,
+                               val_metrics_every_epoch=2,
+                               feg_every_epoch=4,
+                               n_batches_for_feg=50,
+                           ),
+                           verbose=True,
+                           display_filters=30,
+                           display_hidden_activations=24,
+                           v_shape=(28, 28),
+                           random_seed=args.random_seed,
+                           dtype=args.dtype,
+                           tf_saver_params=dict(max_to_keep=1),
+                           model_path=args.model_dirpath)
+        rbm.fit(X_train, X_val)
+    return rbm
+
+def train_mlp((X_train, y_train), (X_val, y_val), (X_test, y_test),
+              mlp_params, args):
+
+    # define and initialize MLP model
+    mlp = Sequential([
+        Dense(args.n_hidden, input_shape=(784,),
+              kernel_regularizer=regularizers.l2(args.mlp_l2),
+              kernel_initializer=glorot_uniform(seed=1111),
+              **mlp_params),
+        Activation('sigmoid'),
+        Dense(10, kernel_initializer=glorot_uniform(seed=2222)),
+        Activation('softmax'),
+    ])
+    mlp.compile(optimizer=MultiAdam(lr=0.001,
+                                    lr_multipliers={'dense_1': args.mlp_lrm[0],
+                                                    'dense_2': args.mlp_lrm[1]}),
+                loss='categorical_crossentropy',
+                metrics=['accuracy'])
+
+    # train and evaluate classifier
+    with Stopwatch(verbose=True) as s:
+        early_stopping = EarlyStopping(monitor=args.mlp_val_metric, patience=12, verbose=2)
+        reduce_lr = ReduceLROnPlateau(monitor=args.mlp_val_metric, factor=0.2, verbose=2,
+                                      patience=6, min_lr=1e-5)
+        try:
+            mlp.fit(X_train, one_hot(y_train, n_classes=10),
+                    epochs=args.mlp_epochs,
+                    batch_size=args.mlp_batch_size,
+                    shuffle=False,
+                    validation_data=(X_val, one_hot(y_val, n_classes=10)),
+                    callbacks=[early_stopping, reduce_lr])
+        except KeyboardInterrupt:
+            pass
+
+        y_pred = mlp.predict(X_test)
+        y_pred = unhot(one_hot_decision_function(y_pred), n_classes=10)
+        print "Test accuracy: {:.4f}".format(accuracy_score(y_test, y_pred))
+
+    # save predictions, targets, and fine-tuned weights
+    np.save(args.mlp_save_prefix + 'y_pred.npy', y_pred)
+    np.save(args.mlp_save_prefix + 'y_test.npy', y_test)
+    W_finetuned, _ = mlp.layers[0].get_weights()
+    np.save(args.mlp_save_prefix + 'W_finetuned.npy', W_finetuned)
+
+
 def main():
     # training settings
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -74,6 +162,8 @@ def main():
                         help='controls the amount of sparsity penalty')
     parser.add_argument('--sparsity-damping', type=float, default=0.9, metavar='D',
                         help='decay rate for hidden activations probs')
+    parser.add_argument('--random-seed', type=int, default=1337, metavar='N',
+                        help="random seed for model training")
     parser.add_argument('--dtype', type=str, default='float32', metavar='T',
                         help="datatype precision to use")
     parser.add_argument('--model-dirpath', type=str, default='../models/rbm_mnist/', metavar='DIRPATH',
@@ -112,103 +202,25 @@ def main():
     y_val = y[-n_val:]
 
     # train and save the RBM model
-    if os.path.isdir(args.model_dirpath):
-        print "\nLoading model ...\n\n"
-        rbm = BernoulliRBM.load_model(args.model_dirpath)
-    else:
-        print "\nTraining model ...\n\n"
-        rbm = BernoulliRBM(n_visible=784,
-                           n_hidden=args.n_hidden,
-                           W_init=args.w_init,
-                           vb_init=logit_mean(X_train) if args.vb_init else 0.,
-                           hb_init=args.hb_init,
-                           n_gibbs_steps=args.n_gibbs_steps,
-                           learning_rate=args.lr,
-                           momentum=np.geomspace(0.5, 0.9, 8),
-                           max_epoch=args.epochs,
-                           batch_size=args.batch_size,
-                           l2=args.l2,
-                           sample_v_states=args.sample_v_states,
-                           sample_h_states=True,
-                           dropout=args.dropout,
-                           sparsity_target=args.sparsity_target,
-                           sparsity_cost=args.sparsity_cost,
-                           sparsity_damping=args.sparsity_damping,
-                           metrics_config=dict(
-                               msre=True,
-                               pll=True,
-                               feg=True,
-                               train_metrics_every_iter=1000,
-                               val_metrics_every_epoch=2,
-                               feg_every_epoch=4,
-                               n_batches_for_feg=50,
-                           ),
-                           verbose=True,
-                           display_filters=30,
-                           display_hidden_activations=24,
-                           v_shape=(28, 28),
-                           random_seed=1337,
-                           dtype=args.dtype,
-                           tf_saver_params=dict(max_to_keep=1),
-                           model_path=args.model_dirpath)
-        rbm.fit(X_train, X_val)
-
-    # discriminative fine-tuning: initialize MLP with
-    # learned weights, add FC layer and train using backprop
-    print "\nDiscriminative fine-tuning ...\n\n"
-
-    # define and initialize MLP model
-    first_layer_params = {}
-    if not args.mlp_no_init:
-        weights = rbm.get_tf_params(scope='weights')
-        W = weights['W']
-        hb = weights['hb']
-        first_layer_params['weights'] = (W, hb)
-
-    mlp = Sequential([
-        Dense(args.n_hidden, input_shape=(784,),
-              kernel_regularizer=regularizers.l2(args.mlp_l2),
-              kernel_initializer=glorot_uniform(seed=1111),
-              **first_layer_params),
-        Activation('sigmoid'),
-        Dense(10, kernel_initializer=glorot_uniform(seed=2222)),
-        Activation('softmax'),
-    ])
-
-    mlp.compile(optimizer=MultiAdam(lr=0.001,
-                                    lr_multipliers={'dense_1': args.mlp_lrm[0],
-                                                    'dense_2': args.mlp_lrm[1]}),
-                loss='categorical_crossentropy',
-                metrics=['accuracy'])
+    rbm = make_rbm(X_train, X_val, args)
 
     # load test data
     X_test, y_test = load_mnist(mode='test', path='../data/')
     X_test /= 255.
 
-    # train and evaluate classifier
-    with Stopwatch(verbose=True) as s:
-        early_stopping = EarlyStopping(monitor=args.mlp_val_metric, patience=12, verbose=2)
-        reduce_lr = ReduceLROnPlateau(monitor=args.mlp_val_metric, factor=0.2, verbose=2,
-                                      patience=6, min_lr=1e-5)
-        try:
-            mlp.fit(X_train, one_hot(y_train, n_classes=10),
-                    epochs=args.mlp_epochs,
-                    batch_size=args.mlp_batch_size,
-                    shuffle=False,
-                    validation_data=(X_val, one_hot(y_val, n_classes=10)),
-                    callbacks=[early_stopping, reduce_lr])
-        except KeyboardInterrupt:
-            pass
+    # discriminative fine-tuning: initialize MLP with
+    # learned weights, add FC layer and train using backprop
+    print "\nDiscriminative fine-tuning ...\n\n"
 
-        y_pred = mlp.predict(X_test)
-        y_pred = unhot(one_hot_decision_function(y_pred), n_classes=10)
-        print "Test accuracy: {:.4f}".format(accuracy_score(y_test, y_pred))
+    mlp_params = {}
+    if not args.mlp_no_init:
+        weights = rbm.get_tf_params(scope='weights')
+        W = weights['W']
+        hb = weights['hb']
+        mlp_params['weights'] = (W, hb)
 
-    # save predictions, targets, and fine-tuned weights
-    np.save(args.mlp_save_prefix + 'y_pred.npy', y_pred)
-    np.save(args.mlp_save_prefix + 'y_test.npy', y_test)
-    W_finetuned, _ = mlp.layers[0].get_weights()
-    np.save(args.mlp_save_prefix + 'W_finetuned.npy', W_finetuned)
+    train_mlp((X_train, y_train), (X_val, y_val), (X_test, y_test),
+              mlp_params, args)
 
 
 if __name__ == '__main__':
