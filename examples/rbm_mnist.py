@@ -34,7 +34,7 @@ from sklearn.metrics import accuracy_score
 import env
 from bm.rbm import BernoulliRBM, logit_mean
 from bm.utils import (RNG, Stopwatch,
-                       one_hot, one_hot_decision_function, unhot)
+                      one_hot, one_hot_decision_function, unhot)
 from bm.utils.dataset import load_mnist
 from bm.utils.optimizers import MultiAdam
 
