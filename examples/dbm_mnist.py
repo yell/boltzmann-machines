@@ -173,7 +173,7 @@ def main():
                         help='numbers of hidden units')
     parser.add_argument('--lr', type=float, default=[0.05, 0.01, 2e-3], metavar='LR', nargs='+',
                         help='(initial) learning rates')
-    parser.add_argument('--epochs', type=int, default=[64, 120, 600], metavar='N', nargs='+',
+    parser.add_argument('--epochs', type=int, default=[64, 120, 500], metavar='N', nargs='+',
                         help='number of epochs to train')
     parser.add_argument('--batch-size', type=int, default=[48, 48, 100], metavar='B', nargs='+',
                         help='input batch size for training, `--n-train` and `--n-val`' + \
