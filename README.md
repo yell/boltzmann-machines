@@ -39,8 +39,8 @@ Train RBM on MNIST dataset and use it for classification.
 | RBM + discriminative fine-tuning | **98.73** (**1.27**) |
 
 <p float="left">
-  <img src="img/rbm_mnist/filters.png" width="267" />
-  <img src="img/rbm_mnist/filters_finetuned.png" width="267" /> 
+  <img src="img/rbm_mnist/filters.png" width="265" />
+  <img src="img/rbm_mnist/filters_finetuned.png" width="265" /> 
   <img src="img/rbm_mnist/confusion_matrix.png" width="310" />
 </p>
 
