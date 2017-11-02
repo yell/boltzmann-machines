@@ -9,6 +9,8 @@ another ones to obtain more stable learning (lesser number of "died" units etc.)
 RBM #2 trained with increasing k in CD-k and decreasing learning rate
 over time.
 
+The training took approx. 11 + x + y min on GTX 1060.
+
 Links
 -----
 [1] http://www.cs.toronto.edu/~rsalakhu/DBM.html
@@ -88,7 +90,7 @@ def make_rbm2(Q, args):
                             n_gibbs_steps=n_gibbs_steps,
                             learning_rate=learning_rate,
                             momentum=[0.5] * 5 + [0.9],
-                            max_epoch=args.epochs[2],
+                            max_epoch=args.epochs[1],
                             batch_size=args.batch_size[1],
                             l2=args.l2[1],
                             sample_h_states=True,

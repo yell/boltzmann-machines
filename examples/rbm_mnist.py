@@ -13,10 +13,11 @@ epochs. It still slightly underfitting at that point, though (free energy gap at
 of training is -1.4 < 0). Average validation mean reconstruction error monotonically
 decreases during training and is about 7.39e-3 at the end.
 
-The training took ~38 min on GTX 1060.
+The training took approx. 38 min on GTX 1060.
 
 After the model is trained, it is discriminatively fine-tuned.
 The code uses early stopping so max number of MLP epochs is often not reached.
+It achieves 1.27% misclassification rate on the test set.
 """
 print __doc__
 
