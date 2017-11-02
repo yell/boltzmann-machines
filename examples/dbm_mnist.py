@@ -6,7 +6,8 @@ Hyper-parameters are similar to those in MATLAB code [1].
 Some of them were changed for more efficient computation on GPUs,
 another ones to obtain more stable learning (lesser number of "died" units etc.)
 
-RBM #2 trained with increasing k in CD-k and decreasing learning rate.
+RBM #2 trained with increasing k in CD-k and decreasing learning rate
+over time.
 
 Links
 -----
@@ -26,94 +27,10 @@ from bm.utils import RNG
 from bm.utils.dataset import load_mnist
 
 
-def main():
-    # training settings
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-
-    # general
-    parser.add_argument('--gpu', type=str, default='0', metavar='ID',
-                        help="ID of the GPU to train on (or '' to train on CPU)")
-
-    # data
-    parser.add_argument('--n-train', type=int, default=59000, metavar='N',
-                        help='number of training examples')
-    parser.add_argument('--n-val', type=int, default=1000, metavar='N',
-                        help='number of validation examples')
-
-    # RBM #2 related
-    parser.add_argument('--increase-n-gibbs-steps-every', type=int, default=20, metavar='I',
-                        help='increase number of Gibbs steps every specified number of epochs for RBM #2')
-
-    # common for RBMs and DBM
-    parser.add_argument('--n-hiddens', type=int, default=[512, 1024], metavar='N', nargs='+',
-                        help='numbers of hidden units')
-    parser.add_argument('--epochs', type=int, default=[64, 120, 500], metavar='N', nargs='+',
-                        help='number of epochs to train')
-    parser.add_argument('--batch-size', type=int, default=[48, 48, 100], metavar='B', nargs='+',
-                        help='input batch size for training, `--n-train` and `--n-val`' + \
-                             'must be divisible by this number (for DBM)')
-
-    # save dirpaths
-    parser.add_argument('--rbm1-dirpath', type=str, default='../models/dbm_mnist_rbm1/', metavar='DIRPATH',
-                        help='directory path to save RBM #1')
-    parser.add_argument('--rbm2-dirpath', type=str, default='../models/dbm_mnist_rbm2/', metavar='DIRPATH',
-                        help='directory path to save RBM #2')
-    parser.add_argument('--dbm-dirpath', type=str, default='../models/dbm_mnist/', metavar='DIRPATH',
-                        help='directory path to save DBM')
-
-    # load dirpaths
-    parser.add_argument('--load-rbm1', type=str, default=None, metavar='DIRPATH',
-                        help='directory path to load trained RBM #1')
-    parser.add_argument('--load-rbm2', type=str, default=None, metavar='DIRPATH',
-                        help='directory path to load trained RBM #2')
-    parser.add_argument('--load-dbm', type=str, default=None, metavar='DIRPATH',
-                        help='directory path to load trained DBM')
-
-    # DBM related
-    parser.add_argument('--n-particles', type=int, default=100, metavar='M',
-                        help='number of persistent Markov chains')
-    parser.add_argument('--n-gibbs-steps', type=int, default=1, metavar='N',
-                        help='number of Gibbs steps for PCD')
-    parser.add_argument('--max-mf-updates', type=int, default=50, metavar='N',
-                        help='maximum number of mean-field updates per weight update')
-    parser.add_argument('--mf-tol', type=float, default=1e-7, metavar='TOL',
-                        help='mean-field tolerance')
-    parser.add_argument('--lr', type=float, default=2e-3, metavar='LR',
-                        help='initial learning rate')
-    parser.add_argument('--l2', type=float, default=1e-7, metavar='L2',
-                        help='L2 weight decay coefficient')
-    parser.add_argument('--max-norm', type=float, default=6., metavar='C',
-                        help='maximum norm constraint')
-    parser.add_argument('--sparsity-target', type=float, default=[0.2, 0.1], metavar='T', nargs='+',
-                        help='desired probability of hidden activation')
-    parser.add_argument('--sparsity-cost', type=float, default=[1e-4, 5e-5], metavar='C', nargs='+',
-                        help='controls the amount of sparsity penalty')
-    parser.add_argument('--sparsity-damping', type=float, default=0.9, metavar='D',
-                        help='decay rate for hidden activations probs')
-
-    # parse and check params
-    args = parser.parse_args()
-    os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
-    if len(args.epochs) == 1: args.epochs *= 3
-    if len(args.batch_size) == 1: args.batch_size *= 3
-    if len(args.sparsity_target) == 1: args.sparsity_target *= 2
-    if len(args.sparsity_cost) == 1: args.sparsity_cost *= 2
-
-    # prepare data (load + scale + split)
-    print "\nPreparing data ...\n\n"
-    X, _ = load_mnist(mode='train', path='../data/')
-    X /= 255.
-    RNG(seed=42).shuffle(X)
-    n_train = min(len(X), args.n_train)
-    n_val = min(len(X), args.n_val)
-    X_train = X[:n_train]
-    X_val = X[-n_val:]
-    X = np.concatenate((X_train, X_val))
-
-    # pre-train RBM #1
-    if args.load_rbm1:
+def make_rbm1(X, args):
+    if os.path.isdir(args.rbm1_dirpath):
         print "\nLoading RBM #1 ...\n\n"
-        rbm1 = BernoulliRBM.load_model(args.load_rbm1)
+        rbm1 = BernoulliRBM.load_model(args.rbm1_dirpath)
     else:
         print "\nTraining RBM #1 ...\n\n"
         rbm1 = BernoulliRBM(n_visible=784,
@@ -145,19 +62,12 @@ def main():
                             tf_saver_params=dict(max_to_keep=1),
                             model_path=args.rbm1_dirpath)
         rbm1.fit(X)
+    return rbm1
 
-    # freeze RBM #1 and extract features Q = P_{RBM1}(h|v=X)
-    Q = None
-    if not args.load_rbm2 or not args.load_dbm:
-        print "\nExtracting features from RBM #1 ..."
-        Q = rbm1.transform(X)
-        print Q.shape
-        print "\n"
-
-    # pre-train RBM #2
-    if args.load_rbm2:
+def make_rbm2(Q, args):
+    if os.path.isdir(args.rbm2_dirpath):
         print "\nLoading RBM #2 ...\n\n"
-        rbm2 = BernoulliRBM.load_model(args.load_rbm2)
+        rbm2 = BernoulliRBM.load_model(args.rbm2_dirpath)
     else:
         print "\nTraining RBM #2 ...\n\n"
         rbm2_learning_rate = 0.01
@@ -208,21 +118,16 @@ def main():
             rbm2_new.init_from(rbm2)
             rbm2 = rbm2_new
             rbm2.fit(Q)
+    return rbm2
 
-    # jointly train DBM
-    if args.load_dbm:
+def make_dbm((X_train, X_val), rbms, (X, Q, G), args):
+    if os.path.isdir(args.dbm_dirpath):
         print "\nLoading DBM ...\n\n"
-        dbm = DBM.load_model(args.load_dbm)
-        dbm.load_rbms([rbm1, rbm2])  # !!!
+        dbm = DBM.load_model(args.dbm_dirpath)
+        dbm.load_rbms(rbms)  # !!!
     else:
-        # freeze RBM #2 and extract features G = P_{RBM2}(h|v=Q)
-        print "\nExtracting features from RBM #2 ..."
-        G = rbm2.transform(Q)
-        print G.shape
-        print "\n"
-
         print "\nTraining DBM ...\n\n"
-        dbm = DBM(rbms=[rbm1, rbm2],
+        dbm = DBM(rbms=rbms,
                   n_particles=args.n_particles,
                   v_particle_init=X[:args.n_particles].copy(),
                   h_particles_init=(Q[:args.n_particles].copy(),
@@ -252,6 +157,108 @@ def main():
                   tf_saver_params=dict(max_to_keep=1),
                   model_path=args.dbm_dirpath)
         dbm.fit(X_train, X_val)
+    return dbm
+
+
+def main():
+    # training settings
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    # general/data
+    parser.add_argument('--gpu', type=str, default='0', metavar='ID',
+                        help="ID of the GPU to train on (or '' to train on CPU)")
+    parser.add_argument('--n-train', type=int, default=59000, metavar='N',
+                        help='number of training examples')
+    parser.add_argument('--n-val', type=int, default=1000, metavar='N',
+                        help='number of validation examples')
+
+    # RBM #2 related
+    parser.add_argument('--increase-n-gibbs-steps-every', type=int, default=20, metavar='I',
+                        help='increase number of Gibbs steps every specified number of epochs for RBM #2')
+
+    # common for RBMs and DBM
+    parser.add_argument('--n-hiddens', type=int, default=[512, 1024], metavar='N', nargs='+',
+                        help='numbers of hidden units')
+    parser.add_argument('--epochs', type=int, default=[64, 120, 500], metavar='N', nargs='+',
+                        help='number of epochs to train')
+    parser.add_argument('--batch-size', type=int, default=[48, 48, 100], metavar='B', nargs='+',
+                        help='input batch size for training, `--n-train` and `--n-val`' + \
+                             'must be divisible by this number (for DBM)')
+
+    # save dirpaths
+    parser.add_argument('--rbm1-dirpath', type=str, default='../models/dbm_mnist_rbm1/', metavar='DIRPATH',
+                        help='directory path to save RBM #1')
+    parser.add_argument('--rbm2-dirpath', type=str, default='../models/dbm_mnist_rbm2/', metavar='DIRPATH',
+                        help='directory path to save RBM #2')
+    parser.add_argument('--dbm-dirpath', type=str, default='../models/dbm_mnist/', metavar='DIRPATH',
+                        help='directory path to save DBM')
+
+    # DBM related
+    parser.add_argument('--n-particles', type=int, default=100, metavar='M',
+                        help='number of persistent Markov chains')
+    parser.add_argument('--n-gibbs-steps', type=int, default=1, metavar='N',
+                        help='number of Gibbs steps for PCD')
+    parser.add_argument('--max-mf-updates', type=int, default=50, metavar='N',
+                        help='maximum number of mean-field updates per weight update')
+    parser.add_argument('--mf-tol', type=float, default=1e-7, metavar='TOL',
+                        help='mean-field tolerance')
+    parser.add_argument('--lr', type=float, default=2e-3, metavar='LR',
+                        help='initial learning rate')
+    parser.add_argument('--l2', type=float, default=1e-7, metavar='L2',
+                        help='L2 weight decay coefficient')
+    parser.add_argument('--max-norm', type=float, default=6., metavar='C',
+                        help='maximum norm constraint')
+    parser.add_argument('--sparsity-target', type=float, default=[0.2, 0.1], metavar='T', nargs='+',
+                        help='desired probability of hidden activation')
+    parser.add_argument('--sparsity-cost', type=float, default=[1e-4, 5e-5], metavar='C', nargs='+',
+                        help='controls the amount of sparsity penalty')
+    parser.add_argument('--sparsity-damping', type=float, default=0.9, metavar='D',
+                        help='decay rate for hidden activations probs')
+
+    # parse and check params
+    args = parser.parse_args()
+    os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
+    if len(args.epochs) == 1: args.epochs *= 3
+    if len(args.batch_size) == 1: args.batch_size *= 3
+    if len(args.sparsity_target) == 1: args.sparsity_target *= 2
+    if len(args.sparsity_cost) == 1: args.sparsity_cost *= 2
+
+    # prepare data (load + scale + split)
+    print "\nPreparing data ...\n\n"
+    X, _ = load_mnist(mode='train', path='../data/')
+    X /= 255.
+    RNG(seed=42).shuffle(X)
+    n_train = min(len(X), args.n_train)
+    n_val = min(len(X), args.n_val)
+    X_train = X[:n_train]
+    X_val = X[-n_val:]
+    X = np.concatenate((X_train, X_val))
+
+    # pre-train RBM #1
+    rbm1 = make_rbm1(X, args)
+
+    # freeze RBM #1 and extract features Q = P_{RBM_1}(h|v=X)
+    Q = None
+    if not os.path.isdir(args.rbm2_dirpath) and not os.path.isdir(args.dbm_dirpath):
+        print "\nExtracting features from RBM #1 ..."
+        Q = rbm1.transform(X)
+        print Q.shape
+        print "\n"
+
+    # pre-train RBM #2
+    rbm2 = make_rbm2(Q, args)
+
+    # freeze RBM #2 and extract features G = P_{RBM_2}(h|v=Q)
+    G = None
+    if not os.path.isdir(args.dbm_dirpath):
+        print "\nExtracting features from RBM #2 ..."
+        G = rbm2.transform(Q)
+        print G.shape
+        print "\n"
+
+    # jointly train DBM
+    dbm = make_dbm((X_train, X_val), (rbm1, rbm2), (X, Q, G), args)
+
 
 
 if __name__ == '__main__':
