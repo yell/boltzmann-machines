@@ -38,12 +38,12 @@ def make_rbm1(X, args):
                             W_init=0.001,
                             vb_init=0.,
                             hb_init=0.,
-                            n_gibbs_steps=1,
-                            learning_rate=0.05,
+                            n_gibbs_steps=args.n_gibbs_steps[0],
+                            learning_rate=args.lr[0],
                             momentum=[0.5] * 5 + [0.9],
                             max_epoch=args.epochs[0],
                             batch_size=args.batch_size[0],
-                            l2=1e-3,
+                            l2=args.l2[0],
                             sample_h_states=True,
                             sample_v_states=True,
                             sparsity_cost=0.,
@@ -57,7 +57,7 @@ def make_rbm1(X, args):
                             display_filters=30,
                             display_hidden_activations=24,
                             v_shape=(28, 28),
-                            random_seed=1337,
+                            random_seed=args.random_seed[0],
                             dtype='float32',
                             tf_saver_params=dict(max_to_keep=1),
                             model_path=args.rbm1_dirpath)
@@ -70,19 +70,19 @@ def make_rbm2(Q, args):
         rbm2 = BernoulliRBM.load_model(args.rbm2_dirpath)
     else:
         print "\nTraining RBM #2 ...\n\n"
-        rbm2_learning_rate = 0.01
+        rbm2_learning_rate = args.lr[1]
         rbm2_config = dict(
             n_visible=args.n_hiddens[0],
             n_hidden=args.n_hiddens[1],
             W_init=0.005,
             vb_init=0.,
             hb_init=0.,
-            n_gibbs_steps=1,
+            n_gibbs_steps=args.n_gibbs_steps[1],
             learning_rate=rbm2_learning_rate,
             momentum=[0.5] * 5 + [0.9],
             max_epoch=args.increase_n_gibbs_steps_every,
             batch_size=args.batch_size[1],
-            l2=2e-4,
+            l2=args.l2[1],
             sample_h_states=True,
             sample_v_states=True,
             sparsity_cost=0.,
@@ -95,7 +95,7 @@ def make_rbm2(Q, args):
             verbose=True,
             display_filters=0,
             display_hidden_activations=24,
-            random_seed=1111,
+            random_seed=args.random_seed[1],
             dtype='float32',
             tf_saver_params=dict(max_to_keep=1),
             model_path=args.rbm2_dirpath
@@ -132,14 +132,14 @@ def make_dbm((X_train, X_val), rbms, (X, Q, G), args):
                   v_particle_init=X[:args.n_particles].copy(),
                   h_particles_init=(Q[:args.n_particles].copy(),
                                     G[:args.n_particles].copy()),
-                  n_gibbs_steps=args.n_gibbs_steps,
+                  n_gibbs_steps=args.n_gibbs_steps[2],
                   max_mf_updates=args.max_mf_updates,
                   mf_tol=args.mf_tol,
-                  learning_rate=np.geomspace(args.lr, 5e-6, 400),
+                  learning_rate=np.geomspace(args.lr[2], 5e-6, args.epochs[2]),
                   momentum=np.geomspace(0.5, 0.9, 10),
                   max_epoch=args.epochs[2],
                   batch_size=args.batch_size[2],
-                  l2=args.l2,
+                  l2=args.l2[2],
                   max_norm=args.max_norm,
                   sample_v_states=True,
                   sample_h_states=(True, True),
@@ -148,7 +148,7 @@ def make_dbm((X_train, X_val), rbms, (X, Q, G), args):
                   sparsity_damping=args.sparsity_damping,
                   train_metrics_every_iter=400,
                   val_metrics_every_epoch=2,
-                  random_seed=2222,
+                  random_seed=args.random_seed[2],
                   verbose=True,
                   display_filters=10,
                   display_particles=10,
@@ -179,11 +179,19 @@ def main():
     # common for RBMs and DBM
     parser.add_argument('--n-hiddens', type=int, default=[512, 1024], metavar='N', nargs='+',
                         help='numbers of hidden units')
-    parser.add_argument('--epochs', type=int, default=[64, 120, 500], metavar='N', nargs='+',
+    parser.add_argument('--lr', type=float, default=[0.05, 0.01, 2e-3], metavar='LR', nargs='+',
+                        help='(initial) learning rates')
+    parser.add_argument('--epochs', type=int, default=[64, 120, 600], metavar='N', nargs='+',
                         help='number of epochs to train')
     parser.add_argument('--batch-size', type=int, default=[48, 48, 100], metavar='B', nargs='+',
                         help='input batch size for training, `--n-train` and `--n-val`' + \
                              'must be divisible by this number (for DBM)')
+    parser.add_argument('--l2', type=float, default=[1e-3, 2e-4, 1e-7], metavar='L2', nargs='+',
+                        help='L2 weight decay coefficients')
+    parser.add_argument('--n-gibbs-steps', type=int, default=[1, 1, 1], metavar='N', nargs='+',
+                        help='(initial) number of Gibbs steps for CD/PCD')
+    parser.add_argument('--random-seed', type=int, default=[1337, 1111, 2222], metavar='N', nargs='+',
+                        help="random seeds for models training")
 
     # save dirpaths
     parser.add_argument('--rbm1-dirpath', type=str, default='../models/dbm_mnist_rbm1/', metavar='DIRPATH',
@@ -196,16 +204,10 @@ def main():
     # DBM related
     parser.add_argument('--n-particles', type=int, default=100, metavar='M',
                         help='number of persistent Markov chains')
-    parser.add_argument('--n-gibbs-steps', type=int, default=1, metavar='N',
-                        help='number of Gibbs steps for PCD')
     parser.add_argument('--max-mf-updates', type=int, default=50, metavar='N',
                         help='maximum number of mean-field updates per weight update')
     parser.add_argument('--mf-tol', type=float, default=1e-7, metavar='TOL',
                         help='mean-field tolerance')
-    parser.add_argument('--lr', type=float, default=2e-3, metavar='LR',
-                        help='initial learning rate')
-    parser.add_argument('--l2', type=float, default=1e-7, metavar='L2',
-                        help='L2 weight decay coefficient')
     parser.add_argument('--max-norm', type=float, default=6., metavar='C',
                         help='maximum norm constraint')
     parser.add_argument('--sparsity-target', type=float, default=[0.2, 0.1], metavar='T', nargs='+',
@@ -218,10 +220,18 @@ def main():
     # parse and check params
     args = parser.parse_args()
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
-    if len(args.epochs) == 1: args.epochs *= 3
-    if len(args.batch_size) == 1: args.batch_size *= 3
-    if len(args.sparsity_target) == 1: args.sparsity_target *= 2
-    if len(args.sparsity_cost) == 1: args.sparsity_cost *= 2
+    for x, m in (
+        (args.lr, 3),
+        (args.epochs, 3),
+        (args.batch_size, 3),
+        (args.l2, 3),
+        (args.n_gibbs_steps, 3),
+        (args.random_seed, 3),
+        (args.sparsity_target, 2),
+        (args.sparsity_cost, 2),
+    ):
+        if len(x) == 1:
+            x *= m
 
     # prepare data (load + scale + split)
     print "\nPreparing data ...\n\n"

@@ -268,7 +268,7 @@ def main():
                         help='input batch size for training, `--n-train` and `--n-val`' + \
                              'must be divisible by this number (for DBM)')
     parser.add_argument('--l2', type=float, default=[2e-3, 0.05, 1e-6], metavar='L2', nargs='+',
-                        help='L2 weight decay coefficient')
+                        help='L2 weight decay coefficients')
 
     # save dirpaths
     parser.add_argument('--rbm1-dirpath', type=str, default='../models/rbm1_cifar/', metavar='DIRPATH',
@@ -299,10 +299,14 @@ def main():
     # parse and check params
     args = parser.parse_args()
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
-    if len(args.lr) == 1: args.lr *= 3
-    if len(args.epochs) == 1: args.epochs *= 3
-    if len(args.batch_size) == 1: args.batch_size *= 3
-    if len(args.l2) == 1: args.l2 *= 3
+    for x, m in (
+        (args.lr, 3),
+        (args.epochs, 3),
+        (args.batch_size, 3),
+        (args.l2, 3),
+    ):
+        if len(x) == 1:
+            x *= m
 
     # prepare data (load + scale + split)
     print "\nPreparing data ..."
