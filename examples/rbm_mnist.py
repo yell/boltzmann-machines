@@ -8,6 +8,13 @@ Training time is approx. 2.5 times faster using single-precision rather than dou
 with negligible difference in reconstruction error, pseudo log-likelihood is slightly
 more noisy at the beginning of training though.
 
+Average validation pseudo log-likelihood is -0.08 after 28 epochs and -0.017 after 110
+epochs. It still slightly underfitting at that point, though (free energy gap at the end
+of training is -1.4 < 0). Average validation mean reconstruction error monotonically
+decreases during training and is about 7.39e-3 at the end.
+
+The training took ~38 min on GTX 1060.
+
 After the model is trained, it is discriminatively fine-tuned.
 The code uses early stopping so max number of MLP epochs is often not reached.
 """
