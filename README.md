@@ -32,22 +32,24 @@ Goal was to reproduce DBM MNIST (at least there was numbers to compare with) + D
 ### 1) RBM MNIST ([script](examples/rbm_mnist.py), *[notebook](notebooks/rbm_mnist.ipynb)*)
 Train RBM on MNIST dataset and use it for classification.
 
-| <div align="center">Algorithm</div> | Test Accuracy, % |
+| <div align="center">Algorithm</div> | Test Accuracy (Test Error), % |
 | :--- | :---: |
-| RBM features + Logistic Regression | **98.21** |
-| RBM features + k-NN | **96.96** |
-| RBM + discriminative finetuning | **98.67** |
+| RBM features + Logistic Regression | **98.17** (**1.83**) |
+| RBM features + k-NN | **97.12** (**2.88**) |
+| RBM + discriminative fine-tuning | **98.73** (**1.27**) |
 
 Also, [one-shot learning idea]:
 
 | Number of labeled data pairs (train + val) | RBM + fine-tuning | random initialization |
 | :---: | :---: | :---: |
-| 60k (55k + 5k) | 98.67% (**+0.41%**) | 98.26% |
-| 10k (9k + 1k) | 97.21% (**+2.48%**) | 94.73% |
-| 1k (900 + 100) | 93.52% (**+4.82%**) | 88.70% |
-| 100 (90 + 10) | 81.37% (**+5.35%**) | 76.02% |
+| 60k (55k + 5k) | 98.73% (**+0.53%**) | 98.20% |
+| 10k (9k + 1k) | 97.27% (**+2.54%**) | 94.73% |
+| 1k (900 + 100) | 93.65% (**+4.94%**) | 88.71% |
+| 100 (90 + 10) | 81.70% (**+5.59%**) | 76.11% |
 
-How to reproduce the last table see [here](docs/rbm_discriminative.md).
+How to reproduce the last table see [here](docs/rbm_discriminative.md). 
+In these experiments only RBM were tuned to have high pseudo log-likelihood on a held-out validation set.
+Even better results can be obtained, if one will tune MLP and other classifiers.
 
 ### 2) DBM MNIST ([script](examples/dbm_mnist.py), *[notebook](notebooks/dbm_mnist.ipynb)*)
 
