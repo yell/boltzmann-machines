@@ -151,6 +151,10 @@ def make_dbm((X_train, X_val), rbms, (X, Q, G), args):
         dbm.fit(X_train, X_val)
     return dbm
 
+def make_mlp((X_train, y_train), (X_val, y_val), (X_test, y_test),
+             mlp_params, args):
+    pass
+
 
 def main():
     # training settings
@@ -227,13 +231,16 @@ def main():
 
     # prepare data (load + scale + split)
     print "\nPreparing data ...\n\n"
-    X, _ = load_mnist(mode='train', path='../data/')
+    X, y = load_mnist(mode='train', path='../data/')
     X /= 255.
     RNG(seed=42).shuffle(X)
+    RNG(seed=42).shuffle(y)
     n_train = min(len(X), args.n_train)
     n_val = min(len(X), args.n_val)
     X_train = X[:n_train]
+    y_train = y[:n_train]
     X_val = X[-n_val:]
+    y_val = y[-n_val:]
     X = np.concatenate((X_train, X_val))
 
     # pre-train RBM #1
@@ -241,7 +248,7 @@ def main():
 
     # freeze RBM #1 and extract features Q = P_{RBM_1}(h|v=X)
     Q = None
-    if not os.path.isdir(args.rbm2_dirpath) and not os.path.isdir(args.dbm_dirpath):
+    if not os.path.isdir(args.rbm2_dirpath) or not os.path.isdir(args.dbm_dirpath):
         print "\nExtracting features from RBM #1 ..."
         Q = rbm1.transform(X)
         print Q.shape
@@ -260,6 +267,19 @@ def main():
 
     # jointly train DBM
     dbm = make_dbm((X_train, X_val), (rbm1, rbm2), (X, Q, G), args)
+
+    # load test data
+    X_test, y_test = load_mnist(mode='test', path='../data/')
+    X_test /= 255.
+
+    # discriminative fine-tuning: initialize MLP with
+    # learned weights, add FC layer and train using backprop
+    print "\nDiscriminative fine-tuning ...\n\n"
+
+    mlp_params = {}
+
+    make_mlp((X_train, y_train), (X_val, y_val), (X_test, y_test),
+             mlp_params, args)
 
 
 

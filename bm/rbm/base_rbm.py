@@ -241,7 +241,7 @@ class BaseRBM(EnergyBasedModel):
         with tf.name_scope('constants'):
             self._n_visible = tf.constant(self.n_visible, dtype=tf.int32, name='n_visible')
             self._n_hidden = tf.constant(self.n_hidden, dtype=tf.int32, name='n_hidden')
-            self._l2 = tf.constant(self.l2, dtype=self._tf_dtype, name='l2_coef')
+            self._l2 = tf.constant(self.l2, dtype=self._tf_dtype, name='L2_coef')
 
             if self.dropout is not None:
                 self._dropout = tf.constant(self.dropout, dtype=self._tf_dtype, name='dropout_prob')

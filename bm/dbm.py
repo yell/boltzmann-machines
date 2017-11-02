@@ -114,7 +114,7 @@ class DBM(EnergyBasedModel):
         self.momentum = make_list_from(momentum)
         self.max_epoch = max_epoch
         self.batch_size = batch_size
-        self.L2 = L2
+        self.l2 = l2
         self.max_norm = max_norm
 
         self.sample_v_states = sample_v_states
@@ -155,7 +155,7 @@ class DBM(EnergyBasedModel):
         self._sparsity_damping = None
 
         self._batch_size = None
-        self._L2 = None
+        self._l2 = None
         self._max_norm = None
         self._N = None
         self._M = None
@@ -242,7 +242,7 @@ class DBM(EnergyBasedModel):
             self._sparsity_damping = tf.constant(self.sparsity_damping, dtype=self._tf_dtype, name='sparsity_damping')
 
             self._batch_size = tf.constant(self.batch_size, dtype=tf.int32, name='batch_size')
-            self._L2 = tf.constant(self.L2, dtype=self._tf_dtype, name='L2_coef')
+            self._l2 = tf.constant(self.l2, dtype=self._tf_dtype, name='L2_coef')
             self._max_norm = tf.constant(self.max_norm, dtype=self._tf_dtype, name='max_norm_coef')
             self._N = tf.cast(self._batch_size, dtype=self._tf_dtype, name='N')
             self._M = tf.cast(self._n_particles, dtype=self._tf_dtype, name='M')
@@ -549,7 +549,7 @@ class DBM(EnergyBasedModel):
                 with tf.name_scope('dW'):
                     dW_0_positive = tf.matmul(a=self._X_batch, b=self._mu[0], transpose_a=True) / self._N
                     dW_0_negative = tf.matmul(a=self._v, b=self._H[0], transpose_a=True) / self._M
-                    dW_0 = (dW_0_positive - dW_0_negative) - self._L2 * self._W[0]
+                    dW_0 = (dW_0_positive - dW_0_negative) - self._l2 * self._W[0]
                     dW.append(dW_0)
 
                 # ... rest of them
@@ -557,7 +557,7 @@ class DBM(EnergyBasedModel):
                     with tf.name_scope('dW'):
                         dW_i_positive = tf.matmul(a=self._mu[i - 1], b=self._mu[i], transpose_a=True) / self._N
                         dW_i_negative = tf.matmul(a=self._H[i - 1], b=self._H[i], transpose_a=True) / self._M
-                        dW_i = (dW_i_positive - dW_i_negative) - self._L2 * self._W[i]
+                        dW_i = (dW_i_positive - dW_i_negative) - self._l2 * self._W[i]
                         dW.append(dW_i)
 
                 dhb = []
