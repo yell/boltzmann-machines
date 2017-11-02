@@ -70,54 +70,44 @@ def make_rbm2(Q, args):
         rbm2 = BernoulliRBM.load_model(args.rbm2_dirpath)
     else:
         print "\nTraining RBM #2 ...\n\n"
-        rbm2_learning_rate = args.lr[1]
-        rbm2_config = dict(
-            n_visible=args.n_hiddens[0],
-            n_hidden=args.n_hiddens[1],
-            W_init=0.005,
-            vb_init=0.,
-            hb_init=0.,
-            n_gibbs_steps=args.n_gibbs_steps[1],
-            learning_rate=rbm2_learning_rate,
-            momentum=[0.5] * 5 + [0.9],
-            max_epoch=args.increase_n_gibbs_steps_every,
-            batch_size=args.batch_size[1],
-            l2=args.l2[1],
-            sample_h_states=True,
-            sample_v_states=True,
-            sparsity_cost=0.,
-            dbm_last=True,  # !!!
-            metrics_config=dict(
-                msre=True,
-                pll=True,
-                train_metrics_every_iter=2000,
-            ),
-            verbose=True,
-            display_filters=0,
-            display_hidden_activations=24,
-            random_seed=args.random_seed[1],
-            dtype='float32',
-            tf_saver_params=dict(max_to_keep=1),
-            model_path=args.rbm2_dirpath
-        )
-        max_epoch = args.increase_n_gibbs_steps_every
-        rbm2 = BernoulliRBM(**rbm2_config)
+
+        epochs = args.epochs[1]
+        n_every = args.increase_n_gibbs_steps_every
+
+        n_gibbs_steps = np.arange(args.n_gibbs_steps[1],
+                                  args.n_gibbs_steps[1] + epochs / n_every + 1)
+        learning_rate = args.lr[1] / np.arange(1, epochs / n_every + 2)
+        n_gibbs_steps = np.repeat(n_gibbs_steps, n_every)
+        learning_rate = np.repeat(learning_rate, n_every)
+
+        rbm2 = BernoulliRBM(n_visible=args.n_hiddens[0],
+                            n_hidden=args.n_hiddens[1],
+                            W_init=0.005,
+                            vb_init=0.,
+                            hb_init=0.,
+                            n_gibbs_steps=n_gibbs_steps,
+                            learning_rate=learning_rate,
+                            momentum=[0.5] * 5 + [0.9],
+                            max_epoch=args.epochs[2],
+                            batch_size=args.batch_size[1],
+                            l2=args.l2[1],
+                            sample_h_states=True,
+                            sample_v_states=True,
+                            sparsity_cost=0.,
+                            dbm_last=True,  # !!!
+                            metrics_config=dict(
+                                msre=True,
+                                pll=True,
+                                train_metrics_every_iter=500,
+                            ),
+                            verbose=True,
+                            display_filters=0,
+                            display_hidden_activations=24,
+                            random_seed=args.random_seed[1],
+                            dtype='float32',
+                            tf_saver_params=dict(max_to_keep=1),
+                            model_path=args.rbm2_dirpath)
         rbm2.fit(Q)
-        rbm2_config['momentum'] = 0.9
-        while max_epoch < args.epochs[1]:
-            max_epoch += args.increase_n_gibbs_steps_every
-            max_epoch = min(max_epoch, args.epochs[1])
-            rbm2_config['max_epoch'] = max_epoch
-            rbm2_config['n_gibbs_steps'] += 1
-            rbm2_config['learning_rate'] = rbm2_learning_rate / float(rbm2_config['n_gibbs_steps'])
-
-            print "\nNumber of Gibbs steps = {0}, learning rate = {1:.4f} ...\n\n".\
-                  format(rbm2_config['n_gibbs_steps'], rbm2_config['learning_rate'])
-
-            rbm2_new = BernoulliRBM(**rbm2_config)
-            rbm2_new.init_from(rbm2)
-            rbm2 = rbm2_new
-            rbm2.fit(Q)
     return rbm2
 
 def make_dbm((X_train, X_val), rbms, (X, Q, G), args):
