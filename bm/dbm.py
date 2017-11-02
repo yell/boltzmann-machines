@@ -89,7 +89,7 @@ class DBM(EnergyBasedModel):
                  n_particles=100, v_particle_init=None, h_particles_init=None,
                  n_gibbs_steps=5, max_mf_updates=10, mf_tol=1e-7,
                  learning_rate=0.0005, momentum=0.9, max_epoch=10, batch_size=100,
-                 L2=0., max_norm=np.inf,
+                 l2=0., max_norm=np.inf,
                  sample_v_states=True, sample_h_states=None,
                  sparsity_target=0.1, sparsity_cost=0., sparsity_damping=0.9,
                  train_metrics_every_iter=10, val_metrics_every_epoch=1,

@@ -83,8 +83,8 @@ def make_rbm(X_train, X_val, args):
         rbm.fit(X_train, X_val)
     return rbm
 
-def train_mlp((X_train, y_train), (X_val, y_val), (X_test, y_test),
-              mlp_params, args):
+def make_mlp((X_train, y_train), (X_val, y_val), (X_test, y_test),
+             mlp_params, args):
 
     # define and initialize MLP model
     mlp = Sequential([
@@ -227,8 +227,8 @@ def main():
         hb = weights['hb']
         mlp_params['weights'] = (W, hb)
 
-    train_mlp((X_train, y_train), (X_val, y_val), (X_test, y_test),
-              mlp_params, args)
+    make_mlp((X_train, y_train), (X_val, y_val), (X_test, y_test),
+             mlp_params, args)
 
 
 if __name__ == '__main__':
