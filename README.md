@@ -38,6 +38,12 @@ Train RBM on MNIST dataset and use it for classification.
 | RBM features + k-NN | **97.12** (**2.88**) |
 | RBM + discriminative fine-tuning | **98.73** (**1.27**) |
 
+<p float="left">
+  <img src="img/rbm_mnist/filters.png" width="267" />
+  <img src="img/rbm_mnist/filters_finetuned.png" width="267" /> 
+  <img src="img/rbm_mnist/confusion_matrix.png" width="310" />
+</p>
+
 Also, [one-shot learning idea]:
 
 | Number of labeled data pairs (train + val) | RBM + fine-tuning | random initialization | gain |
@@ -48,8 +54,8 @@ Also, [one-shot learning idea]:
 | 100 (90 + 10) | 81.70% | 76.11% | **+5.59%** |
 
 How to reproduce the last table see [here](docs/rbm_discriminative.md). 
-In these experiments only RBM were tuned to have high pseudo log-likelihood on a held-out validation set.
-Even better results can be obtained, if one will tune MLP and other classifiers.
+In these experiments only RBM was tuned to have high pseudo log-likelihood on a held-out validation set.
+Even better results can be obtained if one will tune MLP and other classifiers.
 
 ### 2) DBM MNIST ([script](examples/dbm_mnist.py), *[notebook](notebooks/dbm_mnist.ipynb)*)
 
@@ -66,31 +72,39 @@ Use **script**s for training models from scratch, for instance
 ```
 $ python rbm_mnist.py -h
 
-Train Bernoulli-Bernoulli RBM on MNIST dataset.
+(...)
 
-Momentum is initially 0.5 and gradually increases to 0.9.
-Training time is approx. 2.5 times faster using single-precision rather than double
-with negligible difference in reconstruction error, pseudo log-lik is more noisy though.
-
-usage: rbm_mnist.py [-h] [--n-train N] [--n-val N] [--n-hidden N] [--vb-init]
-                    [--hb-init HB] [--n-gibbs-steps N] [--lr LR [LR ...]]
-                    [--epochs N] [--batch-size N] [--l2 L2]
+usage: rbm_mnist.py [-h] [--gpu ID] [--n-train N] [--n-val N] [--n-hidden N]
+                    [--w-init STD] [--vb-init] [--hb-init HB]
+                    [--n-gibbs-steps N [N ...]] [--lr LR [LR ...]]
+                    [--epochs N] [--batch-size B] [--l2 L2]
                     [--sample-v-states] [--dropout P] [--sparsity-target T]
-                    [--sparsity-cost C] [--sparsity-damping D] [--dtype T]
-                    [--model-dirpath DIRPATH]
+                    [--sparsity-cost C] [--sparsity-damping D]
+                    [--random-seed N] [--dtype T] [--model-dirpath DIRPATH]
+                    [--mlp-no-init] [--mlp-l2 L2] [--mlp-lrm LRM [LRM ...]]
+                    [--mlp-epochs N] [--mlp-val-metric S] [--mlp-batch-size N]
+                    [--mlp-save-prefix PREFIX]
 
 optional arguments:
   -h, --help            show this help message and exit
+  --gpu ID              ID of the GPU to train on (or '' to train on CPU)
+                        (default: 0)
   --n-train N           number of training examples (default: 55000)
   --n-val N             number of validation examples (default: 5000)
   --n-hidden N          number of hidden units (default: 1024)
+  --w-init STD          initialize weights from zero-centered Gaussian with
+                        this standard deviation (default: 0.01)
   --vb-init             initialize visible biases as logit of mean values of
-                        features, otherwise zero init (default: True)
+                        features, otherwise (if enabled) zero init (default:
+                        True)
   --hb-init HB          initial hidden bias (default: 0.0)
-  --n-gibbs-steps N     number of Gibbs updates per iteration (default: 1)
-  --lr LR [LR ...]      learning rate(s) (default: 0.05)
-  --epochs N            number of epochs to train (default: 100)
-  --batch-size N        input batch size for training (default: 10)
+  --n-gibbs-steps N [N ...]
+                        number of Gibbs updates per weights update or sequence
+                        of such (per epoch) (default: 1)
+  --lr LR [LR ...]      learning rate or sequence of such (per epoch)
+                        (default: 0.05)
+  --epochs N            number of epochs to train (default: 120)
+  --batch-size B        input batch size for training (default: 10)
   --l2 L2               L2 weight decay coefficient (default: 1e-05)
   --sample-v-states     sample visible states, otherwise use probabilities w/o
                         sampling (default: False)
@@ -100,11 +114,23 @@ optional arguments:
   --sparsity-cost C     controls the amount of sparsity penalty (default:
                         1e-05)
   --sparsity-damping D  decay rate for hidden activations probs (default: 0.9)
-  --dtype T             datatype precision to use, {'float32', 'float64'}
-                        (default: float32)
+  --random-seed N       random seed for model training (default: 1337)
+  --dtype T             datatype precision to use (default: float32)
   --model-dirpath DIRPATH
                         directory path to save the model (default:
                         ../models/rbm_mnist/)
+  --mlp-no-init         if enabled, use random initialization (default: False)
+  --mlp-l2 L2           L2 weight decay coefficient (default: 1e-05)
+  --mlp-lrm LRM [LRM ...]
+                        learning rate multipliers of 1e-3 (default: (0.1,
+                        1.0))
+  --mlp-epochs N        number of epochs to train (default: 100)
+  --mlp-val-metric S    metric on validation set to perform early stopping,
+                        {'val_acc', 'val_loss'} (default: val_acc)
+  --mlp-batch-size N    input batch size for training (default: 128)
+  --mlp-save-prefix PREFIX
+                        prefix to save MLP predictions and targets (default:
+                        ../data/rbm_)
 ```
 or download pretrained ones with default parameters using `models/fetch_models.sh`, 
 </br>
