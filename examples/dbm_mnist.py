@@ -127,7 +127,7 @@ def make_dbm((X_train, X_val), rbms, (X, Q, G), args):
                   n_gibbs_steps=args.n_gibbs_steps[2],
                   max_mf_updates=args.max_mf_updates,
                   mf_tol=args.mf_tol,
-                  learning_rate=np.geomspace(args.lr[2], 5e-6, args.epochs[2]),
+                  learning_rate=np.geomspace(args.lr[2], 5e-6, 400),
                   momentum=np.geomspace(0.5, 0.9, 10),
                   max_epoch=args.epochs[2],
                   batch_size=args.batch_size[2],
@@ -175,7 +175,7 @@ def main():
     # common for RBMs and DBM
     parser.add_argument('--n-hiddens', type=int, default=[512, 1024], metavar='N', nargs='+',
                         help='numbers of hidden units')
-    parser.add_argument('--lr', type=float, default=[0.05, 0.01, 1e-3], metavar='LR', nargs='+',
+    parser.add_argument('--lr', type=float, default=[0.05, 0.01, 2e-3], metavar='LR', nargs='+',
                         help='(initial) learning rates')
     parser.add_argument('--epochs', type=int, default=[64, 120, 500], metavar='N', nargs='+',
                         help='number of epochs to train')
