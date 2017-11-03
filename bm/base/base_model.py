@@ -1,7 +1,7 @@
 import numpy as np
 from copy import deepcopy
 
-from base import is_param_name
+from base import is_param_name, is_attribute_name
 from mixin import SeedMixin
 from bm.utils import write_during_training
 
@@ -10,8 +10,8 @@ class BaseModel(SeedMixin):
     def __init__(self, *args, **kwargs):
         super(BaseModel, self).__init__(*args, **kwargs)
 
-    def get_params(self, deep=True):
-        """Get parameters of the model.
+    def get_params(self, deep=True, include_attributes=True):
+        """Get parameters (and attributes) of the model.
 
         Parameters
         ----------
@@ -24,13 +24,14 @@ class BaseModel(SeedMixin):
             Parameters of the model.
         """
         params = vars(self)
-        params = {key: params[key] for key in params if is_param_name(key)}
+        p = lambda k: is_param_name(k) or (include_attributes and is_attribute_name(k))
+        params = {k: params[k] for k in params if p(k)}
         if deep:
             params = deepcopy(params)
         return params
 
     def set_params(self, **params):
-        """Set parameters of the model.
+        """Set parameters (and attributes) of the model.
 
         Parameters
         ----------
@@ -41,11 +42,11 @@ class BaseModel(SeedMixin):
         -------
         self
         """
-        for key, value in params.items():
-            if is_param_name(key) and hasattr(self, key):
-                setattr(self, key, value)
+        for k, v in params.items():
+            if (is_param_name(k) or is_attribute_name(k)) and hasattr(self, k):
+                setattr(self, k, v)
             else:
-                raise ValueError("invalid param name '{0}'".format(key))
+                raise ValueError("invalid param name '{0}'".format(k))
         return self
 
     def _serialize(self, params):

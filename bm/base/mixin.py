@@ -7,9 +7,8 @@ from bm.utils import RNG
 
 class BaseMixin(object):
     def __init__(self, *args, **kwargs):
-        for k, v in kwargs.items():
-            if not is_attribute_name(k):
-                raise AttributeError("Invalid attribute {0}".format({k: v}))
+        if args or kwargs:
+            raise AttributeError('Invalid parameters: {0}, {1}'.format(args, kwargs))
         super(BaseMixin, self).__init__()
 
 

@@ -656,8 +656,8 @@ class BaseRBM(EnergyBasedModel):
         self._dvb_init = grads_accumulators['dvb']
         self._dhb_init = grads_accumulators['dhb']
 
-        self.iter_ = rbm.iter
-        self.epoch_ = rbm.epoch
+        self.iter_ = rbm.iter_
+        self.epoch_ = rbm.epoch_
 
     @run_in_tf_session(update_seed=True)
     def transform(self, X, np_dtype=None):

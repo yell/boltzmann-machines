@@ -3,7 +3,8 @@ import json
 import tensorflow as tf
 from functools import wraps
 
-from bm.base import BaseModel, DtypeMixin
+from bm.base import (BaseModel, DtypeMixin,
+                     is_param_name, is_attribute_name)
 
 
 def is_weight_name(name):
@@ -151,9 +152,9 @@ class TensorFlowModel(BaseModel, DtypeMixin):
         class_name = params.pop('__class_name__')
         if class_name != cls.__name__:
             raise RuntimeError("attempt to load {0} with class {1}".format(class_name, cls.__name__))
-        model = cls(paths=paths, **params)
+        model = cls(paths=paths, **{k: params[k] for k in params if is_param_name(k)})
         params = model._deserialize(params)
-        model.set_params(**params)  # set params which are not among ctor params
+        model.set_params(**params)  # set attributes and deserialized params
 
         # restore random state if needed
         if os.path.isfile(model._random_state_filepath):
