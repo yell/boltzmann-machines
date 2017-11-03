@@ -21,12 +21,20 @@ print __doc__
 import os
 import argparse
 import numpy as np
+from keras import regularizers
+from keras.callbacks import EarlyStopping, ReduceLROnPlateau
+from keras.initializers import glorot_uniform
+from keras.models import Sequential
+from keras.layers import Dense, Activation
+from sklearn.metrics import accuracy_score
 
 import env
 from bm import DBM
 from bm.rbm import BernoulliRBM
-from bm.utils import RNG
+from bm.utils import (RNG, Stopwatch,
+                      one_hot, one_hot_decision_function, unhot)
 from bm.utils.dataset import load_mnist
+from bm.utils.optimizers import MultiAdam
 
 
 def make_rbm1(X, args):
@@ -152,8 +160,63 @@ def make_dbm((X_train, X_val), rbms, (X, Q, G), args):
     return dbm
 
 def make_mlp((X_train, y_train), (X_val, y_val), (X_test, y_test),
-             mlp_params, args):
-    pass
+             (W, hb), (W2, hb2), args):
+    dense_params = {}
+    if W is not None and hb is not None:
+        dense_params['weights'] = (W, hb)
+
+    dense2_params = {}
+    if W2 is not None and hb2 is not None:
+        dense2_params['weights'] = (W2, hb2)
+
+    # define and initialize MLP model
+    mlp = Sequential([
+        Dense(args.n_hiddens[0], input_shape=(784,),
+              kernel_regularizer=regularizers.l2(args.mlp_l2),
+              kernel_initializer=glorot_uniform(seed=1111),
+              **dense_params),
+        Activation('sigmoid'),
+        Dense(args.n_hiddens[1],
+              kernel_regularizer=regularizers.l2(args.mlp_l2),
+              kernel_initializer=glorot_uniform(seed=2222),
+              **dense2_params),
+        Activation('sigmoid'),
+        Dense(10, kernel_initializer=glorot_uniform(seed=3333)),
+        Activation('softmax'),
+    ])
+    mlp.compile(optimizer=MultiAdam(lr=0.001,
+                                    lr_multipliers={'dense_1': args.mlp_lrm[0],
+                                                    'dense_2': args.mlp_lrm[1],
+                                                    'dense_3': args.mlp_lrm[2],}),
+                loss='categorical_crossentropy',
+                metrics=['accuracy'])
+
+    # train and evaluate classifier
+    with Stopwatch(verbose=True) as s:
+        early_stopping = EarlyStopping(monitor=args.mlp_val_metric, patience=12, verbose=2)
+        reduce_lr = ReduceLROnPlateau(monitor=args.mlp_val_metric, factor=0.2, verbose=2,
+                                      patience=6, min_lr=1e-5)
+        try:
+            mlp.fit(X_train, one_hot(y_train, n_classes=10),
+                    epochs=args.mlp_epochs,
+                    batch_size=args.mlp_batch_size,
+                    shuffle=False,
+                    validation_data=(X_val, one_hot(y_val, n_classes=10)),
+                    callbacks=[early_stopping, reduce_lr])
+        except KeyboardInterrupt:
+            pass
+
+        y_pred = mlp.predict(X_test)
+        y_pred = unhot(one_hot_decision_function(y_pred), n_classes=10)
+        print "Test accuracy: {:.4f}".format(accuracy_score(y_test, y_pred))
+
+    # save predictions, targets, and fine-tuned weights
+    np.save(args.mlp_save_prefix + 'y_pred.npy', y_pred)
+    np.save(args.mlp_save_prefix + 'y_test.npy', y_test)
+    W_finetuned, _ = mlp.layers[0].get_weights()
+    W2_finetuned, _ = mlp.layers[2].get_weights()
+    np.save(args.mlp_save_prefix + 'W_finetuned.npy', W_finetuned)
+    np.save(args.mlp_save_prefix + 'W2_finetuned.npy', W2_finetuned)
 
 
 def main():
@@ -213,6 +276,22 @@ def main():
     parser.add_argument('--sparsity-damping', type=float, default=0.9, metavar='D',
                         help='decay rate for hidden activations probs')
 
+    # MLP related
+    parser.add_argument('--mlp-no-init', action='store_true',
+                        help='if enabled, use random initialization')
+    parser.add_argument('--mlp-l2', type=float, default=1e-5, metavar='L2',
+                        help='L2 weight decay coefficient')
+    parser.add_argument('--mlp-lrm', type=float, default=(0.01, 0.01, 1.), metavar='LRM', nargs='+',
+                        help='learning rate multipliers of 1e-3')
+    parser.add_argument('--mlp-epochs', type=int, default=100, metavar='N',
+                        help='number of epochs to train')
+    parser.add_argument('--mlp-val-metric', type=str, default='val_loss', metavar='S',
+                        help="metric on validation set to perform early stopping, {'val_acc', 'val_loss'}")
+    parser.add_argument('--mlp-batch-size', type=int, default=128, metavar='N',
+                        help='input batch size for training')
+    parser.add_argument('--mlp-save-prefix', type=str, default='../data/dbm_', metavar='PREFIX',
+                        help='prefix to save MLP predictions and targets')
+
     # parse and check params
     args = parser.parse_args()
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
@@ -225,6 +304,7 @@ def main():
         (args.random_seed, 3),
         (args.sparsity_target, 2),
         (args.sparsity_cost, 2),
+        (args.mlp_lrm, 3),
     ):
         if len(x) == 1:
             x *= m
@@ -276,11 +356,17 @@ def main():
     # learned weights, add FC layer and train using backprop
     print "\nDiscriminative fine-tuning ...\n\n"
 
-    mlp_params = {}
+    W, hb = None, None
+    W2, hb2 = None, None
+    if not args.mlp_no_init:
+        weights = dbm.get_tf_params(scope='weights')
+        W = weights['W']
+        hb = weights['hb']
+        W2 = weights['W_1']
+        hb2 = weights['hb_1']
 
     make_mlp((X_train, y_train), (X_val, y_val), (X_test, y_test),
-             mlp_params, args)
-
+             (W, hb), (W2, hb2), args)
 
 
 if __name__ == '__main__':

@@ -84,14 +84,17 @@ def make_rbm(X_train, X_val, args):
     return rbm
 
 def make_mlp((X_train, y_train), (X_val, y_val), (X_test, y_test),
-             mlp_params, args):
+             (W, hb), args):
+    dense_params = {}
+    if W is not None and hb is not None:
+        dense_params['weights'] = (W, hb)
 
     # define and initialize MLP model
     mlp = Sequential([
         Dense(args.n_hidden, input_shape=(784,),
               kernel_regularizer=regularizers.l2(args.mlp_l2),
               kernel_initializer=glorot_uniform(seed=1111),
-              **mlp_params),
+              **dense_params),
         Activation('sigmoid'),
         Dense(10, kernel_initializer=glorot_uniform(seed=2222)),
         Activation('softmax'),
@@ -195,6 +198,8 @@ def main():
 
     args = parser.parse_args()
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
+    if len(args.mlp_lrm) == 1:
+        args.mlp_lrm *= 2
 
     # prepare data (load + scale + split)
     print "\nPreparing data ...\n\n"
@@ -220,15 +225,14 @@ def main():
     # learned weights, add FC layer and train using backprop
     print "\nDiscriminative fine-tuning ...\n\n"
 
-    mlp_params = {}
+    W, hb = None, None
     if not args.mlp_no_init:
         weights = rbm.get_tf_params(scope='weights')
         W = weights['W']
         hb = weights['hb']
-        mlp_params['weights'] = (W, hb)
 
     make_mlp((X_train, y_train), (X_val, y_val), (X_test, y_test),
-             mlp_params, args)
+             (W, hb), args)
 
 
 if __name__ == '__main__':
