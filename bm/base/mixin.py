@@ -1,11 +1,15 @@
 import numpy as np
 import tensorflow as tf
 
+from base import is_attribute_name
 from bm.utils import RNG
 
 
 class BaseMixin(object):
     def __init__(self, *args, **kwargs):
+        for k, v in kwargs.items():
+            if not is_attribute_name(k):
+                raise AttributeError("Invalid attribute {0}".format({k: v}))
         super(BaseMixin, self).__init__()
 
 

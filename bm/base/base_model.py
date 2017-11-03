@@ -1,12 +1,9 @@
 import numpy as np
 from copy import deepcopy
 
+from base import is_param_name
 from mixin import SeedMixin
 from bm.utils import write_during_training
-
-
-def is_param_name(name):
-    return not name.startswith('_') and not name.endswith('_')
 
 
 class BaseModel(SeedMixin):

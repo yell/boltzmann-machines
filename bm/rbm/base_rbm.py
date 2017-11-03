@@ -197,8 +197,8 @@ class BaseRBM(EnergyBasedModel):
             self.v_shape = (self.v_shape[0], self.v_shape[1], 1)
 
         # current epoch and iteration
-        self.epoch = 0
-        self.iter = 0
+        self.epoch_ = 0
+        self.iter_ = 0
 
         # tf constants
         self._n_visible = None
@@ -509,13 +509,13 @@ class BaseRBM(EnergyBasedModel):
 
     def _make_tf_feed_dict(self, X_batch, n_gibbs_steps=None):
         d = {}
-        d['learning_rate'] = self.learning_rate[min(self.epoch, len(self.learning_rate) - 1)]
-        d['momentum'] = self.momentum[min(self.epoch, len(self.momentum) - 1)]
+        d['learning_rate'] = self.learning_rate[min(self.epoch_, len(self.learning_rate) - 1)]
+        d['momentum'] = self.momentum[min(self.epoch_, len(self.momentum) - 1)]
         d['X_batch'] = X_batch
         if n_gibbs_steps is not None:
             d['n_gibbs_steps'] = n_gibbs_steps
         else:
-            d['n_gibbs_steps'] = self.n_gibbs_steps[min(self.epoch, len(self.n_gibbs_steps) - 1)]
+            d['n_gibbs_steps'] = self.n_gibbs_steps[min(self.epoch_, len(self.n_gibbs_steps) - 1)]
 
         # prepend name of the scope, and append ':0'
         feed_dict = {}
@@ -527,8 +527,8 @@ class BaseRBM(EnergyBasedModel):
         results = [[] for _ in xrange(len(self._train_metrics_map))]
         for X_batch in batch_iter(X, self.batch_size,
                                   verbose=self.verbose):
-            self.iter += 1
-            if self.iter % self.metrics_config['train_metrics_every_iter'] == 0:
+            self.iter_ += 1
+            if self.iter_ % self.metrics_config['train_metrics_every_iter'] == 0:
                 run_ops = [v for _, v in sorted(self._train_metrics_map.items())]
                 run_ops += [self._tf_merged_summaries, self._train_op]
                 outputs = \
@@ -538,7 +538,7 @@ class BaseRBM(EnergyBasedModel):
                 for i, v in enumerate(values):
                     results[i].append(v)
                 train_s = outputs[len(self._train_metrics_map)]
-                self._tf_train_writer.add_summary(train_s, self.iter)
+                self._tf_train_writer.add_summary(train_s, self.iter_)
             else:
                 self._tf_session.run(self._train_op,
                                      feed_dict=self._make_tf_feed_dict(X_batch))
@@ -563,7 +563,7 @@ class BaseRBM(EnergyBasedModel):
             summary_value.append(summary_pb2.Summary.Value(tag=self._metrics_names_map[m],
                                                            simple_value=results[i]))
         val_s = summary_pb2.Summary(value=summary_value)
-        self._tf_val_writer.add_summary(val_s, self.iter)
+        self._tf_val_writer.add_summary(val_s, self.iter_)
         return dict(zip(sorted(self._val_metrics_map), results))
 
     def _run_feg(self, X, X_val):
@@ -594,7 +594,7 @@ class BaseRBM(EnergyBasedModel):
         summary_value = [summary_pb2.Summary.Value(tag=self._metrics_names_map['feg'],
                                                    simple_value=feg)]
         feg_s = summary_pb2.Summary(value=summary_value)
-        self._tf_val_writer.add_summary(feg_s, self.iter)
+        self._tf_val_writer.add_summary(feg_s, self.iter_)
         return feg
 
     def _fit(self, X, X_val=None, *args, **kwargs):
@@ -612,22 +612,22 @@ class BaseRBM(EnergyBasedModel):
                 self._val_metrics_map[m] = tf.get_collection(m)[0]
 
         # main loop
-        for self.epoch in epoch_iter(start_epoch=self.epoch, max_epoch=self.max_epoch,
-                                     verbose=self.verbose):
+        for self.epoch_ in epoch_iter(start_epoch=self.epoch_, max_epoch=self.max_epoch,
+                                      verbose=self.verbose):
             val_results = {}
             feg = None
             train_results = self._train_epoch(X)
 
             # run validation metrics if needed
-            if X_val is not None and self.epoch % self.metrics_config['val_metrics_every_epoch'] == 0:
+            if X_val is not None and self.epoch_ % self.metrics_config['val_metrics_every_epoch'] == 0:
                 val_results = self._run_val_metrics(X_val)
             if X_val is not None and self.metrics_config['feg'] and \
-                    self.epoch % self.metrics_config['feg_every_epoch'] == 0:
+                    self.epoch_ % self.metrics_config['feg_every_epoch'] == 0:
                 feg = self._run_feg(X, X_val)
 
             # print progress
             if self.verbose:
-                s = "epoch: {0:{1}}/{2}".format(self.epoch, len(str(self.max_epoch)), self.max_epoch)
+                s = "epoch: {0:{1}}/{2}".format(self.epoch_, len(str(self.max_epoch)), self.max_epoch)
                 for m, v in sorted(train_results.items()):
                     if v is not None:
                         s += "; {0}: {1:{2}}".format(m, v, self.metrics_config['{0}_fmt'.format(m)])
@@ -640,7 +640,7 @@ class BaseRBM(EnergyBasedModel):
 
             # save if needed
             if self.save_after_each_epoch:
-                self._save_model(global_step=self.epoch)
+                self._save_model(global_step=self.epoch_)
 
     def init_from(self, rbm):
         if type(self) != type(rbm):
@@ -656,8 +656,8 @@ class BaseRBM(EnergyBasedModel):
         self._dvb_init = grads_accumulators['dvb']
         self._dhb_init = grads_accumulators['dhb']
 
-        self.iter = rbm.iter
-        self.epoch = rbm.epoch
+        self.iter_ = rbm.iter
+        self.epoch_ = rbm.epoch
 
     @run_in_tf_session(update_seed=True)
     def transform(self, X, np_dtype=None):

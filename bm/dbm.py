@@ -97,9 +97,9 @@ class DBM(EnergyBasedModel):
                  display_filters=0, display_particles=0, v_shape=(28, 28),
                  model_path='dbm_model/', *args, **kwargs):
         super(DBM, self).__init__(model_path=model_path, *args, **kwargs)
-        self.n_layers = None
-        self.n_visible = None
-        self.n_hiddens = []
+        self.n_layers_ = None
+        self.n_visible_ = None
+        self.n_hiddens_ = []
         self.load_rbms(rbms)
 
         self.n_particles = n_particles
@@ -118,14 +118,14 @@ class DBM(EnergyBasedModel):
         self.max_norm = max_norm
 
         self.sample_v_states = sample_v_states
-        self.sample_h_states = sample_h_states or [True] * self.n_layers
+        self.sample_h_states = sample_h_states or [True] * self.n_layers_
 
         self.sparsity_target = make_list_from(sparsity_target)
         self.sparsity_cost = make_list_from(sparsity_cost)
-        if self.n_layers > 1:
+        if self.n_layers_ > 1:
             for x in (self.sparsity_target, self.sparsity_cost):
                 if len(x) == 1:
-                    x *= self.n_layers
+                    x *= self.n_layers_
         self.sparsity_damping = sparsity_damping
 
         self.train_metrics_every_iter = train_metrics_every_iter
@@ -140,8 +140,8 @@ class DBM(EnergyBasedModel):
             self.v_shape = (self.v_shape[0], self.v_shape[1], 1)
 
         # current epoch and iter
-        self.epoch = 0
-        self.iter = 0
+        self.epoch_ = 0
+        self.iter_ = 0
 
         # tf constants
         self._n_visible = None
@@ -202,13 +202,13 @@ class DBM(EnergyBasedModel):
             self._rbms = rbms
 
             # create some shortcuts
-            self.n_layers = len(self._rbms)
-            self.n_visible = self._rbms[0].n_visible
-            self.n_hiddens = [rbm.n_hidden for rbm in self._rbms]
+            self.n_layers_ = len(self._rbms)
+            self.n_visible_ = self._rbms[0].n_visible
+            self.n_hiddens_ = [rbm.n_hidden for rbm in self._rbms]
 
             # extract weights and biases
             self._W_init, self._vb_init, self._hb_init = [], [], []
-            for i in xrange(self.n_layers):
+            for i in xrange(self.n_layers_):
                 weights = self._rbms[i].get_tf_params(scope='weights')
                 self._W_init.append(weights['W'])
                 self._vb_init.append(weights['vb'])
@@ -225,16 +225,16 @@ class DBM(EnergyBasedModel):
 
     def _make_constants(self):
         with tf.name_scope('constants'):
-            self._n_visible = tf.constant(self.n_visible, dtype=tf.int32, name='n_visible')
-            for i in xrange(self.n_layers):
-                T = tf.constant(self.n_hiddens[i], dtype=tf.int32, name='n_hidden')
+            self._n_visible = tf.constant(self.n_visible_, dtype=tf.int32, name='n_visible')
+            for i in xrange(self.n_layers_):
+                T = tf.constant(self.n_hiddens_[i], dtype=tf.int32, name='n_hidden')
                 self._n_hiddens.append(T)
             self._n_particles = tf.constant(self.n_particles, dtype=tf.int32, name='n_particles')
             self._max_mf_updates = tf.constant(self.max_mf_updates,
                                                dtype=tf.int32, name='max_mf_updates')
             self._mf_tol = tf.constant(self.mf_tol, dtype=self._tf_dtype, name='mf_tol')
 
-            for i in xrange(self.n_layers):
+            for i in xrange(self.n_layers_):
                 T = tf.constant(self.sparsity_target[i], dtype=self._tf_dtype, name='sparsity_target')
                 self._sparsity_targets.append(T)
                 C = tf.constant(self.sparsity_cost[i], dtype=self._tf_dtype, name='sparsity_cost')
@@ -252,7 +252,7 @@ class DBM(EnergyBasedModel):
             self._learning_rate = tf.placeholder(self._tf_dtype, [], name='learning_rate')
             self._momentum = tf.placeholder(self._tf_dtype, [], name='momentum')
             self._n_gibbs_steps = tf.placeholder(tf.int32, [], name='n_gibbs_steps')
-            self._X_batch = tf.placeholder(self._tf_dtype, [None, self.n_visible], name='X_batch')
+            self._X_batch = tf.placeholder(self._tf_dtype, [None, self.n_visible_], name='X_batch')
             self._delta_beta = tf.placeholder(self._tf_dtype, [], name='delta_beta')
             self._n_ais_runs = tf.placeholder(tf.int32, [], name='n_ais_runs')
 
@@ -261,13 +261,13 @@ class DBM(EnergyBasedModel):
         # and account double-counting evidence problem [1]
         W_init, hb_init = [], []
         vb_init = self._vb_init[0]
-        for i in xrange(self.n_layers):
+        for i in xrange(self.n_layers_):
             W = self._W_init[i]
             vb = self._vb_init[i]
             hb = self._hb_init[i]
 
             # halve weights and biases of intermediate RBMs
-            if i > 0 and i < self.n_layers - 1:
+            if i > 0 and i < self.n_layers_ - 1:
                 W *= 0.5
                 vb *= 0.5
                 hb *= 0.5
@@ -281,7 +281,7 @@ class DBM(EnergyBasedModel):
                 hb_init.append(0.5 * hb)
             else:  # i > 0
                 hb_init[i - 1] += 0.5 * vb
-                hb_init.append(0.5 * hb if i < self.n_layers - 1 else hb)
+                hb_init.append(0.5 * hb if i < self.n_layers_ - 1 else hb)
 
         # initialize weights and biases
         with tf.name_scope('weights'):
@@ -289,13 +289,13 @@ class DBM(EnergyBasedModel):
             self._vb = tf.Variable(t, dtype=self._tf_dtype, name='vb')
             tf.summary.histogram('vb_hist', self._vb)
 
-            for i in xrange(self.n_layers):
+            for i in xrange(self.n_layers_):
                 T = tf.constant(W_init[i], dtype=self._tf_dtype, name='W_init')
                 W = tf.Variable(T, dtype=self._tf_dtype, name='W')
                 self._W.append(W)
                 tf.summary.histogram('W_hist', W)
 
-            for i in xrange(self.n_layers):
+            for i in xrange(self.n_layers_):
                 t = tf.constant(hb_init[i],  dtype=self._tf_dtype, name='hb_init')
                 hb = tf.Variable(t,  dtype=self._tf_dtype, name='hb')
                 self._hb.append(hb)
@@ -305,11 +305,11 @@ class DBM(EnergyBasedModel):
         if self.display_filters:
             with tf.name_scope('filters_visualization'):
                 W = self._W[0]
-                for i in xrange(self.n_layers):
+                for i in xrange(self.n_layers_):
                     if i > 0:
                         W = tf.matmul(W, self._W[i])
                     W_display = tf.transpose(W, [1, 0])
-                    W_display = tf.reshape(W_display, [self.n_hiddens[i], self.v_shape[2],
+                    W_display = tf.reshape(W_display, [self.n_hiddens_[i], self.v_shape[2],
                                                        self.v_shape[0], self.v_shape[1]])
                     W_display = tf.transpose(W_display, [0, 2, 3, 1])
                     tf.summary.image('W_filters', W_display, max_outputs=self.display_filters)
@@ -320,13 +320,13 @@ class DBM(EnergyBasedModel):
             self._dvb = tf.Variable(t, name='dvb')
             tf.summary.histogram('dvb_hist', self._dvb)
 
-            for i in xrange(self.n_layers):
+            for i in xrange(self.n_layers_):
                 T = tf.zeros(W_init[i].shape, dtype=self._tf_dtype, name='dW_init')
                 dW = tf.Variable(T, name='dW')
                 tf.summary.histogram('dW_hist', dW)
                 self._dW.append(dW)
 
-            for i in xrange(self.n_layers):
+            for i in xrange(self.n_layers_):
                 t = tf.zeros(hb_init[i].shape, dtype=self._tf_dtype, name='dhb_init')
                 dhb = tf.Variable(t, name='dhb')
                 tf.summary.histogram('dhb_hist', dhb)
@@ -334,10 +334,10 @@ class DBM(EnergyBasedModel):
 
         # initialize variational parameters
         with tf.name_scope('variational_params'):
-            for i in xrange(self.n_layers):
-                t = tf.zeros([self._batch_size, self.n_hiddens[i]], dtype=self._tf_dtype)
+            for i in xrange(self.n_layers_):
+                t = tf.zeros([self._batch_size, self.n_hiddens_[i]], dtype=self._tf_dtype)
                 mu = tf.Variable(t, name='mu')
-                t_new = tf.zeros([self._batch_size, self.n_hiddens[i]], dtype=self._tf_dtype)
+                t_new = tf.zeros([self._batch_size, self.n_hiddens_[i]], dtype=self._tf_dtype)
                 mu_new = tf.Variable(t_new, name='mu_new')
                 tf.summary.histogram('mu_hist', mu)
                 self._mu.append(mu)
@@ -345,10 +345,10 @@ class DBM(EnergyBasedModel):
 
         # initialize running means of hidden activations means
         with tf.name_scope('hidden_means_accumulators'):
-            for i in xrange(self.n_layers):
-                T = tf.Variable(tf.zeros([self.n_hiddens[i]], dtype=self._tf_dtype), name='q_means')
+            for i in xrange(self.n_layers_):
+                T = tf.Variable(tf.zeros([self.n_hiddens_[i]], dtype=self._tf_dtype), name='q_means')
                 self._q_means.append(T)
-                S = tf.Variable(tf.zeros([self.n_hiddens[i]], dtype=self._tf_dtype), name='mu_means')
+                S = tf.Variable(tf.zeros([self.n_hiddens_[i]], dtype=self._tf_dtype), name='mu_means')
                 self._mu_means.append(S)
 
         # initialize negative particles
@@ -361,11 +361,11 @@ class DBM(EnergyBasedModel):
             t_new = self._v_layer.init(batch_size=self._n_particles)
             self._v_new = tf.Variable(t_new, dtype=self._tf_dtype, name='v_new')
 
-            for i in xrange(self.n_layers):
+            for i in xrange(self.n_layers_):
                 with tf.name_scope('h_particle'):
                     if self._h_particles_init is not None:
                         q = tf.constant(self._h_particles_init[i],
-                                        shape=[self.n_particles, self.n_hiddens[i]],
+                                        shape=[self.n_particles, self.n_hiddens_[i]],
                                         dtype=self._tf_dtype, name='h_init')
                     else:
                         q = self._h_layers[i].init(batch_size=self._n_particles)
@@ -382,7 +382,7 @@ class DBM(EnergyBasedModel):
             # update first hidden layer
             with tf.name_scope('means_h0_hat_given_v_h1'):
                 T = tf.matmul(v, self._W[0])
-                if self.n_layers >= 2:
+                if self.n_layers_ >= 2:
                     T += tf.matmul(a=H[1], b=self._W[1], transpose_b=True)
                 H_new[0] = self._h_layers[0].activation(T, self._hb[0])
             if sample and self.sample_h_states[0]:
@@ -390,7 +390,7 @@ class DBM(EnergyBasedModel):
                     H_new[0] = self._h_layers[0].sample(means=H_new[0])
 
             # update the intermediate hidden layers if any
-            for i in xrange(1, self.n_layers - 1):
+            for i in xrange(1, self.n_layers_ - 1):
                 with tf.name_scope('means_h{0}_hat_given_h{1}_hat_h{2}'.format(i, i - 1, i + 1)):
                     T1 = tf.matmul(H_new[i - 1], self._W[i])
                     T2 = tf.matmul(a=H[i + 1], b=self._W[i + 1], transpose_b=True)
@@ -400,12 +400,12 @@ class DBM(EnergyBasedModel):
                         H_new[i] = self._h_layers[i].sample(means=H_new[i])
 
             # update last hidden layer
-            if self.n_layers >= 2:
-                with tf.name_scope('means_h{0}_hat_given_h{1}_hat'.format(self.n_layers - 1, self.n_layers - 2)):
+            if self.n_layers_ >= 2:
+                with tf.name_scope('means_h{0}_hat_given_h{1}_hat'.format(self.n_layers_ - 1, self.n_layers_ - 2)):
                     T = tf.matmul(H_new[-2], self._W[-1])
                     H_new[-1] = self._h_layers[-1].activation(T, self._hb[-1])
                 if sample and self.sample_h_states[-1]:
-                    with tf.name_scope('sample_h{0}_hat_given_h{1}_hat'.format(self.n_layers - 1, self.n_layers - 2)):
+                    with tf.name_scope('sample_h{0}_hat_given_h{1}_hat'.format(self.n_layers_ - 1, self.n_layers_ - 2)):
                         H_new[-1] = self._h_layers[-1].sample(means=H_new[-1])
 
             # update visible layer if needed
@@ -425,12 +425,12 @@ class DBM(EnergyBasedModel):
             # initialize mu_new using approximate inference
             # as suggested in [1]
             init_ops = []
-            for i in xrange(self.n_layers):
+            for i in xrange(self.n_layers_):
                 if i == 0:
                     T = 2. * tf.matmul(self._X_batch, self._W[0])
                 else:
                     T = tf.matmul(self._H[i - 1], self._W[i])
-                    if i < self.n_layers - 1:
+                    if i < self.n_layers_ - 1:
                         T *= 2.
                 q_new = self._h_layers[i].activation(T, self._hb[i])
                 q_new = tf.identity(q_new, name='approx_inference')
@@ -461,12 +461,12 @@ class DBM(EnergyBasedModel):
                                                     self._max_mf_updates.get_shape(),
                                                     self._mf_tol.get_shape(),
                                                     self._X_batch.get_shape(),
-                                                    [tf.TensorShape([None, n]) for n in self.n_hiddens],
-                                                    [tf.TensorShape([None, n]) for n in self.n_hiddens]],
+                                                    [tf.TensorShape([None, n]) for n in self.n_hiddens_],
+                                                    [tf.TensorShape([None, n]) for n in self.n_hiddens_]],
                                   back_prop=False,
                                   parallel_iterations=1,
                                   name='mean_field_updates')
-                mu_updates = [ self._mu[i].assign(mu[i]) for i in xrange(self.n_layers) ]
+                mu_updates = [self._mu[i].assign(mu[i]) for i in xrange(self.n_layers_)]
             return n_mf_updates, mu_updates
 
     def _make_particles_update(self, n_steps=None, sample=True, G_fed=False):
@@ -496,8 +496,8 @@ class DBM(EnergyBasedModel):
 
             v_update = self._v.assign(v)
             v_new_update = self._v_new.assign(v_new)
-            H_updates = [ self._H[i].assign(H[i]) for i in xrange(self.n_layers) ]
-            H_new_updates = [ self._H_new[i].assign(H_new[i]) for i in xrange(self.n_layers) ]
+            H_updates = [self._H[i].assign(H[i]) for i in xrange(self.n_layers_)]
+            H_new_updates = [self._H_new[i].assign(H_new[i]) for i in xrange(self.n_layers_)]
         return v_update, H_updates, v_new_update, H_new_updates
 
     def _apply_max_norm(self, T):
@@ -531,7 +531,7 @@ class DBM(EnergyBasedModel):
                     V_display = tf.cast(V_display, tf.float32)
                     tf.summary.image('visible_activations_means', V_display, max_outputs=self.display_filters)
 
-                    for i in xrange(self.n_layers):
+                    for i in xrange(self.n_layers_):
                         h_means_display = H_means[i][:, :self.display_particles]
                         h_means_display = tf.cast(h_means_display, tf.float32)
                         h_means_display = tf.expand_dims(h_means_display, 0)
@@ -553,7 +553,7 @@ class DBM(EnergyBasedModel):
                     dW.append(dW_0)
 
                 # ... rest of them
-                for i in xrange(1, self.n_layers):
+                for i in xrange(1, self.n_layers_):
                     with tf.name_scope('dW'):
                         dW_i_positive = tf.matmul(a=self._mu[i - 1], b=self._mu[i], transpose_a=True) / self._N
                         dW_i_negative = tf.matmul(a=self._H[i - 1], b=self._H[i], transpose_a=True) / self._M
@@ -562,14 +562,14 @@ class DBM(EnergyBasedModel):
 
                 dhb = []
                 # hidden biases
-                for i in xrange(self.n_layers):
+                for i in xrange(self.n_layers_):
                     with tf.name_scope('dhb'):
                         dhb_i = tf.reduce_mean(self._mu[i], axis=0) - tf.reduce_mean(self._H[i], axis=0)
                         dhb.append(dhb_i)
 
             # apply sparsity targets if needed
             with tf.name_scope('sparsity_targets'):
-                for i in xrange(self.n_layers):
+                for i in xrange(self.n_layers_):
                     q_means = tf.reduce_sum(self._H[i], axis=0)
                     q_update = self._q_means[i].assign(self._sparsity_damping * self._q_means[i] + \
                                                        (1 - self._sparsity_damping) * q_means[i])
@@ -589,7 +589,7 @@ class DBM(EnergyBasedModel):
 
                 W_updates = []
                 W_norms = []
-                for i in xrange(self.n_layers):
+                for i in xrange(self.n_layers_):
                     with tf.name_scope('dW'):
                         dW_update = self._dW[i].assign(self._learning_rate * (self._momentum * self._dW[i] + dW[i]))
                         W_update = self._W[i] + dW_update
@@ -600,7 +600,7 @@ class DBM(EnergyBasedModel):
                         W_updates.append(W_update)
 
                 hb_updates = []
-                for i in xrange(self.n_layers):
+                for i in xrange(self.n_layers_):
                     with tf.name_scope('dhb'):
                         dhb_update = self._dhb[i].assign(self._learning_rate * (self._momentum * self._dhb[i] + dhb[i]))
                         hb_update = self._hb[i].assign_add(dhb_update)
@@ -627,7 +627,7 @@ class DBM(EnergyBasedModel):
             # collect summaries
             tf.summary.scalar('mean_squared_recon_error', msre)
             tf.summary.scalar('n_mf_updates', n_mf_updates)
-            for i in xrange(self.n_layers):
+            for i in xrange(self.n_layers_):
                 tf.summary.scalar('W_norm', W_norms[i])
 
     def _make_sample_v(self):
@@ -764,8 +764,8 @@ class DBM(EnergyBasedModel):
 
     def _make_tf_feed_dict(self, X_batch=None, delta_beta=None, n_ais_runs=None, n_gibbs_steps=None):
         d = {}
-        d['learning_rate'] = self.learning_rate[min(self.epoch, len(self.learning_rate) - 1)]
-        d['momentum'] = self.momentum[min(self.epoch, len(self.momentum) - 1)]
+        d['learning_rate'] = self.learning_rate[min(self.epoch_, len(self.learning_rate) - 1)]
+        d['momentum'] = self.momentum[min(self.epoch_, len(self.momentum) - 1)]
 
         if X_batch is not None:
             d['X_batch'] = X_batch
@@ -776,7 +776,7 @@ class DBM(EnergyBasedModel):
         if n_gibbs_steps is not None:
             d['n_gibbs_steps'] = n_gibbs_steps
         else:
-            d['n_gibbs_steps'] = self.n_gibbs_steps[min(self.epoch, len(self.n_gibbs_steps) - 1)]
+            d['n_gibbs_steps'] = self.n_gibbs_steps[min(self.epoch_, len(self.n_gibbs_steps) - 1)]
 
         # prepend name of the scope, and append ':0'
         feed_dict = {}
@@ -787,14 +787,14 @@ class DBM(EnergyBasedModel):
     def _train_epoch(self, X):
         train_msres, train_n_mf_updates = [], []
         for X_batch in batch_iter(X, self.batch_size, verbose=self.verbose):
-            self.iter += 1
-            if self.iter % self.train_metrics_every_iter == 0:
+            self.iter_ += 1
+            if self.iter_ % self.train_metrics_every_iter == 0:
                 msre, n_mf_upds, _, s = self._tf_session.run([self._msre, self._n_mf_updates,
                                                               self._train_op, self._tf_merged_summaries],
                                                               feed_dict=self._make_tf_feed_dict(X_batch))
                 train_msres.append(msre)
                 train_n_mf_updates.append(n_mf_upds)
-                self._tf_train_writer.add_summary(s, self.iter)
+                self._tf_train_writer.add_summary(s, self.iter_)
             else:
                 self._tf_session.run(self._train_op,
                                      feed_dict=self._make_tf_feed_dict(X_batch))
@@ -814,7 +814,7 @@ class DBM(EnergyBasedModel):
             summary_pb2.Summary.Value(tag='mean_squared_recon_error', simple_value=mean_msre),
             summary_pb2.Summary.Value(tag='n_mf_updates', simple_value=mean_n_mf_updates),
         ])
-        self._tf_val_writer.add_summary(s, self.iter)
+        self._tf_val_writer.add_summary(s, self.iter_)
         return mean_msre, mean_n_mf_updates
 
     def _fit(self, X, X_val=None, *args, **kwargs):
@@ -825,17 +825,17 @@ class DBM(EnergyBasedModel):
 
         # main loop
         val_msre, val_n_mf_updates = None, None
-        for self.epoch in epoch_iter(start_epoch=self.epoch, max_epoch=self.max_epoch,
-                                     verbose=self.verbose):
+        for self.epoch_ in epoch_iter(start_epoch=self.epoch_, max_epoch=self.max_epoch,
+                                      verbose=self.verbose):
             train_msre, train_n_mf_updates = self._train_epoch(X)
 
             # run validation metrics if needed
-            if X_val is not None and self.epoch % self.val_metrics_every_epoch == 0:
+            if X_val is not None and self.epoch_ % self.val_metrics_every_epoch == 0:
                 val_msre, val_n_mf_updates = self._run_val_metrics(X_val)
 
             # print progress
             if self.verbose:
-                s = "epoch: {0:{1}}/{2}".format(self.epoch, len(str(self.max_epoch)), self.max_epoch)
+                s = "epoch: {0:{1}}/{2}".format(self.epoch_, len(str(self.max_epoch)), self.max_epoch)
                 if train_msre:
                     s += "; msre: {0:.5f}".format(train_msre)
                 if train_n_mf_updates:
@@ -848,7 +848,7 @@ class DBM(EnergyBasedModel):
 
             # save if needed
             if self.save_after_each_epoch:
-                self._save_model(global_step=self.epoch)
+                self._save_model(global_step=self.epoch_)
 
     @run_in_tf_session()
     def transform(self, X, np_dtype=None):
@@ -856,7 +856,7 @@ class DBM(EnergyBasedModel):
         np_dtype = np_dtype or self._np_dtype
 
         self._transform_op = tf.get_collection('transform_op')[0]
-        G = np.zeros((len(X), self.n_hiddens[-1]), dtype=np_dtype)
+        G = np.zeros((len(X), self.n_hiddens_[-1]), dtype=np_dtype)
         start = 0
         for X_b in batch_iter(X, batch_size=self.batch_size,
                               verbose=self.verbose, desc='transform'):
@@ -915,7 +915,7 @@ class DBM(EnergyBasedModel):
         values : (`n_runs`,) np.ndarray
             All estimates.
         """
-        assert self.n_layers == 2
+        assert self.n_layers_ == 2
         for L in [self._v_layer] + self._h_layers:
             assert isinstance(L, BernoulliLayer)
 
@@ -936,7 +936,7 @@ class DBM(EnergyBasedModel):
         """Estimate variational lower-bound on a test set, as in [5].
         Currently implemented only for 2-layer binary BM.
         """
-        assert self.n_layers == 2
+        assert self.n_layers_ == 2
         for L in [self._v_layer] + self._h_layers:
             assert isinstance(L, BernoulliLayer)
 

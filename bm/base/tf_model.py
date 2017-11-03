@@ -22,7 +22,7 @@ def run_in_tf_session(check_initialized=True, update_seed=False):
             model._tf_graph = tf.get_default_graph()
             if update_seed:
                 tf.set_random_seed(model.make_random_seed())
-            if model.initialized:  # model should be loaded from disk
+            if model.initialized_:  # model should be loaded from disk
                 model._tf_saver = tf.train.import_meta_graph(model._tf_meta_graph_filepath)
                 with model._tf_graph.as_default():
                     with tf.Session(config=model._tf_session_config) as model._tf_session:
@@ -62,7 +62,7 @@ class TensorFlowModel(BaseModel, DtypeMixin):
         self.json_params = json_params or {}
         self.json_params.setdefault('sort_keys', True)
         self.json_params.setdefault('indent', 4)
-        self.initialized = False
+        self.initialized_ = False
 
         self._tf_graph = tf.Graph()
         self._tf_session = None
@@ -170,15 +170,15 @@ class TensorFlowModel(BaseModel, DtypeMixin):
 
     @run_in_tf_session(check_initialized=False)
     def init(self):
-        if not self.initialized:
-            self.initialized = True
+        if not self.initialized_:
+            self.initialized_ = True
             self._save_model()
         return self
 
     @run_in_tf_session(check_initialized=False, update_seed=True)
     def fit(self, X, X_val=None, *args, **kwargs):
         """Fit the model according to the given training data."""
-        self.initialized = True
+        self.initialized_ = True
         self._fit(X, X_val=X_val, *args, **kwargs)
         self._save_model()
         return self
