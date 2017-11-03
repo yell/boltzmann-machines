@@ -9,7 +9,7 @@ another ones to obtain more stable learning (lesser number of "died" units etc.)
 RBM #2 trained with increasing k in CD-k and decreasing learning rate
 over time.
 
-The training took approx. 11 + x + y min on GTX 1060.
+The training took approx. 11 + 55 + 215 min on GTX 1060.
 
 Links
 -----
@@ -143,7 +143,7 @@ def make_dbm((X_train, X_val), rbms, (X, Q, G), args):
                   random_seed=args.random_seed[2],
                   verbose=True,
                   display_filters=10,
-                  display_particles=10,
+                  display_particles=20,
                   v_shape=(28, 28),
                   dtype='float32',
                   tf_saver_params=dict(max_to_keep=1),
@@ -175,7 +175,7 @@ def main():
     # common for RBMs and DBM
     parser.add_argument('--n-hiddens', type=int, default=[512, 1024], metavar='N', nargs='+',
                         help='numbers of hidden units')
-    parser.add_argument('--lr', type=float, default=[0.05, 0.01, 2e-3], metavar='LR', nargs='+',
+    parser.add_argument('--lr', type=float, default=[0.05, 0.01, 1e-3], metavar='LR', nargs='+',
                         help='(initial) learning rates')
     parser.add_argument('--epochs', type=int, default=[64, 120, 500], metavar='N', nargs='+',
                         help='number of epochs to train')
