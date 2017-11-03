@@ -29,14 +29,14 @@ Goal was to reproduce DBM MNIST (at least there was numbers to compare with) + D
 * *visualization*: python routines to display images, learned filters, confusion matrices etc.
 
 ## Examples (***TODO*** add demo images, download models)
-### 1) RBM MNIST ([script](examples/rbm_mnist.py), *[notebook](notebooks/rbm_mnist.ipynb)*)
+### #1 RBM MNIST: [script](examples/rbm_mnist.py), *[notebook](notebooks/rbm_mnist.ipynb)*
 Train RBM on MNIST dataset and use it for classification.
 
-| <div align="center">Algorithm</div> | Test Accuracy (Test Error), % |
+| <div align="center">Algorithm</div> | Test Error, % |
 | :--- | :---: |
-| RBM features + Logistic Regression | **98.17** (**1.83**) |
-| RBM features + k-NN | **97.12** (**2.88**) |
-| RBM + discriminative fine-tuning | **98.73** (**1.27**) |
+| RBM features + Logistic Regression | **1.83** |
+| RBM features + k-NN | **2.88** |
+| RBM + discriminative fine-tuning | **1.27** |
 
 <p float="left">
   <img src="img/rbm_mnist/filters.png" width="265" />
@@ -57,7 +57,7 @@ How to reproduce the last table see [here](docs/rbm_discriminative.md).
 In these experiments only RBM was tuned to have high pseudo log-likelihood on a held-out validation set.
 Even better results can be obtained if one will tune MLP and other classifiers.
 
-### 2) DBM MNIST ([script](examples/dbm_mnist.py), *[notebook](notebooks/dbm_mnist.ipynb)*)
+### #2 DBM MNIST: [script](examples/dbm_mnist.py), *[notebook](notebooks/dbm_mnist.ipynb)*
 
 | Number of intermediate distributions | log(Z_mean) | log(Z-sigma), log(Z+sigma) | Avg. test ELBO |
 | :---: | :---: | :---: | :---: |
@@ -65,9 +65,9 @@ Even better results can be obtained if one will tune MLP and other classifiers.
 | 200'000 | 1040.39 | 1040.18, 1040.58 | **-86.37** |
 | 20'000 | 1040.55 | 1039.71, 1041.23 | -86.70 |
 
-### 3) DBM CIFAR-10 Naïve (~~[script]()~~, ~~[notebook]()~~)
-### 4) DBM CIFAR-10 (~~[script]()~~, ~~[notebook]()~~)
-### Usage
+### #3 DBM CIFAR-10 Naïve: ~~[script]()~~, ~~[notebook]()~~
+### #4 DBM CIFAR-10: ~~[script]()~~, ~~[notebook]()~~
+### How to use examples
 Use **script**s for training models from scratch, for instance
 ```
 $ python rbm_mnist.py -h
@@ -138,7 +138,7 @@ and check **notebook**s for corresponding inference / visualization etc.
 Note that training is skipped if there is already a model in `model-dirpath` (you can choose different location for training another model).
 
 ## How to install
-By default, the following commands install (among others) **tensorflow-gpu~=1.3.0**. If you want to install tensorflow without GPU support, replace corresponding line in [requirements.txt](requirements.txt). If you have already tensorflow installed, comment that line but note that for [edward](http://edwardlib.org/) to work correctly, you must have tf>=1.2.0rc installed.
+By default, the following commands install (among others) **tensorflow-gpu~=1.3.0**. If you want to install tensorflow without GPU support, replace corresponding line in [requirements.txt](requirements.txt). If you have already tensorflow installed, comment that line.
 ```bash
 git clone https://github.com/monsta-hd/hd-models
 cd hd-models/
