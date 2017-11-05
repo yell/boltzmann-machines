@@ -139,9 +139,10 @@ class DBM(EnergyBasedModel):
         if len(self.v_shape) == 2:
             self.v_shape = (self.v_shape[0], self.v_shape[1], 1)
 
-        # current epoch and iter
+        # additional attributes
         self.epoch_ = 0
         self.iter_ = 0
+        self.n_samples_generated_ = 0
 
         # tf constants
         self._n_visible = None
@@ -886,6 +887,7 @@ class DBM(EnergyBasedModel):
         self._sample_v = tf.get_collection('sample_v')[0]
         v = self._sample_v.eval(feed_dict=self._make_tf_feed_dict(n_gibbs_steps=n_gibbs_steps))
         if save_model:
+            self.n_samples_generated_ += n_gibbs_steps
             self._save_model()
         return v
 
