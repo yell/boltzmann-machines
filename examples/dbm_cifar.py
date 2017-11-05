@@ -421,7 +421,7 @@ def main():
                            model_path=args.rbm1_dirpath)
         grbm.fit(X_train, X_val)
 
-    # extract features Q = P_{G-RBM}(h|v=X)
+    # extract features Q = p_{G-RBM}(h|v=X)
     print "\nExtracting features from G-RBM ...\n\n"
     Q_train_path = os.path.join(args.data_path, 'Q_train_cifar.npy')
     Q_val_path = os.path.join(args.data_path, 'Q_val_cifar.npy')
@@ -486,7 +486,7 @@ def main():
             mrbm = mrbm_new
             mrbm.fit(Q_train, Q_val)
 
-    # extract features G = P_{M-RBM}(h|v=Q)
+    # extract features G = p_{M-RBM}(h|v=Q)
     print "\nExtracting features from M-RBM ...\n\n"
     G_train_path = os.path.join(args.data_path, 'G_train_cifar.npy')
     G_val_path = os.path.join(args.data_path, 'G_val_cifar.npy')

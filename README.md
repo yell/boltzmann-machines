@@ -63,7 +63,7 @@ Even better results can be obtained if one will tune MLP and other classifiers.
 | :---: | :---: | :---: | :---: |
 | DBM paper (20'000) | 356.18 | 356.06, 356.29 | **-84.62** |
 | 200'000 | 1040.39 | 1040.18, 1040.58 | **-86.37** |
-| 20'000 | 1040.55 | 1039.71, 1041.23 | -86.70 |
+| 20'000 | 1040.58 | 1039.93, 1041.03 | **-86.59** |
 
 ### #3 DBM CIFAR-10 Naïve: ~~[script]()~~, ~~[notebook]()~~
 ### #4 DBM CIFAR-10: ~~[script]()~~, ~~[notebook]()~~
