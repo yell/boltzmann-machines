@@ -101,10 +101,9 @@ def im_gif(matrices, im, fig, fname=None, title_func=None,
 
     title_params = title_params or {}
     title_params.setdefault('fontsize', 18)
-    title_params.setdefault('y', 0.95)
 
     anim_params = anim_params or {}
-    anim_params.setdefault('interval', 200)
+    anim_params.setdefault('interval', 250)
     anim_params.setdefault('blit', True)
 
     save_params = save_params or {}
