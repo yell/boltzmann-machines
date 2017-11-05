@@ -65,8 +65,25 @@ Even better results can be obtained if one will tune MLP and other classifiers.
 | 200'000 | 1040.39 | 1040.18, 1040.58 | **-86.37** |
 | 20'000 | 1040.58 | 1039.93, 1041.03 | **-86.59** |
 
+<p float="left">
+  <img src="img/dbm_mnist/mnist.png" width="274" />
+  <img src="img/dbm_mnist/samples.png" width="279" /> 
+  <img src="img/dbm_mnist/samples.gif" width="295" />
+</p>
+<p float="left">
+  <img src="img/dbm_mnist/rbm1.png" width="280" />
+  <img src="img/dbm_mnist/W1_joint.png" width="280" /> 
+  <img src="img/dbm_mnist/W1_joint.png" width="280" />
+</p>
+<p float="left">
+  <img src="img/dbm_mnist/rbm2.png" width="280" />
+  <img src="img/dbm_mnist/W2_joint.png" width="280" /> 
+  <img src="img/dbm_mnist/W2_joint.png" width="280" />
+</p>
+
+
 ### #3 DBM CIFAR-10 Naïve: ~~[script]()~~, ~~[notebook]()~~
-### #4 DBM CIFAR-10: ~~[script]()~~, ~~[notebook]()~~
+### #4 DBM CIFAR-10: [script](examples/dbm_cifar.py), *[notebook](notebooks/dbm_cifar.py)*
 ### How to use examples
 Use **script**s for training models from scratch, for instance
 ```
