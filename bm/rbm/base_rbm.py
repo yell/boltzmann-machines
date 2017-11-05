@@ -3,9 +3,9 @@ import tensorflow as tf
 from tensorflow.core.framework import summary_pb2
 
 from bm import EnergyBasedModel
-from bm.base import run_in_tf_session
+from bm.base import run_in_tf_session, is_attribute_name
 from bm.utils import (make_list_from, batch_iter, epoch_iter,
-                       write_during_training)
+                      write_during_training)
 from bm.utils.testing import assert_len, assert_shape
 
 
@@ -656,8 +656,10 @@ class BaseRBM(EnergyBasedModel):
         self._dvb_init = grads_accumulators['dvb']
         self._dhb_init = grads_accumulators['dhb']
 
-        self.iter_ = rbm.iter_
-        self.epoch_ = rbm.epoch_
+        # copy attributes
+        for k, v in vars(rbm).items():
+            if is_attribute_name(k):
+                setattr(self, k, v)
 
     @run_in_tf_session(update_seed=True)
     def transform(self, X, np_dtype=None):
