@@ -207,6 +207,8 @@ TensorFlow 1.3.0 assumes cuDNN v6.0 by default. If you have different one instal
 ***TODO***
 
 ## TODO
+* add stratification
+* separate classes with variable and fixed number of Gibbs steps (first is 1.4-2 times slower)
 * experiment: generate half MNIST digit conditioned on the other half using RBM 
 * feature: Centering trick
 * feature: classification RBMs/DBMs
