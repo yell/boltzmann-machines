@@ -213,9 +213,9 @@ def make_mlp((X_train, y_train), (X_val, y_val), (X_test, y_test),
     # save predictions, targets, and fine-tuned weights
     np.save(args.mlp_save_prefix + 'y_pred.npy', y_pred)
     np.save(args.mlp_save_prefix + 'y_test.npy', y_test)
-    W_finetuned, _ = mlp.layers[0].get_weights()
+    W1_finetuned, _ = mlp.layers[0].get_weights()
     W2_finetuned, _ = mlp.layers[2].get_weights()
-    np.save(args.mlp_save_prefix + 'W_finetuned.npy', W_finetuned)
+    np.save(args.mlp_save_prefix + 'W1_finetuned.npy', W1_finetuned)
     np.save(args.mlp_save_prefix + 'W2_finetuned.npy', W2_finetuned)
 
 
