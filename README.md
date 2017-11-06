@@ -81,6 +81,13 @@ Even better results can be obtained if one will tune MLP and other classifiers.
   <img src="img/dbm_mnist/W2_finetuned.png" width="280" />
 </p>
 
+| Number of labeled data pairs (train + val) | RBM + fine-tuning | random initialization | gain |
+| :---: | :---: | :---: | :---: |
+| 60k (55k + 5k) | 98.68% | 98.28% | **+0.40%** |
+| 10k (9k + 1k) | 97.11% | 94.50% | **+2.61%** |
+| 1k (900 + 100) | 93.54% | 89.14% | **+4.40%** |
+| 100 (90 + 10) | 83.79% | 76.24% | **+7.55%** |
+
 
 ### #3 DBM CIFAR-10 Naïve: ~~[script]()~~, ~~[notebook]()~~
 ### #4 DBM CIFAR-10: [script](examples/dbm_cifar.py), *[notebook](notebooks/dbm_cifar.py)*
