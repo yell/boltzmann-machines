@@ -301,9 +301,9 @@ def make_grbm((X_train, X_val), small_rbms, args):
 
 
 def make_mrbm((Q_train, Q_val), args):
-    if os.path.isdir(args.rbm2_dirpath):
+    if os.path.isdir(args.mrbm_dirpath):
         print "\nLoading M-RBM ...\n\n"
-        mrbm = MultinomialRBM.load_model(args.rbm2_dirpath)
+        mrbm = MultinomialRBM.load_model(args.mrbm_dirpath)
     else:
         print "\nTraining M-RBM ...\n\n"
 
@@ -325,7 +325,7 @@ def make_mrbm((Q_train, Q_val), args):
                               n_gibbs_steps=n_gibbs_steps,
                               learning_rate=learning_rate,
                               momentum=np.geomspace(0.5, 0.9, 8),
-                              max_epoch=args.epochs[1],
+                              max_epoch=max(args.epochs[1], n_every),
                               batch_size=args.batch_size[1],
                               l2=args.l2[1],
                               sample_h_states=True,
@@ -379,7 +379,7 @@ def make_dbm((X_train, X_val), rbms, (Q, G), args):
                   v_particle_init=X_train[:args.n_particles].copy(),
                   h_particles_init=(Q[:args.n_particles].copy(),
                                     G[:args.n_particles].copy()),
-                  n_gibbs_steps=args.n_gibbs_steps,
+                  n_gibbs_steps=args.n_gibbs_steps[2],
                   max_mf_updates=args.max_mf_updates,
                   mf_tol=args.mf_tol,
                   learning_rate=np.geomspace(args.lr[2], 1e-6, args.epochs[2]),
@@ -467,8 +467,6 @@ def main():
     # DBM related
     parser.add_argument('--n-particles', type=int, default=100, metavar='M',
                         help='number of persistent Markov chains')
-    parser.add_argument('--n-gibbs-steps', type=int, default=1, metavar='N',
-                        help='number of Gibbs steps for PCD')
     parser.add_argument('--max-mf-updates', type=int, default=70, metavar='N',
                         help='maximum number of mean-field updates per weight update')
     parser.add_argument('--mf-tol', type=float, default=1e-11, metavar='TOL',

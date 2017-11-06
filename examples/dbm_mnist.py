@@ -108,7 +108,7 @@ def make_rbm2(Q, args):
                             n_gibbs_steps=n_gibbs_steps,
                             learning_rate=learning_rate,
                             momentum=[0.5] * 5 + [0.9],
-                            max_epoch=args.epochs[1],
+                            max_epoch=max(args.epochs[1], n_every),
                             batch_size=args.batch_size[1],
                             l2=args.l2[1],
                             sample_h_states=True,
