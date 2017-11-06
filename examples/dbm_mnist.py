@@ -206,9 +206,9 @@ def make_mlp((X_train, y_train), (X_val, y_val), (X_test, y_test),
         except KeyboardInterrupt:
             pass
 
-        y_pred = mlp.predict(X_test)
-        y_pred = unhot(one_hot_decision_function(y_pred), n_classes=10)
-        print "Test accuracy: {:.4f}".format(accuracy_score(y_test, y_pred))
+    y_pred = mlp.predict(X_test)
+    y_pred = unhot(one_hot_decision_function(y_pred), n_classes=10)
+    print "Test accuracy: {:.4f}".format(accuracy_score(y_test, y_pred))
 
     # save predictions, targets, and fine-tuned weights
     np.save(args.mlp_save_prefix + 'y_pred.npy', y_pred)
@@ -236,20 +236,20 @@ def main():
                         help='increase number of Gibbs steps every specified number of epochs for RBM #2')
 
     # common for RBMs and DBM
-    parser.add_argument('--n-hiddens', type=int, default=[512, 1024], metavar='N', nargs='+',
+    parser.add_argument('--n-hiddens', type=int, default=(512, 1024), metavar='N', nargs='+',
                         help='numbers of hidden units')
-    parser.add_argument('--lr', type=float, default=[0.05, 0.01, 2e-3], metavar='LR', nargs='+',
+    parser.add_argument('--lr', type=float, default=(0.05, 0.01, 2e-3), metavar='LR', nargs='+',
                         help='(initial) learning rates')
-    parser.add_argument('--epochs', type=int, default=[64, 120, 500], metavar='N', nargs='+',
+    parser.add_argument('--epochs', type=int, default=(64, 120, 500), metavar='N', nargs='+',
                         help='number of epochs to train')
-    parser.add_argument('--batch-size', type=int, default=[48, 48, 100], metavar='B', nargs='+',
+    parser.add_argument('--batch-size', type=int, default=(48, 48, 100), metavar='B', nargs='+',
                         help='input batch size for training, `--n-train` and `--n-val`' + \
                              'must be divisible by this number (for DBM)')
-    parser.add_argument('--l2', type=float, default=[1e-3, 2e-4, 1e-7], metavar='L2', nargs='+',
+    parser.add_argument('--l2', type=float, default=(1e-3, 2e-4, 1e-7), metavar='L2', nargs='+',
                         help='L2 weight decay coefficients')
-    parser.add_argument('--n-gibbs-steps', type=int, default=[1, 1, 1], metavar='N', nargs='+',
+    parser.add_argument('--n-gibbs-steps', type=int, default=(1, 1, 1), metavar='N', nargs='+',
                         help='(initial) number of Gibbs steps for CD/PCD')
-    parser.add_argument('--random-seed', type=int, default=[1337, 1111, 2222], metavar='N', nargs='+',
+    parser.add_argument('--random-seed', type=int, default=(1337, 1111, 2222), metavar='N', nargs='+',
                         help="random seeds for models training")
 
     # save dirpaths
@@ -269,9 +269,9 @@ def main():
                         help='mean-field tolerance')
     parser.add_argument('--max-norm', type=float, default=6., metavar='C',
                         help='maximum norm constraint')
-    parser.add_argument('--sparsity-target', type=float, default=[0.2, 0.1], metavar='T', nargs='+',
+    parser.add_argument('--sparsity-target', type=float, default=(0.2, 0.1), metavar='T', nargs='+',
                         help='desired probability of hidden activation')
-    parser.add_argument('--sparsity-cost', type=float, default=[1e-4, 5e-5], metavar='C', nargs='+',
+    parser.add_argument('--sparsity-cost', type=float, default=(1e-4, 5e-5), metavar='C', nargs='+',
                         help='controls the amount of sparsity penalty')
     parser.add_argument('--sparsity-damping', type=float, default=0.9, metavar='D',
                         help='decay rate for hidden activations probs')
@@ -281,11 +281,11 @@ def main():
                         help='if enabled, use random initialization')
     parser.add_argument('--mlp-l2', type=float, default=1e-5, metavar='L2',
                         help='L2 weight decay coefficient')
-    parser.add_argument('--mlp-lrm', type=float, default=(0.01, 0.01, 1.), metavar='LRM', nargs='+',
+    parser.add_argument('--mlp-lrm', type=float, default=(0.01, 0.1, 1.), metavar='LRM', nargs='+',
                         help='learning rate multipliers of 1e-3')
     parser.add_argument('--mlp-epochs', type=int, default=100, metavar='N',
                         help='number of epochs to train')
-    parser.add_argument('--mlp-val-metric', type=str, default='val_loss', metavar='S',
+    parser.add_argument('--mlp-val-metric', type=str, default='val_acc', metavar='S',
                         help="metric on validation set to perform early stopping, {'val_acc', 'val_loss'}")
     parser.add_argument('--mlp-batch-size', type=int, default=128, metavar='N',
                         help='input batch size for training')
