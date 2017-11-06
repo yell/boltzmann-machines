@@ -68,6 +68,8 @@ on the test set.
 | this repo | 200'000 | uniform | 1040.39 | 1040.18, 1040.58 | **-86.37** |
 | this repo | 20'000 | uniform | 1040.58 | 1039.93, 1041.03 | **-86.59** |
 
+Couple of nats could have been lost because of single-precision.
+
 <p float="left">
   <img src="img/dbm_mnist/mnist.png" width="274" />
   <img src="img/dbm_mnist/samples.png" width="279" /> 
