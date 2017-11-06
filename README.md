@@ -51,7 +51,7 @@ Also, [one-shot learning idea]:
 | 60k (55k + 5k) | 98.73% | 98.20% | **+0.53%** |
 | 10k (9k + 1k) | 97.27% | 94.73% | **+2.54%** |
 | 1k (900 + 100) | 93.65% | 88.71% | **+4.94%** |
-| 100 (90 + 10) | 81.70% | 76.11% | **+5.59%** |
+| 100 (90 + 10) | 81.70% | 76.02% | **+5.68%** |
 
 How to reproduce the last table see [here](docs/rbm_discriminative.md). 
 In these experiments only RBM was tuned to have high pseudo log-likelihood on a held-out validation set.
