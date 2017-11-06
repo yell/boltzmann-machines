@@ -76,6 +76,7 @@ def make_augmentation(X_train, n_train, args):
 
     return X_aug
 
+
 def make_small_rbms(X_train, X_val, small_rbm_config, args):
     X_train = im_unflatten(X_train)
     X_val = im_unflatten(X_val)
@@ -157,6 +158,7 @@ def make_small_rbms(X_train, X_val, small_rbm_config, args):
     small_rbms.append(rbm)
     return small_rbms
 
+
 def make_large_weights(small_rbms):
     W = np.zeros((300 * 26, 32, 32, 3), dtype=np.float32)
     W[...] = RNG(seed=1234).rand(*W.shape) * 5e-6
@@ -213,6 +215,7 @@ def make_large_weights(small_rbms):
     vb = im_flatten(vb)
 
     return W, vb, hb
+
 
 def make_transform(rbm, X, path):
     H = None

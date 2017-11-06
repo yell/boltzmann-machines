@@ -83,6 +83,7 @@ def make_rbm(X_train, X_val, args):
         rbm.fit(X_train, X_val)
     return rbm
 
+
 def make_mlp((X_train, y_train), (X_val, y_val), (X_test, y_test),
              (W, hb), args):
     dense_params = {}
