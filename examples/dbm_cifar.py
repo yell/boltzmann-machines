@@ -11,6 +11,8 @@ features from G-RBM are in half precision
 ~9 GB RAM
 1.6 GB augmented data +
 
+The training took approx. 26*58 + A + B + C min = Z on GTX 1060.
+
 References
 ----------
 [1] A. Krizhevsky and G. Hinton. Learning multiple layers of features
@@ -267,7 +269,7 @@ def make_grbm((X_train, X_val), small_rbms, args):
                            W_init=W,
                            vb_init=vb,
                            hb_init=hb,
-                           n_gibbs_steps=1,
+                           n_gibbs_steps=args.n_gibbs_steps[0],
                            learning_rate=args.lr[0],
                            momentum=np.geomspace(0.5, 0.9, 8),
                            max_epoch=args.epochs[0],
@@ -298,6 +300,60 @@ def make_grbm((X_train, X_val), small_rbms, args):
     return grbm
 
 
+def make_mrbm((Q_train, Q_val), args):
+    if os.path.isdir(args.rbm2_dirpath):
+        print "\nLoading M-RBM ...\n\n"
+        mrbm = MultinomialRBM.load_model(args.rbm2_dirpath)
+    else:
+        print "\nTraining M-RBM ...\n\n"
+
+        epochs = args.epochs[1]
+        n_every = args.increase_n_gibbs_steps_every
+
+        n_gibbs_steps = np.arange(args.n_gibbs_steps[1],
+                                  args.n_gibbs_steps[1] + epochs / n_every)
+        learning_rate = args.lr[1] / np.arange(1, 1 + epochs / n_every)
+        n_gibbs_steps = np.repeat(n_gibbs_steps, n_every)
+        learning_rate = np.repeat(learning_rate, n_every)
+
+        mrbm = MultinomialRBM(n_visible=300 * 26,
+                              n_hidden=512,
+                              n_samples=512,
+                              W_init=0.001,
+                              hb_init=0.,
+                              vb_init=0.,
+                              n_gibbs_steps=n_gibbs_steps,
+                              learning_rate=learning_rate,
+                              momentum=np.geomspace(0.5, 0.9, 8),
+                              max_epoch=args.epochs[1],
+                              batch_size=args.batch_size[1],
+                              l2=args.l2[1],
+                              sample_h_states=True,
+                              sample_v_states=True,
+                              sparsity_target=0.2,
+                              sparsity_cost=1e-4,
+                              dbm_last=True,  # !!!
+                              metrics_config=dict(
+                                  msre=True,
+                                  pll=True,
+                                  feg=True,
+                                  train_metrics_every_iter=1000,
+                                  val_metrics_every_epoch=2,
+                                  feg_every_epoch=2,
+                                  n_batches_for_feg=50,
+                              ),
+                              verbose=True,
+                              display_filters=0,
+                              display_hidden_activations=100,
+                              random_seed=args.random_seed[1],
+                              dtype='float32',
+                              tf_saver_params=dict(max_to_keep=1),
+                              model_path=args.mrbm_dirpath)
+        mrbm.fit(Q_train, Q_val)
+
+    return mrbm
+
+
 def make_rbm_transform(rbm, X, path, np_dtype=None):
     H = None
     transform = True
@@ -309,6 +365,46 @@ def make_rbm_transform(rbm, X, path, np_dtype=None):
         H = rbm.transform(X, np_dtype=np_dtype)
         np.save(path, H)
     return H
+
+
+def make_dbm((X_train, X_val), rbms, (Q, G), args):
+    if os.path.isdir(args.dbm_dirpath):
+        print "\nLoading DBM ...\n\n"
+        dbm = DBM.load_model(args.dbm_dirpath)
+        dbm.load_rbms(rbms)  # !!!
+    else:
+        print "\nTraining DBM ...\n\n"
+        dbm = DBM(rbms=rbms,
+                  n_particles=args.n_particles,
+                  v_particle_init=X_train[:args.n_particles].copy(),
+                  h_particles_init=(Q[:args.n_particles].copy(),
+                                    G[:args.n_particles].copy()),
+                  n_gibbs_steps=args.n_gibbs_steps,
+                  max_mf_updates=args.max_mf_updates,
+                  mf_tol=args.mf_tol,
+                  learning_rate=np.geomspace(args.lr[2], 1e-6, args.epochs[2]),
+                  momentum=np.geomspace(0.5, 0.9, 10),
+                  max_epoch=args.epochs[2],
+                  batch_size=args.batch_size[2],
+                  l2=args.l2[2],
+                  max_norm=args.max_norm,
+                  sample_v_states=True,
+                  sample_h_states=(True, True),
+                  sparsity_target=args.sparsity_target,
+                  sparsity_cost=args.sparsity_cost,
+                  sparsity_damping=args.sparsity_damping,
+                  train_metrics_every_iter=400,
+                  val_metrics_every_epoch=2,
+                  random_seed=args.random_seed[2],
+                  verbose=True,
+                  display_filters=12,
+                  display_particles=36,
+                  v_shape=(32, 32, 3),
+                  dtype='float32',
+                  tf_saver_params=dict(max_to_keep=1),
+                  model_path=args.dbm_dirpath)
+        dbm.fit(X_train, X_val)
+    return dbm
 
 
 def main():
@@ -346,16 +442,18 @@ def main():
                         help='increase number of Gibbs steps every specified number of epochs for RBM #2')
 
     # common for RBMs and DBM
+    parser.add_argument('--n-gibbs-steps', type=int, default=(1, 1, 1), metavar='N', nargs='+',
+                        help='(initial) number of Gibbs steps for CD/PCD')
     parser.add_argument('--lr', type=float, default=(5e-4, 5e-5, 4e-5), metavar='LR', nargs='+',
                         help='(initial) learning rates')
-    parser.add_argument('--epochs', type=int, default=(80, 80, 200), metavar='N', nargs='+',
+    parser.add_argument('--epochs', type=int, default=(80, 80, 120), metavar='N', nargs='+',
                         help='number of epochs to train')
     parser.add_argument('--batch-size', type=int, default=(100, 100, 100), metavar='B', nargs='+',
                         help='input batch size for training, `--n-train` and `--n-val`' + \
                              'must be divisible by this number (for DBM)')
     parser.add_argument('--l2', type=float, default=(2e-3, 0.05, 1e-8), metavar='L2', nargs='+',
                         help='L2 weight decay coefficients')
-    parser.add_argument('--random-seed', type=int, default=(1337, 1111, 2222), metavar='N', nargs='+',
+    parser.add_argument('--random-seed', type=int, default=(1111, 2222, 3333), metavar='N', nargs='+',
                         help='random seeds for models training')
 
     # save dirpaths
@@ -435,7 +533,9 @@ def main():
     print "Augmented range: ({0:.3f}, {1:.3f})\n\n".format(X_train.min(), X_train.max())
 
     # train 26 small Gaussian RBMs on patches
-    small_rbms = make_small_rbms((X_train, X_val), args)
+    small_rbms = None
+    if not os.path.isdir(args.grbm_dirpath):
+        small_rbms = make_small_rbms((X_train, X_val), args)
 
     # assemble large weight matrix and biases
     # and pre-train large Gaussian RBM (G-RBM)
@@ -446,114 +546,23 @@ def main():
     Q_train, Q_val = None, None
     if not os.path.isdir(args.mrbm_dirpath) or not os.path.isdir(args.dbm_dirpath):
         Q_train_path = os.path.join(args.data_path, 'Q_train_cifar.npy')
-        Q_val_path = os.path.join(args.data_path, 'Q_val_cifar.npy')
         Q_train = make_rbm_transform(grbm, X_train, Q_train_path, np_dtype=np.float16)
+    if not os.path.isdir(args.mrbm_dirpath):
+        Q_val_path = os.path.join(args.data_path, 'Q_val_cifar.npy')
         Q_val = make_rbm_transform(grbm, X_val, Q_val_path)
 
     # pre-train Multinomial RBM (M-RBM)
-    if os.path.isdir(args.rbm2_dirpath):
-        print "\nLoading M-RBM ...\n\n"
-        mrbm = MultinomialRBM.load_model(args.rbm2_dirpath)
-    else:
-        print "\nTraining M-RBM ...\n\n"
-        mrbm_lr = args.lr[1]
-        mrbm_config = dict(n_visible=300 * 26,
-                           n_hidden=512,
-                           n_samples=512,
-                           W_init=0.001,
-                           hb_init=0.,
-                           vb_init=0.,
-                           n_gibbs_steps=1,
-                           learning_rate=mrbm_lr,
-                           momentum=np.geomspace(0.5, 0.9, 8),
-                           max_epoch=args.increase_n_gibbs_steps_every,
-                           batch_size=args.batch_size[1],
-                           l2=args.l2[1],
-                           sample_h_states=True,
-                           sample_v_states=True,
-                           sparsity_target=0.2,
-                           sparsity_cost=1e-4,
-                           dbm_last=True,  # !!!
-                           metrics_config=dict(
-                               msre=True,
-                               pll=True,
-                               feg=True,
-                               train_metrics_every_iter=1000,
-                               val_metrics_every_epoch=2,
-                               feg_every_epoch=2,
-                               n_batches_for_feg=50,
-                           ),
-                           verbose=True,
-                           display_hidden_activations=100,
-                           random_seed=args.random_seed[1],
-                           dtype='float32',
-                           tf_saver_params=dict(max_to_keep=1),
-                           model_path=args.rbm2_dirpath)
-        max_epoch = args.increase_n_gibbs_steps_every
-        mrbm = MultinomialRBM(**mrbm_config)
-        mrbm.fit(Q_train, Q_val)
-        mrbm_config['momentum'] = 0.9
-        while max_epoch < args.epochs[1]:
-            max_epoch += args.increase_n_gibbs_steps_every
-            max_epoch = min(max_epoch, args.epochs[1])
-            mrbm_config['max_epoch'] = max_epoch
-            mrbm_config['n_gibbs_steps'] += 1
-            mrbm_config['learning_rate'] = mrbm_lr / float(mrbm_config['n_gibbs_steps'])
-
-            print "\nNumber of Gibbs steps = {0}, learning rate = {1:.6f} ...\n\n". \
-                format(mrbm_config['n_gibbs_steps'], mrbm_config['learning_rate'])
-
-            mrbm_new = MultinomialRBM(**mrbm_config)
-            mrbm_new.init_from(mrbm)
-            mrbm = mrbm_new
-            mrbm.fit(Q_train, Q_val)
+    mrbm = make_mrbm((Q_train, Q_val), args)
 
     # extract features G = p_{M-RBM}(h|v=Q)
     print "\nExtracting features from M-RBM ...\n\n"
-    G_train_path = os.path.join(args.data_path, 'G_train_cifar.npy')
-    G_val_path = os.path.join(args.data_path, 'G_val_cifar.npy')
-    G_train = make_rbm_transform(mrbm, Q_train, G_train_path)
-    G_val = make_rbm_transform(mrbm, Q_val, G_val_path)
+    G_train = None
+    if not os.path.isdir(args.dbm_dirpath):
+        G_train_path = os.path.join(args.data_path, 'G_train_cifar.npy')
+        G_train = make_rbm_transform(mrbm, Q_train, G_train_path)
 
-    print G_train.shape, G_val.shape
-
-    print "\nTraining DBM ...\n\n"
-    dbm = DBM(rbms=[grbm, mrbm],
-              n_particles=args.n_particles,
-              v_particle_init=X_train[:args.n_particles].copy(),
-              h_particles_init=(Q_train[:args.n_particles].copy(),
-                                G_train[:args.n_particles].copy()),
-              n_gibbs_steps=args.n_gibbs_steps,
-              max_mf_updates=args.max_mf_updates,
-              mf_tol=args.mf_tol,
-              learning_rate=np.geomspace(args.lr[2], 1e-6, args.epochs[2]),
-              momentum=np.geomspace(0.5, 0.9, 10),
-              max_epoch=args.epochs[2],
-              batch_size=args.batch_size[2],
-              l2=args.l2[2],
-              max_norm=args.max_norm,
-              sample_v_states=True,
-              sample_h_states=(True, True),
-              sparsity_target=args.sparsity_target,
-              sparsity_cost=args.sparsity_cost,
-              sparsity_damping=args.sparsity_damping,
-              train_metrics_every_iter=10,
-              val_metrics_every_epoch=2,
-              random_seed=args.random_seed[2],
-              verbose=True,
-              display_filters=12,
-              display_particles=36,
-              v_shape=(32, 32, 3),
-              dtype='float32',
-              tf_saver_params=dict(max_to_keep=1),
-              model_path=args.dbm_dirpath)
-    dbm.fit(X_train, X_val)
-    # im = dbm.sample_v(n_gibbs_steps=10)
-    # print im.mean()
-    # im = dbm.sample_v(n_gibbs_steps=10)
-    # print im.mean()
-    # im = dbm.sample_v_given_h_last(512.*np.random.rand(100, 512), n_gibbs_steps=10)
-    # print im.mean()
+    # jointly train DBM
+    dbm = make_dbm((X_train, X_val), (grbm, mrbm), (Q_train, G_train), args)
 
 
 if __name__ == '__main__':
