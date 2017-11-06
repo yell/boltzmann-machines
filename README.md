@@ -53,7 +53,7 @@ Also, [one-shot learning idea]:
 | 1k (900 + 100) | 93.65% | 88.71% | **+4.94%** |
 | 100 (90 + 10) | 81.70% | 76.02% | **+5.68%** |
 
-How to reproduce the last table see [here](docs/rbm_discriminative.md). 
+How to reproduce the this table see [here](docs/rbm_discriminative.md). 
 In these experiments only RBM was tuned to have high pseudo log-likelihood on a held-out validation set.
 Even better results can be obtained if one will tune MLP and other classifiers.
 
@@ -81,13 +81,21 @@ Even better results can be obtained if one will tune MLP and other classifiers.
   <img src="img/dbm_mnist/W2_finetuned.png" width="280" />
 </p>
 
-| Number of labeled data pairs (train + val) | RBM + fine-tuning | random initialization | gain |
+| Number of labeled data pairs (train + val) | DBM + fine-tuning | random initialization | gain |
 | :---: | :---: | :---: | :---: |
 | 60k (55k + 5k) | 98.68% | 98.28% | **+0.40%** |
 | 10k (9k + 1k) | 97.11% | 94.50% | **+2.61%** |
 | 1k (900 + 100) | 93.54% | 89.14% | **+4.40%** |
 | 100 (90 + 10) | 83.79% | 76.24% | **+7.55%** |
 
+How to reproduce the this table see [here](docs/dbm_discriminative.md).
+
+Again **tune better**.
+
+Performance on full training set is slightly worse because of harder optimization problem + vanishing gradients.
+Also because the optimization problem is harder, the gain when not much datapoints are used is typically larger.
+
+Large number of parameters is one of the most crucial reasons why one-shot learning is not successfuly by utilizing deep learning only. Instead, it is much better to combine deep learning and hierarchical Bayesian modeling by putting HDP prior over units from top-most hidden layer as in #paper.
 
 ### #3 DBM CIFAR-10 Naïve: ~~[script]()~~, ~~[notebook]()~~
 ### #4 DBM CIFAR-10: [script](examples/dbm_cifar.py), *[notebook](notebooks/dbm_cifar.py)*
