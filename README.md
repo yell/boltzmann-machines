@@ -59,11 +59,11 @@ Even better results can be obtained if one will tune MLP and other classifiers.
 
 ### #2 DBM MNIST: [script](examples/dbm_mnist.py), *[notebook](notebooks/dbm_mnist.ipynb)*
 
-| Number of intermediate distributions | log(Z_mean) | log(Z-sigma), log(Z+sigma) | Avg. test ELBO |
-| :---: | :---: | :---: | :---: |
-| DBM paper (20'000) | 356.18 | 356.06, 356.29 | **-84.62** |
-| 200'000 | 1040.39 | 1040.18, 1040.58 | **-86.37** |
-| 20'000 | 1040.58 | 1039.93, 1041.03 | **-86.59** |
+| who | # intermediate distributions | proposal | log(Z<sub>mean</sub>) | log(Z<sub>mean</sub> &plusmn; &#963;<sub>Z</sub>) | Avg. test ELBO |
+| :---: | :---: | :---: | :---: | :---: | :---: |
+| DBM paper | 20'000 | base-rate? | 356.18 | 356.06, 356.29 | **-84.62** |
+| this repo | 200'000 | uniform | 1040.39 | 1040.18, 1040.58 | **-86.37** |
+| this repo | 20'000 | uniform | 1040.58 | 1039.93, 1041.03 | **-86.59** |
 
 <p float="left">
   <img src="img/dbm_mnist/mnist.png" width="274" />
