@@ -131,7 +131,7 @@ def make_rbm2(Q, args):
     return rbm2
 
 
-def make_dbm((X_train, X_val), rbms, (X, Q, G), args):
+def make_dbm((X_train, X_val), rbms, (Q, G), args):
     if os.path.isdir(args.dbm_dirpath):
         print "\nLoading DBM ...\n\n"
         dbm = DBM.load_model(args.dbm_dirpath)
@@ -140,7 +140,7 @@ def make_dbm((X_train, X_val), rbms, (X, Q, G), args):
         print "\nTraining DBM ...\n\n"
         dbm = DBM(rbms=rbms,
                   n_particles=args.n_particles,
-                  v_particle_init=X[:args.n_particles].copy(),
+                  v_particle_init=X_train[:args.n_particles].copy(),
                   h_particles_init=(Q[:args.n_particles].copy(),
                                     G[:args.n_particles].copy()),
                   n_gibbs_steps=args.n_gibbs_steps[2],
@@ -250,6 +250,8 @@ def main():
     # common for RBMs and DBM
     parser.add_argument('--n-hiddens', type=int, default=(512, 1024), metavar='N', nargs='+',
                         help='numbers of hidden units')
+    parser.add_argument('--n-gibbs-steps', type=int, default=(1, 1, 1), metavar='N', nargs='+',
+                        help='(initial) number of Gibbs steps for CD/PCD')
     parser.add_argument('--lr', type=float, default=(0.05, 0.01, 2e-3), metavar='LR', nargs='+',
                         help='(initial) learning rates')
     parser.add_argument('--epochs', type=int, default=(64, 120, 500), metavar='N', nargs='+',
@@ -259,8 +261,6 @@ def main():
                              'must be divisible by this number (for DBM)')
     parser.add_argument('--l2', type=float, default=(1e-3, 2e-4, 1e-7), metavar='L2', nargs='+',
                         help='L2 weight decay coefficients')
-    parser.add_argument('--n-gibbs-steps', type=int, default=(1, 1, 1), metavar='N', nargs='+',
-                        help='(initial) number of Gibbs steps for CD/PCD')
     parser.add_argument('--random-seed', type=int, default=(1337, 1111, 2222), metavar='N', nargs='+',
                         help='random seeds for models training')
 
@@ -356,7 +356,7 @@ def main():
         print "\n"
 
     # jointly train DBM
-    dbm = make_dbm((X_train, X_val), (rbm1, rbm2), (X, Q, G), args)
+    dbm = make_dbm((X_train, X_val), (rbm1, rbm2), (Q, G), args)
 
     # load test data
     X_test, y_test = load_mnist(mode='test', path='../data/')
