@@ -9,7 +9,7 @@ another ones to obtain more stable learning (lesser number of "died" units etc.)
 RBM #2 trained with increasing k in CD-k and decreasing learning rate
 over time.
 
-The training took approx. 11 + 55 + 215 min on GTX 1060.
+The training took approx. 11 + 55 + 185 min ~ 4h 10m on GTX 1060.
 
 Links
 -----
@@ -85,8 +85,8 @@ def make_rbm2(Q, args):
         n_every = args.increase_n_gibbs_steps_every
 
         n_gibbs_steps = np.arange(args.n_gibbs_steps[1],
-                                  args.n_gibbs_steps[1] + epochs / n_every + 1)
-        learning_rate = args.lr[1] / np.arange(1, epochs / n_every + 2)
+                                  args.n_gibbs_steps[1] + epochs / n_every)
+        learning_rate = args.lr[1] / np.arange(1, 1 + epochs / n_every)
         n_gibbs_steps = np.repeat(n_gibbs_steps, n_every)
         learning_rate = np.repeat(learning_rate, n_every)
 
@@ -173,15 +173,15 @@ def make_mlp((X_train, y_train), (X_val, y_val), (X_test, y_test),
     mlp = Sequential([
         Dense(args.n_hiddens[0], input_shape=(784,),
               kernel_regularizer=regularizers.l2(args.mlp_l2),
-              kernel_initializer=glorot_uniform(seed=1111),
+              kernel_initializer=glorot_uniform(seed=3333),
               **dense_params),
         Activation('sigmoid'),
         Dense(args.n_hiddens[1],
               kernel_regularizer=regularizers.l2(args.mlp_l2),
-              kernel_initializer=glorot_uniform(seed=2222),
+              kernel_initializer=glorot_uniform(seed=4444),
               **dense2_params),
         Activation('sigmoid'),
-        Dense(10, kernel_initializer=glorot_uniform(seed=3333)),
+        Dense(10, kernel_initializer=glorot_uniform(seed=5555)),
         Activation('softmax'),
     ])
     mlp.compile(optimizer=MultiAdam(lr=0.001,
@@ -326,7 +326,7 @@ def main():
     # pre-train RBM #1
     rbm1 = make_rbm1(X, args)
 
-    # freeze RBM #1 and extract features Q = P_{RBM_1}(h|v=X)
+    # freeze RBM #1 and extract features Q = p_{RBM_1}(h|v=X)
     Q = None
     if not os.path.isdir(args.rbm2_dirpath) or not os.path.isdir(args.dbm_dirpath):
         print "\nExtracting features from RBM #1 ..."
@@ -337,7 +337,7 @@ def main():
     # pre-train RBM #2
     rbm2 = make_rbm2(Q, args)
 
-    # freeze RBM #2 and extract features G = P_{RBM_2}(h|v=Q)
+    # freeze RBM #2 and extract features G = p_{RBM_2}(h|v=Q)
     G = None
     if not os.path.isdir(args.dbm_dirpath):
         print "\nExtracting features from RBM #2 ..."
