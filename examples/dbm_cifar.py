@@ -7,6 +7,10 @@ in all directions and horizontal mirroring.
 Gaussian RBM is initialized from 26 small RBMs trained on patches 8x8
 of images, as in [1].
 
+features from G-RBM are in half precision
+~9 GB RAM
+1.6 GB augmented data +
+
 References
 ----------
 [1] A. Krizhevsky and G. Hinton. Learning multiple layers of features
@@ -77,9 +81,40 @@ def make_augmentation(X_train, n_train, args):
     return X_aug
 
 
-def make_small_rbms(X_train, X_val, small_rbm_config, args):
+def make_small_rbms((X_train, X_val), args):
     X_train = im_unflatten(X_train)
     X_val = im_unflatten(X_val)
+
+    small_rbm_config = dict(n_visible=8 * 8 * 3,
+                            n_hidden=300,
+                            sigma=1.,
+                            W_init=0.001,
+                            vb_init=0.,
+                            hb_init=0.,
+                            n_gibbs_steps=1,
+                            learning_rate=args.small_lr,
+                            momentum=np.geomspace(0.5, 0.9, 8),
+                            max_epoch=args.small_epochs,
+                            batch_size=args.small_batch_size,
+                            l2=args.small_l2,
+                            sample_v_states=True,
+                            sample_h_states=True,
+                            sparsity_cost=0.,
+                            dbm_first=True,  # !!!
+                            metrics_config=dict(
+                                msre=True,
+                                feg=True,
+                                train_metrics_every_iter=1000,
+                                val_metrics_every_epoch=2,
+                                feg_every_epoch=2,
+                                n_batches_for_feg=50,
+                            ),
+                            verbose=True,
+                            display_filters=12,
+                            display_hidden_activations=36,
+                            v_shape=(8, 8, 3),
+                            dtype='float32',
+                            tf_saver_params=dict(max_to_keep=1))
     small_rbms = []
 
     # first 16 ...
@@ -124,13 +159,13 @@ def make_small_rbms(X_train, X_val, small_rbm_config, args):
                 X_patches = im_flatten(X_patches)
                 X_patches_val = im_flatten(X_patches_val)
 
-                rbm = GaussianRBM(random_seed=9000 + rbm_id,
+                rbm = GaussianRBM(random_seed=args.small_random_seed + rbm_id,
                                   model_path=rbm_dirpath,
                                   **small_rbm_config)
                 rbm.fit(X_patches, X_patches_val)
             small_rbms.append(rbm)
 
-    # ... the last one
+    # ... and the last one
     rbm_id = 25
     rbm_dirpath = args.small_dirpath_prefix + str(rbm_id) + '/'
 
@@ -217,6 +252,52 @@ def make_large_weights(small_rbms):
     return W, vb, hb
 
 
+def make_grbm((X_train, X_val), small_rbms, args):
+    if os.path.isdir(args.grbm_dirpath):
+        print "\nLoading G-RBM ...\n\n"
+        grbm = GaussianRBM.load_model(args.grbm_dirpath)
+    else:
+        print "\nAssembling weights for large Gaussian RBM ...\n\n"
+        W, vb, hb = make_large_weights(small_rbms)
+
+        print "\nTraining G-RBM ...\n\n"
+        grbm = GaussianRBM(n_visible=32 * 32 * 3,
+                           n_hidden=300 * 26,
+                           sigma=1.,
+                           W_init=W,
+                           vb_init=vb,
+                           hb_init=hb,
+                           n_gibbs_steps=1,
+                           learning_rate=args.lr[0],
+                           momentum=np.geomspace(0.5, 0.9, 8),
+                           max_epoch=args.epochs[0],
+                           batch_size=args.batch_size[0],
+                           l2=args.l2[0],
+                           sample_v_states=True,
+                           sample_h_states=True,
+                           sparsity_target=0.1,
+                           sparsity_cost=1e-4,
+                           dbm_first=True,  # !!!
+                           metrics_config=dict(
+                               msre=True,
+                               feg=True,
+                               train_metrics_every_iter=1000,
+                               val_metrics_every_epoch=1,
+                               feg_every_epoch=2,
+                               n_batches_for_feg=50,
+                           ),
+                           verbose=True,
+                           display_filters=24,
+                           display_hidden_activations=36,
+                           v_shape=(32, 32, 3),
+                           random_seed=args.random_seed[0],
+                           dtype='float32',
+                           tf_saver_params=dict(max_to_keep=1),
+                           model_path=args.grbm_dirpath)
+        grbm.fit(X_train, X_val)
+    return grbm
+
+
 def make_transform(rbm, X, path):
     H = None
     transform = True
@@ -255,28 +336,32 @@ def main():
                         help='input batch size for training')
     parser.add_argument('--small-l2', type=float, default=2e-3, metavar='L2',
                         help='L2 weight decay coefficient')
+    parser.add_argument('--small-random-seed', type=int, default=9000, metavar='N',
+                        help="random seeds for models training")
     parser.add_argument('--small-dirpath-prefix', type=str, default='../models/rbm_cifar_small_', metavar='PREFIX',
                         help='directory path prefix to save RBMs trained on patches')
 
     # RBM #2 related
-    parser.add_argument('--increase-n-gibbs-steps-every', type=int, default=16, metavar='I',
+    parser.add_argument('--increase-n-gibbs-steps-every', type=int, default=20, metavar='I',
                         help='increase number of Gibbs steps every specified number of epochs for RBM #2')
 
     # common for RBMs and DBM
-    parser.add_argument('--lr', type=float, default=[5e-4, 5e-5, 4e-5], metavar='LR', nargs='+',
+    parser.add_argument('--lr', type=float, default=(5e-4, 5e-5, 4e-5), metavar='LR', nargs='+',
                         help='(initial) learning rates')
-    parser.add_argument('--epochs', type=int, default=[72, 80, 100], metavar='N', nargs='+',
+    parser.add_argument('--epochs', type=int, default=(80, 80, 200), metavar='N', nargs='+',
                         help='number of epochs to train')
-    parser.add_argument('--batch-size', type=int, default=[100, 100, 100], metavar='B', nargs='+',
+    parser.add_argument('--batch-size', type=int, default=(100, 100, 100), metavar='B', nargs='+',
                         help='input batch size for training, `--n-train` and `--n-val`' + \
                              'must be divisible by this number (for DBM)')
-    parser.add_argument('--l2', type=float, default=[2e-3, 0.05, 1e-6], metavar='L2', nargs='+',
+    parser.add_argument('--l2', type=float, default=(2e-3, 0.05, 1e-8), metavar='L2', nargs='+',
                         help='L2 weight decay coefficients')
+    parser.add_argument('--random-seed', type=int, default=(1337, 1111, 2222), metavar='N', nargs='+',
+                        help='random seeds for models training')
 
     # save dirpaths
-    parser.add_argument('--rbm1-dirpath', type=str, default='../models/rbm1_cifar/', metavar='DIRPATH',
+    parser.add_argument('--grbm-dirpath', type=str, default='../models/grbm_cifar/', metavar='DIRPATH',
                         help='directory path to save Gaussian RBM')
-    parser.add_argument('--rbm2-dirpath', type=str, default='../models/rbm2_cifar/', metavar='DIRPATH',
+    parser.add_argument('--mrbm-dirpath', type=str, default='../models/mrbm_cifar/', metavar='DIRPATH',
                         help='directory path to save Multinomial RBM')
     parser.add_argument('--dbm-dirpath', type=str, default='../models/dbm_cifar/', metavar='DIRPATH',
                         help='directory path to save DBM')
@@ -286,15 +371,15 @@ def main():
                         help='number of persistent Markov chains')
     parser.add_argument('--n-gibbs-steps', type=int, default=1, metavar='N',
                         help='number of Gibbs steps for PCD')
-    parser.add_argument('--max-mf-updates', type=int, default=50, metavar='N',
+    parser.add_argument('--max-mf-updates', type=int, default=70, metavar='N',
                         help='maximum number of mean-field updates per weight update')
     parser.add_argument('--mf-tol', type=float, default=1e-11, metavar='TOL',
                         help='mean-field tolerance')
     parser.add_argument('--max-norm', type=float, default=4., metavar='C',
                         help='maximum norm constraint')
-    parser.add_argument('--sparsity-target', type=float, default=[0.2, 0.2], metavar='T', nargs='+',
+    parser.add_argument('--sparsity-target', type=float, default=(0.2, 0.2), metavar='T', nargs='+',
                         help='desired probability of hidden activation')
-    parser.add_argument('--sparsity-cost', type=float, default=[1e-4, 1e-3], metavar='C', nargs='+',
+    parser.add_argument('--sparsity-cost', type=float, default=(1e-4, 1e-3), metavar='C', nargs='+',
                         help='controls the amount of sparsity penalty')
     parser.add_argument('--sparsity-damping', type=float, default=0.9, metavar='D',
                         help='decay rate for hidden activations probs')
@@ -307,6 +392,7 @@ def main():
         (args.epochs, 3),
         (args.batch_size, 3),
         (args.l2, 3),
+        (args.random_seed, 3),
     ):
         if len(x) == 1:
             x *= m
@@ -340,89 +426,20 @@ def main():
     X_val /= X_std
     mean_path = os.path.join(args.data_path, 'X_mean.npy')
     std_path = os.path.join(args.data_path, 'X_std.npy')
-    if not os.path.isfile(mean_path): np.save(mean_path, X_mean)
-    if not os.path.isfile(std_path): np.save(std_path, X_std)
+    if not os.path.isfile(mean_path):
+        np.save(mean_path, X_mean)
+    if not os.path.isfile(std_path):
+        np.save(std_path, X_std)
     print "Augmented mean: ({0:.3f}, ...); std: ({1:.3f}, ...)".format(X_train.mean(axis=0)[0],
                                                                        X_train.std(axis=0)[0])
     print "Augmented range: ({0:.3f}, {1:.3f})\n\n".format(X_train.min(), X_train.max())
 
     # train 26 small Gaussian RBMs on patches
-    small_rbm_config = dict(n_visible=8 * 8 * 3,
-                            n_hidden=300,
-                            sigma=1.,
-                            W_init=0.001,
-                            vb_init=0.,
-                            hb_init=0.,
-                            n_gibbs_steps=1,
-                            learning_rate=args.small_lr,
-                            momentum=np.geomspace(0.5, 0.9, 8),
-                            max_epoch=args.small_epochs,
-                            batch_size=args.small_batch_size,
-                            l2=args.small_l2,
-                            sample_v_states=True,
-                            sample_h_states=True,
-                            sparsity_cost=0.,
-                            dbm_first=True,  # !!!
-                            metrics_config=dict(
-                                msre=True,
-                                feg=True,
-                                train_metrics_every_iter=1000,
-                                val_metrics_every_epoch=2,
-                                feg_every_epoch=2,
-                                n_batches_for_feg=50,
-                            ),
-                            verbose=True,
-                            display_filters=12,
-                            display_hidden_activations=36,
-                            v_shape=(8, 8, 3),
-                            dtype='float32',
-                            tf_saver_params=dict(max_to_keep=1))
-    small_rbms = make_small_rbms(X_train, X_val, small_rbm_config, args)
+    small_rbms = make_small_rbms((X_train, X_val), args)
 
     # assemble large weight matrix and biases
-    print "\nAssembling weights for large Gaussian RBM ...\n\n"
-    W, vb, hb = make_large_weights( small_rbms )
-
-    # pre-train large Gaussian RBM (G-RBM)
-    if os.path.isdir(args.rbm1_dirpath):
-        print "\nLoading G-RBM ...\n\n"
-        grbm = GaussianRBM.load_model(args.rbm1_dirpath)
-    else:
-        print "\nTraining G-RBM ...\n\n"
-        grbm = GaussianRBM(n_visible=32 * 32 * 3,
-                           n_hidden=300 * 26,
-                           sigma=1.,
-                           W_init=W,
-                           vb_init=vb,
-                           hb_init=hb,
-                           n_gibbs_steps=1,
-                           learning_rate=args.lr[0],
-                           momentum=np.geomspace(0.5, 0.9, 8),
-                           max_epoch=args.epochs[0],
-                           batch_size=args.batch_size[0],
-                           l2=args.l2[0],
-                           sample_v_states=True,
-                           sample_h_states=True,
-                           sparsity_target=0.1,
-                           sparsity_cost=1e-4,
-                           dbm_first=True,  # !!!
-                           metrics_config=dict(
-                               msre=True,
-                               feg=True,
-                               train_metrics_every_iter=1000,
-                               val_metrics_every_epoch=1,
-                               feg_every_epoch=2,
-                               n_batches_for_feg=50,
-                           ),
-                           verbose=True,
-                           display_filters=24,
-                           display_hidden_activations=36,
-                           v_shape=(32, 32, 3),
-                           random_seed=1111,
-                           dtype='float32',
-                           tf_saver_params=dict(max_to_keep=1),
-                           model_path=args.rbm1_dirpath)
-        grbm.fit(X_train, X_val)
+    # and pre-train large Gaussian RBM (G-RBM)
+    grbm = make_grbm((X_train, X_val), small_rbms, args)
 
     # extract features Q = p_{G-RBM}(h|v=X)
     print "\nExtracting features from G-RBM ...\n\n"
@@ -466,7 +483,7 @@ def main():
                            ),
                            verbose=True,
                            display_hidden_activations=100,
-                           random_seed=2222,
+                           random_seed=args.random_seed[1],
                            dtype='float32',
                            tf_saver_params=dict(max_to_keep=1),
                            model_path=args.rbm2_dirpath)
@@ -520,7 +537,7 @@ def main():
               sparsity_damping=args.sparsity_damping,
               train_metrics_every_iter=10,
               val_metrics_every_epoch=2,
-              random_seed=3333,
+              random_seed=args.random_seed[2],
               verbose=True,
               display_filters=12,
               display_particles=36,
