@@ -373,6 +373,41 @@ class BaseRBM(EnergyBasedModel):
 
         return v_states, v_means, h_states, h_means
 
+    def _make_gibbs_chain_fixed(self, h_states):
+        v_states = v_means = h_means = None
+        for _ in xrange(self.n_gibbs_steps[0]):
+            v_states, v_means, h_states, h_means = self._make_gibbs_step(h_states)
+        return v_states, v_means, h_states, h_means
+
+    def _make_gibbs_chain_variable(self, h_states):
+        def cond(step, max_step, v_states, v_means, h_states, h_means):
+            return step < max_step
+
+        def body(step, max_step, v_states, v_means, h_states, h_means):
+            v_states, v_means, h_states, h_means = self._make_gibbs_step(h_states)
+            return step + 1, max_step, v_states, v_means, h_states, h_means
+
+        _, _, v_states, v_means, h_states, h_means = \
+            tf.while_loop(cond=cond, body=body,
+                          loop_vars=[tf.constant(0),
+                                     self._n_gibbs_steps,
+                                     tf.zeros_like(self._X_batch),
+                                     tf.zeros_like(self._X_batch),
+                                     h_states,
+                                     tf.zeros_like(h_states)],
+                          back_prop=False,
+                          parallel_iterations=1)
+
+        return v_states, v_means, h_states, h_means
+
+    def _make_gibbs_chain(self, *args, **kwargs):
+        # use faster implementation (w/o while loop) when
+        # number of Gibbs steps is fixed
+        if len(self.n_gibbs_steps) == 1:
+            return self._make_gibbs_chain_fixed(*args, **kwargs)
+        else:
+            return self._make_gibbs_chain_variable(*args, **kwargs)
+
     def _make_train_op(self):
         # apply dropout if necessary
         if self.dropout is not None:
@@ -384,23 +419,7 @@ class BaseRBM(EnergyBasedModel):
             h0_samples = self._sample_h_given_v(h0_means)
             h_states = h0_samples if self.sample_h_states else h0_means
 
-            def cond(step, max_step, v_states, v_means, h_states, h_means):
-                return step < max_step
-
-            def body(step, max_step, v_states, v_means, h_states, h_means):
-                v_states, v_means, h_states, h_means = self._make_gibbs_step(h_states)
-                return step + 1, max_step, v_states, v_means, h_states, h_means
-
-            _, _, v_states, v_means, _, h_means = \
-                tf.while_loop(cond=cond, body=body,
-                              loop_vars=[tf.constant(0),
-                                         self._n_gibbs_steps,
-                                         tf.zeros_like(self._X_batch),
-                                         tf.zeros_like(self._X_batch),
-                                         h_states,
-                                         tf.zeros_like(h_states)],
-                              back_prop=False,
-                              parallel_iterations=1)
+            v_states, v_means, _, h_means = self._make_gibbs_chain(h_states)
 
         # visualize hidden activation means
         if self.display_hidden_activations:
