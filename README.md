@@ -206,9 +206,13 @@ TensorFlow 1.3.0 assumes cuDNN v6.0 by default. If you have different one instal
 ## Tensorboard visualization
 ***TODO***
 
+## Requirements
+* GPU memory: quite low for all experiments, even 1GB should suffice
+* RAM: depending on experiment, at most 9GB (for DBM CIFAR-10)
+* HDD: ***TODO*** all models + all data + all features
+
 ## TODO
 * add stratification
-* separate classes with variable and fixed number of Gibbs steps (first is 1.4-2 times slower)
 * experiment: generate half MNIST digit conditioned on the other half using RBM 
 * feature: Centering trick
 * feature: classification RBMs/DBMs
