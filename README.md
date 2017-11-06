@@ -30,7 +30,7 @@ Goal was to reproduce DBM MNIST (at least there was numbers to compare with) + D
 
 ## Examples (***TODO*** add demo images, download models)
 ### #1 RBM MNIST: [script](examples/rbm_mnist.py), *[notebook](notebooks/rbm_mnist.ipynb)*
-Train RBM on MNIST dataset and use it for classification.
+Train Bernoulli RBM with 1024 hidden units on MNIST dataset and use it for classification.
 
 | <div align="center">Algorithm</div> | Test Error, % |
 | :--- | :---: |
@@ -58,6 +58,9 @@ In these experiments only RBM was tuned to have high pseudo log-likelihood on a 
 Even better results can be obtained if one will tune MLP and other classifiers.
 
 ### #2 DBM MNIST: [script](examples/dbm_mnist.py), *[notebook](notebooks/dbm_mnist.ipynb)*
+Train 784-512-1024 Bernoulli DBM on MNIST dataset and use it for classification, generate samples after training, 
+estimate partition function using Annealed Importance Sampling and average log-probability lower-bound (=evidence lower-bound, ELBO) 
+on the test set. 
 
 | who | # intermediate distributions | proposal | log(Z<sub>mean</sub>) | log(Z<sub>mean</sub> &plusmn; &#963;<sub>Z</sub>) | Avg. test ELBO |
 | :---: | :---: | :---: | :---: | :---: | :---: |

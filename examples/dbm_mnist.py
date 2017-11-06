@@ -9,7 +9,16 @@ another ones to obtain more stable learning (lesser number of "died" units etc.)
 RBM #2 trained with increasing k in CD-k and decreasing learning rate
 over time.
 
+Average validation mean reconstruction error for DBM (mostly) monotonically
+decreases during training and is about 5.27e-3 at the end.
+
 The training took approx. 11 + 55 + 185 min ~ 4h 10m on GTX 1060.
+
+After the model is trained, it is discriminatively fine-tuned.
+The code uses early stopping so max number of MLP epochs is often not reached.
+It achieves 1.32% misclassification rate on the test set.
+
+Note that DBM is trained without centering.
 
 Links
 -----
