@@ -1,3 +1,4 @@
+h5py~=2.7.1
 ipython~=5.4.1
 jupyter~=1.0.0
 keras~=2.0.8

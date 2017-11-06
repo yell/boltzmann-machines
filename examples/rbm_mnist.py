@@ -26,9 +26,9 @@ import os
 import argparse
 import numpy as np
 from keras import regularizers
-from keras.callbacks import EarlyStopping, ReduceLROnPlateau
+from keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
 from keras.initializers import glorot_uniform
-from keras.models import Sequential
+from keras.models import Sequential, load_model
 from keras.layers import Dense, Activation
 from sklearn.metrics import accuracy_score
 
@@ -110,19 +110,23 @@ def make_mlp((X_train, y_train), (X_val, y_val), (X_test, y_test),
         early_stopping = EarlyStopping(monitor=args.mlp_val_metric, patience=12, verbose=2)
         reduce_lr = ReduceLROnPlateau(monitor=args.mlp_val_metric, factor=0.2, verbose=2,
                                       patience=6, min_lr=1e-5)
+        ckpt = ModelCheckpoint('model.h5', monitor=args.mlp_val_metric,
+                               save_best_only=True, save_weights_only=True, verbose=1)
         try:
             mlp.fit(X_train, one_hot(y_train, n_classes=10),
                     epochs=args.mlp_epochs,
                     batch_size=args.mlp_batch_size,
                     shuffle=False,
                     validation_data=(X_val, one_hot(y_val, n_classes=10)),
-                    callbacks=[early_stopping, reduce_lr])
+                    callbacks=[early_stopping, reduce_lr, ckpt])
         except KeyboardInterrupt:
             pass
 
-        y_pred = mlp.predict(X_test)
-        y_pred = unhot(one_hot_decision_function(y_pred), n_classes=10)
-        print "Test accuracy: {:.4f}".format(accuracy_score(y_test, y_pred))
+    mlp.load_weights('model.h5')
+
+    y_pred = mlp.predict(X_test)
+    y_pred = unhot(one_hot_decision_function(y_pred), n_classes=10)
+    print "Test accuracy: {:.4f}".format(accuracy_score(y_test, y_pred))
 
     # save predictions, targets, and fine-tuned weights
     np.save(args.mlp_save_prefix + 'y_pred.npy', y_pred)
