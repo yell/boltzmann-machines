@@ -12,7 +12,7 @@ over time.
 Average validation mean reconstruction error for DBM (mostly) monotonically
 decreases during training and is about 5.27e-3 at the end.
 
-The training took approx. 11 + 55 + 185 min ~ 4h 10m on GTX 1060.
+The training took approx. 9 + 55 + 185 min = 4h 9m on GTX 1060.
 
 After the model is trained, it is discriminatively fine-tuned.
 The code uses early stopping so max number of MLP epochs is often not reached.
@@ -343,7 +343,6 @@ def main():
     if not os.path.isdir(args.rbm2_dirpath) or not os.path.isdir(args.dbm_dirpath):
         print "\nExtracting features from RBM #1 ..."
         Q = rbm1.transform(X)
-        print Q.shape
         print "\n"
 
     # pre-train RBM #2
@@ -354,7 +353,6 @@ def main():
     if not os.path.isdir(args.dbm_dirpath):
         print "\nExtracting features from RBM #2 ..."
         G = rbm2.transform(Q)
-        print G.shape
         print "\n"
 
     # jointly train DBM

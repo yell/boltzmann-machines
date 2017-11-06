@@ -104,10 +104,10 @@ def make_small_rbms((X_train, X_val), args):
                             metrics_config=dict(
                                 msre=True,
                                 feg=True,
-                                train_metrics_every_iter=1000,
+                                train_metrics_every_iter=2000,
                                 val_metrics_every_epoch=2,
                                 feg_every_epoch=2,
-                                n_batches_for_feg=50,
+                                n_batches_for_feg=100,
                             ),
                             verbose=True,
                             display_filters=12,
@@ -298,7 +298,7 @@ def make_grbm((X_train, X_val), small_rbms, args):
     return grbm
 
 
-def make_transform(rbm, X, path):
+def make_rbm_transform(rbm, X, path, np_dtype=None):
     H = None
     transform = True
     if os.path.isfile(path):
@@ -306,7 +306,7 @@ def make_transform(rbm, X, path):
         if len(X) == len(H):
             transform = False
     if transform:
-        H = rbm.transform(X, np_dtype=np.float32)
+        H = rbm.transform(X, np_dtype=np_dtype)
         np.save(path, H)
     return H
 
@@ -443,10 +443,12 @@ def main():
 
     # extract features Q = p_{G-RBM}(h|v=X)
     print "\nExtracting features from G-RBM ...\n\n"
-    Q_train_path = os.path.join(args.data_path, 'Q_train_cifar.npy')
-    Q_val_path = os.path.join(args.data_path, 'Q_val_cifar.npy')
-    Q_train = make_transform(grbm, X_train, Q_train_path)
-    Q_val = make_transform(grbm, X_val, Q_val_path)
+    Q_train, Q_val = None, None
+    if not os.path.isdir(args.mrbm_dirpath) or not os.path.isdir(args.dbm_dirpath):
+        Q_train_path = os.path.join(args.data_path, 'Q_train_cifar.npy')
+        Q_val_path = os.path.join(args.data_path, 'Q_val_cifar.npy')
+        Q_train = make_rbm_transform(grbm, X_train, Q_train_path, np_dtype=np.float16)
+        Q_val = make_rbm_transform(grbm, X_val, Q_val_path)
 
     # pre-train Multinomial RBM (M-RBM)
     if os.path.isdir(args.rbm2_dirpath):
@@ -510,8 +512,8 @@ def main():
     print "\nExtracting features from M-RBM ...\n\n"
     G_train_path = os.path.join(args.data_path, 'G_train_cifar.npy')
     G_val_path = os.path.join(args.data_path, 'G_val_cifar.npy')
-    G_train = make_transform(mrbm, Q_train, G_train_path)
-    G_val = make_transform(mrbm, Q_val, G_val_path)
+    G_train = make_rbm_transform(mrbm, Q_train, G_train_path)
+    G_val = make_rbm_transform(mrbm, Q_val, G_val_path)
 
     print G_train.shape, G_val.shape
 
