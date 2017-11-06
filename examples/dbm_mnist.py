@@ -262,7 +262,7 @@ def main():
     parser.add_argument('--n-gibbs-steps', type=int, default=(1, 1, 1), metavar='N', nargs='+',
                         help='(initial) number of Gibbs steps for CD/PCD')
     parser.add_argument('--random-seed', type=int, default=(1337, 1111, 2222), metavar='N', nargs='+',
-                        help="random seeds for models training")
+                        help='random seeds for models training')
 
     # save dirpaths
     parser.add_argument('--rbm1-dirpath', type=str, default='../models/dbm_mnist_rbm1/', metavar='DIRPATH',
