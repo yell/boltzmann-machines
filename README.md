@@ -73,12 +73,12 @@ Even better results can be obtained if one will tune MLP and other classifiers.
 <p float="left">
   <img src="img/dbm_mnist/rbm1.png" width="280" />
   <img src="img/dbm_mnist/W1_joint.png" width="280" /> 
-  <img src="img/dbm_mnist/W1_joint.png" width="280" />
+  <img src="img/dbm_mnist/W1_finetuned.png" width="280" />
 </p>
 <p float="left">
   <img src="img/dbm_mnist/rbm2.png" width="280" />
   <img src="img/dbm_mnist/W2_joint.png" width="280" /> 
-  <img src="img/dbm_mnist/W2_joint.png" width="280" />
+  <img src="img/dbm_mnist/W2_finetuned.png" width="280" />
 </p>
 
 
