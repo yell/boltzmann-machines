@@ -2,7 +2,13 @@
 # -*- coding: utf-8 -*-
 """
 Train 3072-5000-1000 Gaussian-Bernoulli-Multinomial
-DBM with pre-training on CIFAR-10.
+DBM with pre-training on "smoothed" CIFAR-10 (with 1000 least
+significant singular values removed), as suggested in [1].
+
+References
+----------
+[1] A. Krizhevsky and G. Hinton. Learning multiple layers of features
+    from tine images. 2009.
 """
 print __doc__
 
@@ -10,6 +16,7 @@ print __doc__
 import os
 import argparse
 import numpy as np
+from scipy.linalg import svd
 
 import env
 from bm import DBM
@@ -18,6 +25,38 @@ from bm.utils import RNG, Stopwatch
 from bm.utils.dataset import (load_cifar10,
                               im_flatten, im_unflatten)
 
+
+def make_smoothing(X_train, n_train, args):
+    X_s = None
+    X_s_path = os.path.join(args.data_path, 'X_s.npy')
+
+    do_smoothing = True
+    if os.path.isfile(X_s_path):
+        print "\nLoading smoothed data ..."
+        X_s = np.load(X_s_path)
+        print "Checking augmented data ..."
+        if len(X_s) == n_train:
+            do_smoothing = False
+
+    if do_smoothing:
+        print "\nSmoothing data ..."
+        X_m = X_train.mean(axis=0)
+        X_train -= X_m
+        with Stopwatch(verbose=True) as s:
+            [U, s, Vh] = svd(X_train,
+                             full_matrices=False,
+                             compute_uv=True,
+                             overwrite_a=True,
+                             check_finite=False)
+        s[-1000:] = 0.
+        X_s = U.dot(np.diag(s).dot(Vh))
+        X_s += X_m
+
+        # save to disk
+        np.save(X_s_path, X_s)
+        print "\n"
+
+    return X_s
 
 def make_grbm((X_train, X_val), args):
     if os.path.isdir(args.grbm_dirpath):
@@ -212,6 +251,11 @@ def main():
     n_val = min(len(X), args.n_val)
     X_train = X[:n_train]
     X_val = X[-n_val:]
+
+    # remove 1000 least significant singular values
+    X_s = make_smoothing(X_train, n_train, args)
+
+    print X_s.shape
 
     # X = np.load('../data/cifar10_dewhitened.npy')
     #     # X -= X.mean(axis=0)
