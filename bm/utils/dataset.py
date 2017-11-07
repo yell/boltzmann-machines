@@ -139,6 +139,28 @@ def im_unflatten(X):
     return X
 
 
+def im_rescale(X, mean=0., std=1.):
+    """Same as `im_unflatten` but also scale range
+    of images for better visual perception.
+
+    Parameters
+    ----------
+    X : (n_samples, D * D * 3) np.ndarray
+
+    Returns
+    -------
+    X : (n_samples, D, D, 3) np.ndarray
+    """
+    X *= std
+    X += mean
+    X -= X.min(axis=1)[:, np.newaxis]
+    X /= X.ptp(axis=1)[:, np.newaxis]  # [0; 1] range for all images
+    X = im_unflatten(X)  # (n_samples, D, D, 3)
+    X *= 255.
+    X = X.astype('uint8')
+    return X
+
+
 def get_cifar10_label(index):
     return {
         0: 'airplane',
