@@ -427,15 +427,16 @@ class DBM(EnergyBasedModel):
             # initialize mu_new using approximate inference
             # as suggested in [1]
             init_ops = []
+            T = None
             for i in xrange(self.n_layers_):
                 if i == 0:
                     T = 2. * tf.matmul(self._X_batch, self._W[0])
                 else:
-                    T = tf.matmul(self._H[i - 1], self._W[i])
+                    T = tf.matmul(T, self._W[i])
                     if i < self.n_layers_ - 1:
                         T *= 2.
-                q_new = self._h_layers[i].activation(T, self._hb[i])
-                q_new = tf.identity(q_new, name='approx_inference')
+                T = self._h_layers[i].activation(T, self._hb[i])
+                q_new = tf.identity(T, name='approx_inference')
                 init_op = tf.assign(self._mu_new[i], q_new)
                 init_ops.append(init_op)
 
