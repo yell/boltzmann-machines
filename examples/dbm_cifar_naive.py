@@ -94,7 +94,7 @@ def make_grbm((X_train, X_val), args):
                            v_shape=(32, 32, 3),
                            dtype='float32',
                            tf_saver_params=dict(max_to_keep=1),
-                           model_path=args.mrbm_dirpath)
+                           model_path=args.grbm_dirpath)
         grbm.fit(X_train, X_val)
     return grbm
 
@@ -138,6 +138,18 @@ def make_mrbm((Q_train, Q_val), args):
                               model_path=args.mrbm_dirpath)
         mrbm.fit(Q_train, Q_val)
     return mrbm
+
+def make_rbm_transform(rbm, X, path, np_dtype=None):
+    H = None
+    transform = True
+    if os.path.isfile(path):
+        H = np.load(path)
+        if len(X) == len(H):
+            transform = False
+    if transform:
+        H = rbm.transform(X, np_dtype=np_dtype)
+        np.save(path, H)
+    return H
 
 def make_dbm((X_train, X_val), rbms, (Q, G), args):
     if os.path.isdir(args.dbm_dirpath):
@@ -253,17 +265,52 @@ def main():
     X_val = X[-n_val:]
 
     # remove 1000 least significant singular values
-    X_s = make_smoothing(X_train, n_train, args)
+    X_train = make_smoothing(X_train, n_train, args)
+    print X_train.shape
 
-    print X_s.shape
+    # center and normalize training data
+    X_s_mean = X_train.mean(axis=0)
+    X_s_std = X_train.std(axis=0)
+    X_train -= X_s_mean
+    X_train /= X_s_std
+    X_val -= X_s_mean
+    X_val /= X_s_std
+    mean_path = os.path.join(args.data_path, 'X_s_mean.npy')
+    std_path = os.path.join(args.data_path, 'X_s_std.npy')
+    if not os.path.isfile(mean_path):
+        np.save(mean_path, X_s_mean)
+    if not os.path.isfile(std_path):
+        np.save(std_path, X_s_std)
+    print "Mean: ({0:.3f}, ...); std: ({1:.3f}, ...)".format(X_train.mean(axis=0)[0],
+                                                             X_train.std(axis=0)[0])
+    print X_train[:10, :10]
+    print "Range: ({0:.3f}, {1:.3f})\n\n".format(X_train.min(), X_train.max())
 
-    # X = np.load('../data/cifar10_dewhitened.npy')
-    #     # X -= X.mean(axis=0)
-    #     print X.shape
-    #
-    #     # print X.min(), X.max()
-    #     # np.save('../data/X_m.npy', X.mean(axis=0))
-    #     # return
+    # pre-train Gaussian RBM
+    grbm = make_grbm((X_train, X_val), args)
+
+    # extract features Q = p_{G-RBM}(h|v=X)
+    print "\nExtracting features from G-RBM ...\n\n"
+    Q_train, Q_val = None, None
+    if not os.path.isdir(args.mrbm_dirpath) or not os.path.isdir(args.dbm_dirpath):
+        Q_train_path = os.path.join(args.data_path, 'Q_train_cifar_naive.npy')
+        Q_train = make_rbm_transform(grbm, X_train, Q_train_path, np_dtype=np.float16)
+    if not os.path.isdir(args.mrbm_dirpath):
+        Q_val_path = os.path.join(args.data_path, 'Q_val_cifar_naive.npy')
+        Q_val = make_rbm_transform(grbm, X_val, Q_val_path)
+
+    # pre-train Multinomial RBM (M-RBM)
+    mrbm = make_mrbm((Q_train, Q_val), args)
+
+    # extract features G = p_{M-RBM}(h|v=Q)
+    print "\nExtracting features from M-RBM ...\n\n"
+    G_train = None
+    if not os.path.isdir(args.dbm_dirpath):
+        G_train_path = os.path.join(args.data_path, 'G_train_cifar_naive.npy')
+        G_train = make_rbm_transform(mrbm, Q_train, G_train_path)
+
+    # jointly train DBM
+    dbm = make_dbm((X_train, X_val), (grbm, mrbm), (Q_train, G_train), args)
 
 
 if __name__ == '__main__':
