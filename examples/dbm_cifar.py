@@ -11,7 +11,7 @@ features from G-RBM are in half precision
 ~9 GB RAM
 1.6 GB augmented data +
 
-The training took approx. 26*58 + A + B + C min = Z on GTX 1060.
+The training took approx. 26*59 + A + B + C min = Z on GTX 1060.
 
 References
 ----------
@@ -350,7 +350,6 @@ def make_mrbm((Q_train, Q_val), args):
                               tf_saver_params=dict(max_to_keep=1),
                               model_path=args.mrbm_dirpath)
         mrbm.fit(Q_train, Q_val)
-
     return mrbm
 
 

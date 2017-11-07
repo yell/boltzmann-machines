@@ -154,12 +154,11 @@ def get_cifar10_label(index):
     }[index]
 
 
-def plot_cifar10(X, y, imshow_params=None):
+def plot_cifar10(X, y, samples_per_class=7, imshow_params=None):
     imshow_params = imshow_params or {}
     imshow_params.setdefault('interpolation', 'none')
     num_classes = 10
     classes = range(num_classes)
-    samples_per_class = 7
     for c in classes:
         idxs = np.flatnonzero(y == c)
         idxs = RNG(1337).choice(idxs, samples_per_class, replace=False)
@@ -176,7 +175,7 @@ def plot_cifar10(X, y, imshow_params=None):
             plt.imshow(X[idx].astype('uint8'), **imshow_params)
             if i == 0:
                 plt.title(get_cifar10_label(c))
-    plt.suptitle('CIFAR-10 dataset', fontsize=22)
+    plt.suptitle('CIFAR-10 dataset', fontsize=20, y=0.95)
     plt.subplots_adjust(wspace=0, hspace=0)
 
 
