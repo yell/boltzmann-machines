@@ -191,7 +191,10 @@ class BaseRBM(EnergyBasedModel):
         self.save_after_each_epoch = save_after_each_epoch
 
         self.display_filters = display_filters
+
+        assert self.n_hidden >= display_hidden_activations
         self.display_hidden_activations = display_hidden_activations
+
         self.v_shape = v_shape
         if len(self.v_shape) == 2:
             self.v_shape = (self.v_shape[0], self.v_shape[1], 1)
