@@ -14,7 +14,7 @@ features from G-RBM are in half precision
 ~9 GB RAM
 1.6 GB augmented data +
 
-The training took approx. 26*59 + A + B + C min = Z on GTX 1060.
+The training took approx. 26 x 60 + A + B + C min = Z on GTX 1060.
 
 References
 ----------
@@ -480,6 +480,7 @@ def main():
     args = parser.parse_args()
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
     for x, m in (
+        (args.n_gibbs_steps, 3),
         (args.lr, 3),
         (args.epochs, 3),
         (args.batch_size, 3),
