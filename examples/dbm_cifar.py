@@ -518,8 +518,8 @@ def main():
     X_train /= X_std
     X_val -= X_mean
     X_val /= X_std
-    mean_path = os.path.join(args.data_path, 'X_mean.npy')
-    std_path = os.path.join(args.data_path, 'X_std.npy')
+    mean_path = os.path.join(args.data_path, 'X_aug_mean.npy')
+    std_path = os.path.join(args.data_path, 'X_aug_std.npy')
     if not os.path.isfile(mean_path):
         np.save(mean_path, X_mean)
     if not os.path.isfile(std_path):
