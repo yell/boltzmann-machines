@@ -134,9 +134,13 @@ class DBM(EnergyBasedModel):
         self.verbose = verbose
         self.save_after_each_epoch = save_after_each_epoch
 
+        for nh in self.n_hiddens_:
+            assert nh >= display_filters
         self.display_filters = display_filters
+
+        assert display_particles <= self.n_particles
         self.display_particles = display_particles
-        assert self.display_particles <= self.n_particles
+
         self.v_shape = v_shape
         if len(self.v_shape) == 2:
             self.v_shape = (self.v_shape[0], self.v_shape[1], 1)

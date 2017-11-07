@@ -190,6 +190,7 @@ class BaseRBM(EnergyBasedModel):
         self.verbose = verbose
         self.save_after_each_epoch = save_after_each_epoch
 
+        assert self.n_hidden >= display_filters
         self.display_filters = display_filters
 
         assert self.n_hidden >= display_hidden_activations
