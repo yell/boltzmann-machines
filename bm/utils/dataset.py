@@ -176,9 +176,16 @@ def get_cifar10_label(index):
     }[index]
 
 
-def plot_cifar10(X, y, samples_per_class=7, imshow_params=None):
+def plot_cifar10(X, y, samples_per_class=7,
+                 title='CIFAR-10 dataset', title_params=None, imshow_params=None):
+    # check params
+    title_params = title_params or {}
+    title_params.setdefault('fontsize', 20)
+    title_params.setdefault('y', 0.95)
+
     imshow_params = imshow_params or {}
     imshow_params.setdefault('interpolation', 'none')
+
     num_classes = 10
     classes = range(num_classes)
     for c in classes:
@@ -197,7 +204,7 @@ def plot_cifar10(X, y, samples_per_class=7, imshow_params=None):
             plt.imshow(X[idx].astype('uint8'), **imshow_params)
             if i == 0:
                 plt.title(get_cifar10_label(c))
-    plt.suptitle('CIFAR-10 dataset', fontsize=20, y=0.95)
+    plt.suptitle(title, **title_params)
     plt.subplots_adjust(wspace=0, hspace=0)
 
 
