@@ -40,12 +40,13 @@ from bm.utils.dataset import (load_cifar10,
 def make_augmentation(X_train, n_train, args):
     X_aug = None
     X_aug_path = os.path.join(args.data_path, 'X_aug.npy')
+
     augment = True
     if os.path.isfile(X_aug_path):
         print "\nLoading augmented data ..."
         X_aug = np.load(X_aug_path)
         print "Checking augmented data ..."
-        if 10 * n_train == len(X_aug):
+        if len(X_aug) == 10 * n_train:
             augment = False
 
     if augment:
