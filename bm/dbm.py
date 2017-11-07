@@ -269,7 +269,7 @@ class DBM(EnergyBasedModel):
             hb = self._hb_init[i]
 
             # halve weights and biases of intermediate RBMs
-            if i > 0 and i < self.n_layers_ - 1:
+            if 0 < i < self.n_layers_ - 1:
                 W *= 0.5
                 vb *= 0.5
                 hb *= 0.5
