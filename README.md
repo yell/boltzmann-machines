@@ -71,11 +71,6 @@ on the test set.
 Couple of nats could have been lost because of single-precision.
 
 <p float="left">
-  <img src="img/dbm_mnist/mnist.png" width="274" />
-  <img src="img/dbm_mnist/samples.png" width="279" /> 
-  <img src="img/dbm_mnist/samples.gif" width="295" />
-</p>
-<p float="left">
   <img src="img/dbm_mnist/rbm1.png" width="280" />
   <img src="img/dbm_mnist/W1_joint.png" width="280" /> 
   <img src="img/dbm_mnist/W1_finetuned.png" width="280" />
@@ -84,6 +79,11 @@ Couple of nats could have been lost because of single-precision.
   <img src="img/dbm_mnist/rbm2.png" width="280" />
   <img src="img/dbm_mnist/W2_joint.png" width="280" /> 
   <img src="img/dbm_mnist/W2_finetuned.png" width="280" />
+</p>
+<p float="left">
+  <img src="img/dbm_mnist/mnist.png" width="274" />
+  <img src="img/dbm_mnist/samples.png" width="279" /> 
+  <img src="img/dbm_mnist/samples.gif" width="295" />
 </p>
 
 | Number of labeled data pairs (train + val) | DBM + fine-tuning | random initialization | gain |
