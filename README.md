@@ -102,7 +102,7 @@ Also because the optimization problem is harder, the gain when not much datapoin
 
 Large number of parameters is one of the most crucial reasons why one-shot learning is not successfuly by utilizing deep learning only. Instead, it is much better to combine deep learning and hierarchical Bayesian modeling by putting HDP prior over units from top-most hidden layer as in #paper.
 
-### #3 DBM CIFAR-10 Naïve: ~~[script]()~~, ~~[notebook]()~~
+### #3 DBM CIFAR-10 Naïve: [script](examples/dbm_cifar_naive.py), *[notebook](notebooks/dbm_cifar_naive.py)*
 ### #4 DBM CIFAR-10: [script](examples/dbm_cifar.py), *[notebook](notebooks/dbm_cifar.py)*
 ### How to use examples
 Use **script**s for training models from scratch, for instance
