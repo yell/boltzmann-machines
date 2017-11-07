@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Train 2-layer Gaussian-Bernoulli-Multinomial DBM with pre-training
-on CIFAR-10, augmented (x10) using shifts by 1 pixel
-in all directions and horizontal mirroring.
+Train 3072-7800-512 Gaussian-Bernoulli-Multinomial DBM with pre-training
+on CIFAR-10, augmented (x10) using shifts by 1 pixel in all directions
+and horizontal mirroring.
 Gaussian RBM is initialized from 26 small RBMs trained on patches 8x8
 of images, as in [1].
+
+Multinomial RBM trained with increasing k in CD-k and decreasing
+learning rate over time.
 
 features from G-RBM are in half precision
 ~9 GB RAM
@@ -81,7 +84,6 @@ def make_augmentation(X_train, n_train, args):
         print "\n"
 
     return X_aug
-
 
 def make_small_rbms((X_train, X_val), args):
     X_train = im_unflatten(X_train)
@@ -195,7 +197,6 @@ def make_small_rbms((X_train, X_val), args):
     small_rbms.append(rbm)
     return small_rbms
 
-
 def make_large_weights(small_rbms):
     W = np.zeros((300 * 26, 32, 32, 3), dtype=np.float32)
     W[...] = RNG(seed=1234).rand(*W.shape) * 5e-6
@@ -253,7 +254,6 @@ def make_large_weights(small_rbms):
 
     return W, vb, hb
 
-
 def make_grbm((X_train, X_val), small_rbms, args):
     if os.path.isdir(args.grbm_dirpath):
         print "\nLoading G-RBM ...\n\n"
@@ -298,7 +298,6 @@ def make_grbm((X_train, X_val), small_rbms, args):
                            model_path=args.grbm_dirpath)
         grbm.fit(X_train, X_val)
     return grbm
-
 
 def make_mrbm((Q_train, Q_val), args):
     if os.path.isdir(args.mrbm_dirpath):
@@ -352,7 +351,6 @@ def make_mrbm((Q_train, Q_val), args):
         mrbm.fit(Q_train, Q_val)
     return mrbm
 
-
 def make_rbm_transform(rbm, X, path, np_dtype=None):
     H = None
     transform = True
@@ -364,7 +362,6 @@ def make_rbm_transform(rbm, X, path, np_dtype=None):
         H = rbm.transform(X, np_dtype=np_dtype)
         np.save(path, H)
     return H
-
 
 def make_dbm((X_train, X_val), rbms, (Q, G), args):
     if os.path.isdir(args.dbm_dirpath):
@@ -445,7 +442,7 @@ def main():
                         help='(initial) number of Gibbs steps for CD/PCD')
     parser.add_argument('--lr', type=float, default=(5e-4, 5e-5, 4e-5), metavar='LR', nargs='+',
                         help='(initial) learning rates')
-    parser.add_argument('--epochs', type=int, default=(80, 80, 120), metavar='N', nargs='+',
+    parser.add_argument('--epochs', type=int, default=(80, 80, 200), metavar='N', nargs='+',
                         help='number of epochs to train')
     parser.add_argument('--batch-size', type=int, default=(100, 100, 100), metavar='B', nargs='+',
                         help='input batch size for training, `--n-train` and `--n-val`' + \
@@ -466,7 +463,7 @@ def main():
     # DBM related
     parser.add_argument('--n-particles', type=int, default=100, metavar='M',
                         help='number of persistent Markov chains')
-    parser.add_argument('--max-mf-updates', type=int, default=70, metavar='N',
+    parser.add_argument('--max-mf-updates', type=int, default=50, metavar='N',
                         help='maximum number of mean-field updates per weight update')
     parser.add_argument('--mf-tol', type=float, default=1e-11, metavar='TOL',
                         help='mean-field tolerance')

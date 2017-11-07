@@ -83,7 +83,6 @@ def make_rbm1(X, args):
         rbm1.fit(X)
     return rbm1
 
-
 def make_rbm2(Q, args):
     if os.path.isdir(args.rbm2_dirpath):
         print "\nLoading RBM #2 ...\n\n"
@@ -130,7 +129,6 @@ def make_rbm2(Q, args):
         rbm2.fit(Q)
     return rbm2
 
-
 def make_dbm((X_train, X_val), rbms, (Q, G), args):
     if os.path.isdir(args.dbm_dirpath):
         print "\nLoading DBM ...\n\n"
@@ -169,7 +167,6 @@ def make_dbm((X_train, X_val), rbms, (Q, G), args):
                   model_path=args.dbm_dirpath)
         dbm.fit(X_train, X_val)
     return dbm
-
 
 def make_mlp((X_train, y_train), (X_val, y_val), (X_test, y_test),
              (W, hb), (W2, hb2), args):
