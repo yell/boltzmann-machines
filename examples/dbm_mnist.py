@@ -305,11 +305,11 @@ def main():
     args = parser.parse_args()
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
     for x, m in (
+        (args.n_gibbs_steps, 3),
         (args.lr, 3),
         (args.epochs, 3),
         (args.batch_size, 3),
         (args.l2, 3),
-        (args.n_gibbs_steps, 3),
         (args.random_seed, 3),
         (args.sparsity_target, 2),
         (args.sparsity_cost, 2),
