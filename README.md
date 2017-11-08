@@ -62,7 +62,7 @@ Train 784-512-1024 Bernoulli DBM on MNIST dataset and use it for classification,
 estimate partition function using Annealed Importance Sampling and average log-probability lower-bound (=evidence lower-bound, ELBO) 
 on the test set. 
 
-| who | # intermediate distributions | proposal | log(Ẑ) | log(Ẑ &ndash; &#963;<sub>Z</sub>), log(Ẑ &#43; &#963;<sub>Z</sub>) | Avg. test ELBO |
+| who | # intermediate distributions | proposal (p<sub>0</sub>) | log(Ẑ) | log(Ẑ &ndash; &#963;<sub>Z</sub>), log(Ẑ &#43; &#963;<sub>Z</sub>) | Avg. test ELBO |
 | :---: | :---: | :---: | :---: | :---: | :---: |
 | DBM paper | 20'000 | base-rate? | 356.18 | 356.06, 356.29 | **-84.62** |
 | this repo | 200'000 | uniform | 1040.39 | 1040.18, 1040.58 | **-86.37** |
