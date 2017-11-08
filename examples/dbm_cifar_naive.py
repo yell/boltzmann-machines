@@ -49,9 +49,9 @@ def make_smoothing(X_train, n_train, args):
                              compute_uv=True,
                              overwrite_a=True,
                              check_finite=False)
-        s[-1000:] = 0.
-        X_s = U.dot(np.diag(s).dot(Vh))
-        X_s += X_m
+            s[-1000:] = 0.
+            X_s = U.dot(np.diag(s).dot(Vh))
+            X_s += X_m
 
         # save to disk
         np.save(X_s_path, X_s)
