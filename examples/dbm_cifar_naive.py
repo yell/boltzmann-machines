@@ -5,6 +5,8 @@ Train 3072-5000-1000 Gaussian-Bernoulli-Multinomial
 DBM with pre-training on "smoothed" CIFAR-10 (with 1000 least
 significant singular values removed), as suggested in [1].
 
+The training took approx. 47 + 119 + C min = Z on GTX 1060.
+
 References
 ----------
 [1] A. Krizhevsky and G. Hinton. Learning multiple layers of features
@@ -22,8 +24,7 @@ import env
 from bm import DBM
 from bm.rbm import GaussianRBM, MultinomialRBM
 from bm.utils import RNG, Stopwatch
-from bm.utils.dataset import (load_cifar10,
-                              im_flatten, im_unflatten)
+from bm.utils.dataset import load_cifar10
 
 
 def make_smoothing(X_train, n_train, args):
@@ -209,9 +210,9 @@ def main():
     # common for RBMs and DBM
     parser.add_argument('--n-gibbs-steps', type=int, default=(1, 1, 1), metavar='N', nargs='+',
                         help='(initial) number of Gibbs steps for CD/PCD')
-    parser.add_argument('--lr', type=float, default=(5e-4, 1e-4, 9e-5), metavar='LR', nargs='+',
+    parser.add_argument('--lr', type=float, default=(5e-4, 1e-4, 8e-5), metavar='LR', nargs='+',
                         help='(initial) learning rates')
-    parser.add_argument('--epochs', type=int, default=(120, 180, 300), metavar='N', nargs='+',
+    parser.add_argument('--epochs', type=int, default=(120, 180, 700), metavar='N', nargs='+',
                         help='number of epochs to train')
     parser.add_argument('--batch-size', type=int, default=(100, 100, 100), metavar='B', nargs='+',
                         help='input batch size for training, `--n-train` and `--n-val`' + \
@@ -232,7 +233,7 @@ def main():
     # DBM related
     parser.add_argument('--n-particles', type=int, default=100, metavar='M',
                         help='number of persistent Markov chains')
-    parser.add_argument('--max-mf-updates', type=int, default=30, metavar='N',
+    parser.add_argument('--max-mf-updates', type=int, default=50, metavar='N',
                         help='maximum number of mean-field updates per weight update')
     parser.add_argument('--mf-tol', type=float, default=1e-11, metavar='TOL',
                         help='mean-field tolerance')

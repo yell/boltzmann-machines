@@ -14,7 +14,7 @@ features from G-RBM are in half precision
 ~9 GB RAM
 1.6 GB augmented data +
 
-The training took approx. 26 x 60 + A + B + C min = Z on GTX 1060.
+The training took approx. 26 x 61 + A + B + C min = Z on GTX 1060.
 
 References
 ----------
@@ -464,7 +464,7 @@ def main():
     # DBM related
     parser.add_argument('--n-particles', type=int, default=100, metavar='M',
                         help='number of persistent Markov chains')
-    parser.add_argument('--max-mf-updates', type=int, default=50, metavar='N',
+    parser.add_argument('--max-mf-updates', type=int, default=70, metavar='N',
                         help='maximum number of mean-field updates per weight update')
     parser.add_argument('--mf-tol', type=float, default=1e-11, metavar='TOL',
                         help='mean-field tolerance')
