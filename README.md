@@ -104,6 +104,9 @@ Large number of parameters is one of the most crucial reasons why one-shot learn
 
 ### #3 DBM CIFAR-10 Naïve: [script](examples/dbm_cifar_naive.py), *[notebook](notebooks/dbm_cifar_naive.py)*
 ### #4 DBM CIFAR-10: [script](examples/dbm_cifar.py), *[notebook](notebooks/dbm_cifar.py)*
+
+***TODO***: takes quite a lot of time to compute, but once trained, these nets can be used for other (similar) datasets/tasks.
+
 ### How to use examples
 Use **script**s for training models from scratch, for instance
 ```
