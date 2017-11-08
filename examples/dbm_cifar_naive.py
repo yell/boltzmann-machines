@@ -212,7 +212,7 @@ def main():
                         help='(initial) number of Gibbs steps for CD/PCD')
     parser.add_argument('--lr', type=float, default=(5e-4, 1e-4, 8e-5), metavar='LR', nargs='+',
                         help='(initial) learning rates')
-    parser.add_argument('--epochs', type=int, default=(120, 180, 700), metavar='N', nargs='+',
+    parser.add_argument('--epochs', type=int, default=(120, 180, 750), metavar='N', nargs='+',
                         help='number of epochs to train')
     parser.add_argument('--batch-size', type=int, default=(100, 100, 100), metavar='B', nargs='+',
                         help='input batch size for training, `--n-train` and `--n-val`' + \
