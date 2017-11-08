@@ -220,6 +220,7 @@ TensorFlow 1.3.0 assumes cuDNN v6.0 by default. If you have different one instal
 * feature: Centering trick
 * feature: classification RBMs/DBMs
 * feature: ELBO and AIS for arbitrary DBM (again, visible and topmost hidden units can be analytically summed out) and for RBM (perhaps by using DBM class)
+* optimize input pipeline e.g. use queues instead of `feed_dict` etc.
 
 ## Contributing
 ***TODO***
