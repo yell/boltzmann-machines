@@ -514,16 +514,17 @@ def main():
     # center and normalize training data
     X_mean = X_train.mean(axis=0)
     X_std = X_train.std(axis=0)
-    X_train -= X_mean
-    X_train /= X_std
-    X_val -= X_mean
-    X_val /= X_std
     mean_path = os.path.join(args.data_path, 'X_aug_mean.npy')
     std_path = os.path.join(args.data_path, 'X_aug_std.npy')
     if not os.path.isfile(mean_path):
         np.save(mean_path, X_mean)
     if not os.path.isfile(std_path):
         np.save(std_path, X_std)
+
+    X_train -= X_mean
+    X_train /= X_std
+    X_val -= X_mean
+    X_val /= X_std
     print "Augmented mean: ({0:.3f}, ...); std: ({1:.3f}, ...)".format(X_train.mean(axis=0)[0],
                                                                        X_train.std(axis=0)[0])
     print "Augmented range: ({0:.3f}, {1:.3f})\n\n".format(X_train.min(), X_train.max())

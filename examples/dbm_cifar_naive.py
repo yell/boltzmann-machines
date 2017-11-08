@@ -272,16 +272,17 @@ def main():
     # center and normalize training data
     X_s_mean = X_train.mean(axis=0)
     X_s_std = X_train.std(axis=0)
-    X_train -= X_s_mean
-    X_train /= X_s_std
-    X_val -= X_s_mean
-    X_val /= X_s_std
     mean_path = os.path.join(args.data_path, 'X_s_mean.npy')
     std_path = os.path.join(args.data_path, 'X_s_std.npy')
     if not os.path.isfile(mean_path):
         np.save(mean_path, X_s_mean)
     if not os.path.isfile(std_path):
         np.save(std_path, X_s_std)
+
+    X_train -= X_s_mean
+    X_train /= X_s_std
+    X_val -= X_s_mean
+    X_val /= X_s_std
     print "Mean: ({0:.3f}, ...); std: ({1:.3f}, ...)".format(X_train.mean(axis=0)[0],
                                                              X_train.std(axis=0)[0])
     print X_train[:10, :10]
