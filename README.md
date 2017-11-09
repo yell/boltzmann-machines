@@ -1,7 +1,9 @@
 # Boltzmann Machines
 Goal was to reproduce DBM MNIST (at least there was numbers to compare with) + DBM CIFAR + additional experiments along the way
 
-## Implemented
+## Table of contents
+
+## What's Implemented
 ### Restricted Boltzmann Machines (RBM)
 * *k-step Contrastive Divergence*: *variable* learning rate and momentum, L2 weight decay, maxnorm, dropout, sparsity targets, ***TODO***: rest;
 * *different types of RBMs*: Bernoulli, Multinomial, Gaussian;
@@ -19,7 +21,7 @@ Goal was to reproduce DBM MNIST (at least there was numbers to compare with) + D
 * visualize visible negative particles
 * implemented Annealed Importance Sampling to estimate log partition function
 
-## Features
+### Features
 * easy to use `sklearn`-like interface
 * serialization (tf saver + python class hyperparams + RNG state), easy to save and to load
 * reproducible (random seeds)
@@ -27,6 +29,10 @@ Goal was to reproduce DBM MNIST (at least there was numbers to compare with) + D
 * choose metrics to display during learning
 * easy to resume training; note that changing parameters other than placeholders or python-level parameters (such as `batch_size`, `learning_rate`, `momentum`, `sample_v_states` etc.) between `fit` calls have no effect as this would require altering the computation graph, which is not yet supported; **however**, one can build model with new desired TF graph, and initialize weights and biases from old model by using `init_from` method
 * *visualization*: python routines to display images, learned filters, confusion matrices etc.
+
+### Tensorboard visualization
+* **RBM**: ***TODO***
+* **DBM**: ***TODO***
 
 ## Examples (***TODO*** add demo images, download models)
 ### #1 RBM MNIST: [script](examples/rbm_mnist.py), *[notebook](notebooks/rbm_mnist.ipynb)*
@@ -56,6 +62,8 @@ Also, [one-shot learning idea]:
 How to reproduce the this table see [here](docs/rbm_discriminative.md). 
 In these experiments only RBM was tuned to have high pseudo log-likelihood on a held-out validation set.
 Even better results can be obtained if one will tune MLP and other classifiers.
+
+---
 
 ### #2 DBM MNIST: [script](examples/dbm_mnist.py), *[notebook](notebooks/dbm_mnist.ipynb)*
 Train 784-512-1024 Bernoulli DBM on MNIST dataset and use it for classification, generate samples after training, 
@@ -102,6 +110,8 @@ Also because the optimization problem is harder, the gain when not much datapoin
 
 Large number of parameters is one of the most crucial reasons why one-shot learning is not successfuly by utilizing deep learning only. Instead, it is much better to combine deep learning and hierarchical Bayesian modeling by putting HDP prior over units from top-most hidden layer as in #paper.
 
+---
+
 ### #3 DBM CIFAR-10 Naïve: [script](examples/dbm_cifar_naive.py), *[notebook](notebooks/dbm_cifar_naive.py)*
 
 <p float="left">
@@ -110,6 +120,8 @@ Large number of parameters is one of the most crucial reasons why one-shot learn
   <img src="img/dbm_cifar_naive/mrbm.png" width="210" />
   <img src="img/dbm_cifar_naive/mrbm.png" width="210" />
 </p>
+
+---
 
 ### #4 DBM CIFAR-10: [script](examples/dbm_cifar.py), *[notebook](notebooks/dbm_cifar.py)*
 
@@ -121,6 +133,8 @@ Large number of parameters is one of the most crucial reasons why one-shot learn
 </p>
 
 ***TODO***: takes quite a lot of time to compute, but once trained, these nets can be used for other (similar) datasets/tasks.
+
+---
 
 ### How to use examples
 Use **script**s for training models from scratch, for instance
@@ -192,6 +206,15 @@ or download pretrained ones with default parameters using `models/fetch_models.s
 and check **notebook**s for corresponding inference / visualization etc.
 Note that training is skipped if there is already a model in `model-dirpath` (you can choose different location for training another model).
 
+---
+
+### Memory requirements
+* GPU memory: at most 2-3 GB for each model in each example, and it is always possible to decrease batch size and number of negative particles;
+* RAM: 10GB (for DBM CIFAR-10) and lesser for other examples.
+
+## TeX Notes
+***TODO*** definitely check them out!
+
 ## How to install
 By default, the following commands install (among others) **tensorflow-gpu~=1.3.0**. If you want to install tensorflow without GPU support, replace corresponding line in [requirements.txt](requirements.txt). If you have already tensorflow installed, comment that line.
 ```bash
@@ -220,13 +243,6 @@ make data
 ### Common installation issues
 **ImportError: libcudnn.so.6: cannot open shared object file: No such file or directory**.<br/>
 TensorFlow 1.3.0 assumes cuDNN v6.0 by default. If you have different one installed, you can create symlink to `libcudnn.so.6` in `/usr/local/cuda/lib64` or `/usr/local/cuda-8.0/lib64`. More details [here](https://stackoverflow.com/questions/42013316/after-building-tensorflow-from-source-seeing-libcudart-so-and-libcudnn-errors).
-
-## Tensorboard visualization
-***TODO***
-
-## Requirements
-* GPU memory: at most 2-3 GB for each model in each example, and it is always possible to decrease batch size and number of negative particles;
-* RAM: 10GB (for DBM CIFAR-10) and lesser for other examples.
 
 ## TODO
 * add stratification
