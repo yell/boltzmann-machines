@@ -436,7 +436,7 @@ def main():
 
     # RBM #2 related
     parser.add_argument('--increase-n-gibbs-steps-every', type=int, default=20, metavar='I',
-                        help='increase number of Gibbs steps every specified number of epochs for RBM #2')
+                        help='increase number of Gibbs steps every specified number of epochs for M-RBM')
 
     # common for RBMs and DBM
     parser.add_argument('--n-gibbs-steps', type=int, default=(1, 1, 1), metavar='N', nargs='+',

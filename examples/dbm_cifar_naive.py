@@ -5,7 +5,7 @@ Train 3072-5000-1000 Gaussian-Bernoulli-Multinomial
 DBM with pre-training on "smoothed" CIFAR-10 (with 1000 least
 significant singular values removed), as suggested in [1].
 
-The training took approx. 47 + 119 + C min = Z on GTX 1060.
+The training took approx. 47m + 119m + 22h 40m min ~ 1d 1h 30m on GTX 1060.
 
 References
 ----------
@@ -285,7 +285,6 @@ def main():
     X_val /= X_s_std
     print "Mean: ({0:.3f}, ...); std: ({1:.3f}, ...)".format(X_train.mean(axis=0)[0],
                                                              X_train.std(axis=0)[0])
-    print X_train[:10, :10]
     print "Range: ({0:.3f}, {1:.3f})\n\n".format(X_train.min(), X_train.max())
 
     # pre-train Gaussian RBM
@@ -296,7 +295,7 @@ def main():
     Q_train, Q_val = None, None
     if not os.path.isdir(args.mrbm_dirpath) or not os.path.isdir(args.dbm_dirpath):
         Q_train_path = os.path.join(args.data_path, 'Q_train_cifar_naive.npy')
-        Q_train = make_rbm_transform(grbm, X_train, Q_train_path, np_dtype=np.float16)
+        Q_train = make_rbm_transform(grbm, X_train, Q_train_path)
     if not os.path.isdir(args.mrbm_dirpath):
         Q_val_path = os.path.join(args.data_path, 'Q_val_cifar_naive.npy')
         Q_val = make_rbm_transform(grbm, X_val, Q_val_path)
