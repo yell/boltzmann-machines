@@ -62,7 +62,7 @@ Train 784-512-1024 Bernoulli DBM on MNIST dataset and use it for classification,
 estimate partition function using Annealed Importance Sampling and average log-probability lower-bound (=evidence lower-bound, ELBO) 
 on the test set. 
 
-| who | # intermediate distributions | proposal | log(Z<sub>mean</sub>) | log(Z<sub>mean</sub> &plusmn; &#963;<sub>Z</sub>) | Avg. test ELBO |
+| who | # intermediate distributions | proposal (p<sub>0</sub>) | log(Ẑ) | log(Ẑ &plusmn; &#963;<sub>Z</sub>) | Avg. test ELBO |
 | :---: | :---: | :---: | :---: | :---: | :---: |
 | DBM paper | 20'000 | base-rate? | 356.18 | 356.06, 356.29 | **-84.62** |
 | this repo | 200'000 | uniform | 1040.39 | 1040.18, 1040.58 | **-86.37** |
@@ -103,7 +103,22 @@ Also because the optimization problem is harder, the gain when not much datapoin
 Large number of parameters is one of the most crucial reasons why one-shot learning is not successfuly by utilizing deep learning only. Instead, it is much better to combine deep learning and hierarchical Bayesian modeling by putting HDP prior over units from top-most hidden layer as in #paper.
 
 ### #3 DBM CIFAR-10 Naïve: [script](examples/dbm_cifar_naive.py), *[notebook](notebooks/dbm_cifar_naive.py)*
+
+<p float="left">
+  <img src="img/dbm_cifar_naive/grbm.png" width="210" />
+  <img src="img/dbm_cifar_naive/grbm.png" width="210" />
+  <img src="img/dbm_cifar_naive/mrbm.png" width="210" />
+  <img src="img/dbm_cifar_naive/mrbm.png" width="210" />
+</p>
+
 ### #4 DBM CIFAR-10: [script](examples/dbm_cifar.py), *[notebook](notebooks/dbm_cifar.py)*
+
+<p float="left">
+  <img src="img/dbm_cifar/rbm_small_0.png" width="210" />
+  <img src="img/dbm_cifar/rbm_small_2.png" width="210" /> 
+  <img src="img/dbm_cifar/rbm_small_10.png" width="210" />
+  <img src="img/dbm_cifar/rbm_small_20.png" width="210" />
+</p>
 
 ***TODO***: takes quite a lot of time to compute, but once trained, these nets can be used for other (similar) datasets/tasks.
 
@@ -210,9 +225,8 @@ TensorFlow 1.3.0 assumes cuDNN v6.0 by default. If you have different one instal
 ***TODO***
 
 ## Requirements
-* GPU memory: quite low for all experiments, even 1GB should suffice
-* RAM: depending on experiment, at most 9GB (for DBM CIFAR-10)
-* HDD: ***TODO*** all models + all data + all features
+* GPU memory: at most 2-3 GB for each model in each example, and it is always possible to decrease batch size and number of negative particles;
+* RAM: 10GB (for DBM CIFAR-10) and lesser for other examples.
 
 ## TODO
 * add stratification
@@ -220,6 +234,7 @@ TensorFlow 1.3.0 assumes cuDNN v6.0 by default. If you have different one instal
 * feature: Centering trick
 * feature: classification RBMs/DBMs
 * feature: ELBO and AIS for arbitrary DBM (again, visible and topmost hidden units can be analytically summed out) and for RBM (perhaps by using DBM class)
+* optimize input pipeline e.g. use queues instead of `feed_dict` etc.
 
 ## Contributing
 ***TODO***
