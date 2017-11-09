@@ -390,7 +390,7 @@ def make_dbm((X_train, X_val), rbms, (Q, G), args):
                   sparsity_target=args.sparsity_target,
                   sparsity_cost=args.sparsity_cost,
                   sparsity_damping=args.sparsity_damping,
-                  train_metrics_every_iter=400,
+                  train_metrics_every_iter=1000,
                   val_metrics_every_epoch=2,
                   random_seed=args.random_seed[2],
                   verbose=True,
