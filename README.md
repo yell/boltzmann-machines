@@ -40,8 +40,9 @@ Train Bernoulli RBM with 1024 hidden units on MNIST dataset and use it for class
 
 | <div align="center">Algorithm</div> | Test Error, % |
 | :--- | :---: |
-| RBM features + Logistic Regression | **1.83** |
 | RBM features + k-NN | **2.88** |
+| RBM features + Logistic Regression | **1.83** |
+| RBM features + SVM | **1.80** |
 | RBM + discriminative fine-tuning | **1.27** |
 
 <p float="left">
