@@ -62,7 +62,7 @@ Train 784-512-1024 Bernoulli DBM on MNIST dataset and use it for classification,
 estimate partition function using Annealed Importance Sampling and average log-probability lower-bound (=evidence lower-bound, ELBO) 
 on the test set. 
 
-| who | # intermediate distributions | proposal (p<sub>0</sub>) | log(Ẑ) | log(Ẑ &ndash; &#963;<sub>Z</sub>), log(Ẑ &#43; &#963;<sub>Z</sub>) | Avg. test ELBO |
+| who | # intermediate distributions | proposal (p<sub>0</sub>) | log(Ẑ) | log(Ẑ &plusmn; &#963;<sub>Z</sub>) | Avg. test ELBO |
 | :---: | :---: | :---: | :---: | :---: | :---: |
 | DBM paper | 20'000 | base-rate? | 356.18 | 356.06, 356.29 | **-84.62** |
 | this repo | 200'000 | uniform | 1040.39 | 1040.18, 1040.58 | **-86.37** |
@@ -103,7 +103,22 @@ Also because the optimization problem is harder, the gain when not much datapoin
 Large number of parameters is one of the most crucial reasons why one-shot learning is not successfuly by utilizing deep learning only. Instead, it is much better to combine deep learning and hierarchical Bayesian modeling by putting HDP prior over units from top-most hidden layer as in #paper.
 
 ### #3 DBM CIFAR-10 Naïve: [script](examples/dbm_cifar_naive.py), *[notebook](notebooks/dbm_cifar_naive.py)*
+
+<p float="left">
+  <img src="img/dbm_cifar_naive/grbm.png" width="210" />
+  <img src="img/dbm_cifar_naive/grbm.png" width="210" />
+  <img src="img/dbm_cifar_naive/mrbm.png" width="210" />
+  <img src="img/dbm_cifar_naive/mrbm.png" width="210" />
+</p>
+
 ### #4 DBM CIFAR-10: [script](examples/dbm_cifar.py), *[notebook](notebooks/dbm_cifar.py)*
+
+<p float="left">
+  <img src="img/dbm_cifar/rbm_small_0.png" width="210" />
+  <img src="img/dbm_cifar/rbm_small_2.png" width="210" /> 
+  <img src="img/dbm_cifar/rbm_small_10.png" width="210" />
+  <img src="img/dbm_cifar/rbm_small_20.png" width="210" />
+</p>
 
 ***TODO***: takes quite a lot of time to compute, but once trained, these nets can be used for other (similar) datasets/tasks.
 
