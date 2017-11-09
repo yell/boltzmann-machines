@@ -125,7 +125,7 @@ def make_mrbm((Q_train, Q_val), args):
                                   msre=True,
                                   pll=True,
                                   feg=True,
-                                  train_metrics_every_iter=20,
+                                  train_metrics_every_iter=400,
                                   val_metrics_every_epoch=2,
                                   feg_every_epoch=2,
                                   n_batches_for_feg=50,
@@ -176,7 +176,7 @@ def make_dbm((X_train, X_val), rbms, (Q, G), args):
                   sample_v_states=True,
                   sample_h_states=(True, True),
                   sparsity_cost=0.,
-                  train_metrics_every_iter=400,
+                  train_metrics_every_iter=1000,
                   val_metrics_every_epoch=2,
                   random_seed=args.random_seed[2],
                   verbose=True,
@@ -212,7 +212,7 @@ def main():
                         help='(initial) number of Gibbs steps for CD/PCD')
     parser.add_argument('--lr', type=float, default=(5e-4, 1e-4, 8e-5), metavar='LR', nargs='+',
                         help='(initial) learning rates')
-    parser.add_argument('--epochs', type=int, default=(120, 180, 750), metavar='N', nargs='+',
+    parser.add_argument('--epochs', type=int, default=(120, 180, 1500), metavar='N', nargs='+',
                         help='number of epochs to train')
     parser.add_argument('--batch-size', type=int, default=(100, 100, 100), metavar='B', nargs='+',
                         help='input batch size for training, `--n-train` and `--n-val`' + \
