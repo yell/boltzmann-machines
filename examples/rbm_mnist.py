@@ -26,9 +26,9 @@ import os
 import argparse
 import numpy as np
 from keras import regularizers
-from keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
+from keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from keras.initializers import glorot_uniform
-from keras.models import Sequential, load_model
+from keras.models import Sequential
 from keras.layers import Dense, Activation
 from sklearn.metrics import accuracy_score
 
