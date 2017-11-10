@@ -14,7 +14,8 @@ features from G-RBM are in half precision
 ~9 GB RAM
 1.6 GB augmented data +
 
-The training took approx. 26 x 61 + A + B + C min = Z on GTX 1060.
+The training took approx. 26 x 61m + 7h 19m + 14h 46m + D =
+ = Z on GTX 1060.
 
 References
 ----------
@@ -434,7 +435,7 @@ def main():
     parser.add_argument('--small-dirpath-prefix', type=str, default='../models/rbm_cifar_small_', metavar='PREFIX',
                         help='directory path prefix to save RBMs trained on patches')
 
-    # RBM #2 related
+    # M-RBM related
     parser.add_argument('--increase-n-gibbs-steps-every', type=int, default=20, metavar='I',
                         help='increase number of Gibbs steps every specified number of epochs for M-RBM')
 
@@ -443,12 +444,12 @@ def main():
                         help='(initial) number of Gibbs steps for CD/PCD')
     parser.add_argument('--lr', type=float, default=(5e-4, 5e-5, 4e-5), metavar='LR', nargs='+',
                         help='(initial) learning rates')
-    parser.add_argument('--epochs', type=int, default=(80, 80, 200), metavar='N', nargs='+',
+    parser.add_argument('--epochs', type=int, default=(80, 72, 200), metavar='N', nargs='+',
                         help='number of epochs to train')
     parser.add_argument('--batch-size', type=int, default=(100, 100, 100), metavar='B', nargs='+',
                         help='input batch size for training, `--n-train` and `--n-val`' + \
                              'must be divisible by this number (for DBM)')
-    parser.add_argument('--l2', type=float, default=(2e-3, 0.05, 1e-8), metavar='L2', nargs='+',
+    parser.add_argument('--l2', type=float, default=(2e-3, 0.01, 1e-8), metavar='L2', nargs='+',
                         help='L2 weight decay coefficients')
     parser.add_argument('--random-seed', type=int, default=(1111, 2222, 3333), metavar='N', nargs='+',
                         help='random seeds for models training')
