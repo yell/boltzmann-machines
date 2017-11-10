@@ -553,10 +553,10 @@ def main():
     mrbm = make_mrbm((Q_train, Q_val), args)
 
     # extract features G = p_{M-RBM}(h|v=Q)
-    Q = Q_train[:args.n_particles]
     print "\nExtracting features from M-RBM ...\n\n"
-    G = None
+    Q, G = None, None
     if not os.path.isdir(args.dbm_dirpath):
+        Q = Q_train[:args.n_particles]
         G_path = os.path.join(args.data_path, 'G_train_cifar.npy')
         G = make_rbm_transform(mrbm, Q, G_path)
 
