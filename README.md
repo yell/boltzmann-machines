@@ -1,3 +1,11 @@
+<p float="left">
+  <img src="img/dbm_mnist/rbm1.png" width="166" />
+  <img src="img/dbm_mnist/samples.gif" width="178" />
+  <img src="img/dbm_cifar/grbm.png" width="166" />
+  <img src="img/dbm_cifar/mrbm.png" width="166" />
+  <img src="img/dbm_cifar_naive/samples.gif" width="178" />
+</p>
+
 # Boltzmann Machines
 Goal was to reproduce DBM MNIST (at least there was numbers to compare with) + DBM CIFAR + additional experiments along the way
 
