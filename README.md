@@ -117,9 +117,14 @@ Large number of parameters is one of the most crucial reasons why one-shot learn
 
 <p float="left">
   <img src="img/dbm_cifar_naive/grbm.png" width="210" />
-  <img src="img/dbm_cifar_naive/grbm.png" width="210" />
+  <img src="img/dbm_cifar_naive/W1_joint.png" width="210" />
   <img src="img/dbm_cifar_naive/mrbm.png" width="210" />
-  <img src="img/dbm_cifar_naive/mrbm.png" width="210" />
+  <img src="img/dbm_cifar_naive/W2_joint.png" width="210" />
+</p>
+<p float="left">
+  <img src="img/dbm_cifar_naive/cifar10_smoothed.png" width="275" />
+  <img src="img/dbm_cifar_naive/samples.png" width="275" />
+  <img src="img/dbm_cifar_naive/samples.gif" width="298" />
 </p>
 
 ---
