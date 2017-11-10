@@ -144,6 +144,8 @@ def main():
                         help='number of training examples')
     parser.add_argument('--n-val', type=int, default=5000, metavar='N',
                         help='number of validation examples')
+    parser.add_argument('--data-path', type=str, default=args.data_path, metavar='PATH',
+                        help='directory for storing augmented data etc.')
 
     # RBM related
     parser.add_argument('--n-hidden', type=int, default=1024, metavar='N',
@@ -205,7 +207,7 @@ def main():
 
     # prepare data (load + scale + split)
     print "\nPreparing data ...\n\n"
-    X, y = load_mnist(mode='train', path='../data/')
+    X, y = load_mnist(mode='train', path=args.data_path)
     X /= 255.
     RNG(seed=42).shuffle(X)
     RNG(seed=42).shuffle(y)
@@ -220,7 +222,7 @@ def main():
     rbm = make_rbm(X_train, X_val, args)
 
     # load test data
-    X_test, y_test = load_mnist(mode='test', path='../data/')
+    X_test, y_test = load_mnist(mode='test', path=args.data_path)
     X_test /= 255.
 
     # discriminative fine-tuning: initialize MLP with
