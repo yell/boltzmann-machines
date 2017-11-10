@@ -40,9 +40,9 @@ Train Bernoulli RBM with 1024 hidden units on MNIST dataset and use it for class
 
 | <div align="center">Algorithm</div> | Test Error, % |
 | :--- | :---: |
-| RBM features + k-NN | <u>2.88</u> |
-| RBM features + Logistic Regression | **1.83** |
-| RBM features + SVM | **1.80** |
+| RBM features + k-NN | 2.88 |
+| RBM features + Logistic Regression | 1.83 |
+| RBM features + SVM | 1.80 |
 | RBM + discriminative fine-tuning | **1.27** |
 
 <p float="left">
@@ -74,8 +74,8 @@ on the test set.
 | who | # intermediate distributions | proposal (p<sub>0</sub>) | log(Ẑ) | log(Ẑ &plusmn; &#963;<sub>Z</sub>) | Avg. test ELBO |
 | :---: | :---: | :---: | :---: | :---: | :---: |
 | DBM paper | 20'000 | base-rate? | 356.18 | 356.06, 356.29 | **-84.62** |
-| this repo | 200'000 | uniform | 1040.39 | 1040.18, 1040.58 | **-86.37** |
-| this repo | 20'000 | uniform | 1040.58 | 1039.93, 1041.03 | **-86.59** |
+| this example | 200'000 | uniform | 1040.39 | 1040.18, 1040.58 | -86.37 |
+| this example | 20'000 | uniform | 1040.58 | 1039.93, 1041.03 | -86.59 |
 
 Couple of nats could have been lost because of single-precision.
 
