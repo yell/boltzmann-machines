@@ -1,9 +1,10 @@
 <p float="left">
-  <img src="img/dbm_mnist/rbm1.png" width="166" />
-  <img src="img/dbm_mnist/samples.gif" width="178" />
-  <img src="img/dbm_cifar/grbm.png" width="166" />
-  <img src="img/dbm_cifar/mrbm.png" width="166" />
-  <img src="img/dbm_cifar_naive/samples.gif" width="178" />
+  <img src="img/dbm_mnist/rbm1.png" width="140" />
+  <img src="img/dbm_mnist/samples.png" width="140" />
+  <img src="img/dbm_cifar/rbm_small_0.png" width="140" />
+  <img src="img/dbm_cifar/grbm.png" width="140" />
+  <img src="img/dbm_cifar/mrbm.png" width="140" />
+  <img src="img/dbm_cifar_naive/samples.png" width="140" />
 </p>
 
 # Boltzmann Machines
