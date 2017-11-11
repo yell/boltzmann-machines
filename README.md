@@ -1,3 +1,12 @@
+<p float="left">
+  <img src="img/dbm_mnist/rbm1.png" width="140" />
+  <img src="img/dbm_mnist/samples.png" width="143" />
+  <img src="img/dbm_cifar/rbm_small_0.png" width="140" />
+  <img src="img/dbm_cifar/grbm.png" width="140" />
+  <img src="img/dbm_cifar/mrbm.png" width="140" />
+  <img src="img/dbm_cifar_naive/samples.png" width="140" />
+</p>
+
 # Boltzmann Machines
 Goal was to reproduce DBM MNIST (at least there was numbers to compare with) + DBM CIFAR + additional experiments along the way
 
@@ -71,7 +80,7 @@ Train 784-512-1024 Bernoulli DBM on MNIST dataset and use it for classification,
 estimate partition function using Annealed Importance Sampling and average log-probability lower-bound (=evidence lower-bound, ELBO) 
 on the test set. 
 
-| who | # intermediate distributions | proposal (p<sub>0</sub>) | log(Ẑ) | log(Ẑ &plusmn; &#963;<sub>Z</sub>) | Avg. test ELBO |
+| who | # intermediate distributions | proposal (p<sub>0</sub>) | logẐ | log(Ẑ &plusmn; &#963;<sub>Z</sub>) | Avg. test ELBO |
 | :---: | :---: | :---: | :---: | :---: | :---: |
 | DBM paper | 20'000 | base-rate? | 356.18 | 356.06, 356.29 | **-84.62** |
 | this example | 200'000 | uniform | 1040.39 | 1040.18, 1040.58 | -86.37 |
@@ -117,9 +126,14 @@ Large number of parameters is one of the most crucial reasons why one-shot learn
 
 <p float="left">
   <img src="img/dbm_cifar_naive/grbm.png" width="210" />
-  <img src="img/dbm_cifar_naive/grbm.png" width="210" />
+  <img src="img/dbm_cifar_naive/W1_joint.png" width="210" />
   <img src="img/dbm_cifar_naive/mrbm.png" width="210" />
-  <img src="img/dbm_cifar_naive/mrbm.png" width="210" />
+  <img src="img/dbm_cifar_naive/W2_joint.png" width="210" />
+</p>
+<p float="left">
+  <img src="img/dbm_cifar_naive/cifar10_smoothed.png" width="275" />
+  <img src="img/dbm_cifar_naive/samples.png" width="275" />
+  <img src="img/dbm_cifar_naive/samples.gif" width="296" />
 </p>
 
 ---
@@ -131,6 +145,16 @@ Large number of parameters is one of the most crucial reasons why one-shot learn
   <img src="img/dbm_cifar/rbm_small_2.png" width="210" /> 
   <img src="img/dbm_cifar/rbm_small_10.png" width="210" />
   <img src="img/dbm_cifar/rbm_small_20.png" width="210" />
+</p>
+<p float="left">
+  <img src="img/dbm_cifar/grbm.png" width="280" />
+  <img src="img/dbm_cifar/mrbm.png" width="280" /> 
+  <img src="img/dbm_cifar/mrbm.png" width="280" /> 
+</p>
+<p float="left">
+  <img src="img/dbm_cifar/grbm.png" width="280" />
+  <img src="img/dbm_cifar/mrbm.png" width="280" /> 
+  <img src="img/dbm_cifar/mrbm.png" width="280" /> 
 </p>
 
 ***TODO***: takes quite a lot of time to compute, but once trained, these nets can be used for other (similar) datasets/tasks.
