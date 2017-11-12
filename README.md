@@ -8,7 +8,7 @@
 </p>
 
 # Boltzmann Machines
-Goal was to reproduce DBM MNIST (at least there was numbers to compare with) + DBM CIFAR + additional experiments along the way
+Goal was to reproduce experiments from [**[1]**](#1) (at least there was numbers to compare with) + [**[2]**](#2) + additional experiments along the way
 
 ## Table of contents
 
@@ -49,9 +49,9 @@ Train Bernoulli RBM with 1024 hidden units on MNIST dataset and use it for class
 
 | <div align="center">Algorithm</div> | Test Error, % |
 | :--- | :---: |
-| RBM features + k-NN | 2.88 |
-| RBM features + Logistic Regression | 1.83 |
-| RBM features + SVM | 1.80 |
+| RBM features + k-NN | **2.88** |
+| RBM features + Logistic Regression | **1.83** |
+| RBM features + SVM | **1.80** |
 | RBM + discriminative fine-tuning | **1.27** |
 
 <p float="left">
@@ -82,9 +82,9 @@ on the test set.
 
 | who | # intermediate distributions | proposal (p<sub>0</sub>) | logẐ | log(Ẑ &plusmn; &#963;<sub>Z</sub>) | Avg. test ELBO |
 | :---: | :---: | :---: | :---: | :---: | :---: |
-| DBM paper | 20'000 | base-rate? | 356.18 | 356.06, 356.29 | **-84.62** |
-| this example | 200'000 | uniform | 1040.39 | 1040.18, 1040.58 | -86.37 |
-| this example | 20'000 | uniform | 1040.58 | 1039.93, 1041.03 | -86.59 |
+| 784-500-1000 DBM [**[1]**](#1) | 20'000 | base-rate? | 356.18 | 356.06, 356.29 | **-84.62** |
+| this example | 200'000 | uniform | 1040.39 | 1040.18, 1040.58 | **-86.37** |
+| this example | 20'000 | uniform | 1040.58 | 1039.93, 1041.03 | **-86.59** |
 
 Couple of nats could have been lost because of single-precision.
 
@@ -135,6 +135,15 @@ Large number of parameters is one of the most crucial reasons why one-shot learn
   <img src="img/dbm_cifar_naive/samples.png" width="275" />
   <img src="img/dbm_cifar_naive/samples.gif" width="296" />
 </p>
+
+| <div align="center">Algorithm</div> | Test Accuracy, % |
+| :--- | :---: |
+| *Best known MLP w/o data augmentation*: 8 layer ZLin net [**[4]**](#4) | **69.62** |
+| *Best known method using RBM*: 10k hiddens, trained on unwhitened data + fine-tuning [**[3]**](#3) | **64.84** |
+| Gaussian RBM + discriminative fine-tuning | **59.78** |
+| Pure backprop 3072-5000-10 on smoothed data | **58.20** |
+| Pure backprop 782-10k-10 on PCA whitened data [**[1]**](#1) | **51.53** |
+
 
 ---
 
@@ -296,3 +305,13 @@ TensorFlow 1.3.0 assumes cuDNN v6.0 by default. If you have different one instal
 
 ## Contributing
 ***TODO***
+
+## References
+**[1]**<a name="1"></a> R. Salakhutdinov and G. Hinton. *Deep boltzmann machines.* In: Artificial Intelligence and
+Statistics, pages 448–455, 2009. [[PDF](http://proceedings.mlr.press/v5/salakhutdinov09a/salakhutdinov09a.pdf)]
+
+**[2]**<a name="2"></a> R. Salakhutdinov, J. B. Tenenbaum, and A. Torralba. *Learning with hierarchical-deep models.* IEEE transactions on pattern analysis and machine intelligence, 35(8):1958–1971, 2013. [[PDF](https://www.cs.toronto.edu/~rsalakhu/papers/HD_PAMI.pdf)]
+
+**[3]**<a name="3"></a> A. Krizhevsky and G. Hinton. *Learning multiple layers of features from tiny images.* 2009. [[PDF](https://www.cs.toronto.edu/~kriz/learning-features-2009-TR.pdf)]
+
+**[4]**<a name="4"></a> Lin Z, Memisevic R, Konda K. *How far can we go without convolution: Improving fully-connected networks*, ICML 2016. [[arXiv](https://arxiv.org/abs/1511.02580)]
