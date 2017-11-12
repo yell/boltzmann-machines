@@ -235,7 +235,7 @@ Note that training is skipped if there is already a model in `model-dirpath` (yo
 
 ### Memory requirements
 * GPU memory: at most 2-3 GB for each model in each example, and it is always possible to decrease batch size and number of negative particles;
-* RAM: 10GB (for DBM CIFAR-10) and lesser for other examples.
+* RAM: at most 11GB (to run last example, features from Gaussian RBM are in `half` precision) and (much) lesser for other examples.
 
 ## TeX Notes
 ***TODO*** definitely check them out!
