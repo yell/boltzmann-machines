@@ -147,14 +147,14 @@ Large number of parameters is one of the most crucial reasons why one-shot learn
   <img src="img/dbm_cifar/rbm_small_20.png" width="210" />
 </p>
 <p float="left">
-  <img src="img/dbm_cifar/grbm.png" width="280" />
-  <img src="img/dbm_cifar/mrbm.png" width="280" /> 
-  <img src="img/dbm_cifar/mrbm.png" width="280" /> 
+  <img src="img/dbm_cifar/grbm.png" width="275" />
+  <img src="img/dbm_cifar/mrbm.png" width="275" /> 
+  <img src="img/dbm_cifar/samples.png" width="275" /> 
 </p>
 <p float="left">
-  <img src="img/dbm_cifar/grbm.png" width="280" />
-  <img src="img/dbm_cifar/mrbm.png" width="280" /> 
-  <img src="img/dbm_cifar/mrbm.png" width="280" /> 
+  <img src="img/dbm_cifar/W1_joint.png" width="275" />
+  <img src="img/dbm_cifar/W2_joint.png" width="275" /> 
+  <img src="img/dbm_cifar/samples.gif" width="296" /> 
 </p>
 
 ***TODO***: takes quite a lot of time to compute, but once trained, these nets can be used for other (similar) datasets/tasks.
