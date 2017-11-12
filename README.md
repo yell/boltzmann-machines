@@ -47,7 +47,7 @@ Goal was to reproduce experiments from [**[1]**](#1) (at least there was numbers
 ### #1 RBM MNIST: [script](examples/rbm_mnist.py), *[notebook](notebooks/rbm_mnist.ipynb)*
 Train Bernoulli RBM with 1024 hidden units on MNIST dataset and use it for classification.
 
-| <div align="center">Algorithm</div> | Test Error, % |
+| <div align="center">algorithm</div> | test error, % |
 | :--- | :---: |
 | RBM features + k-NN | **2.88** |
 | RBM features + Logistic Regression | **1.83** |
@@ -62,7 +62,7 @@ Train Bernoulli RBM with 1024 hidden units on MNIST dataset and use it for class
 
 Also, [one-shot learning idea]:
 
-| Number of labeled data pairs (train + val) | RBM + fine-tuning | random initialization | gain |
+| number of labeled data pairs (train + val) | RBM + fine-tuning | random initialization | gain |
 | :---: | :---: | :---: | :---: |
 | 60k (55k + 5k) | 98.73% | 98.20% | **+0.53%** |
 | 10k (9k + 1k) | 97.27% | 94.73% | **+2.54%** |
@@ -80,9 +80,9 @@ Train 784-512-1024 Bernoulli DBM on MNIST dataset and use it for classification,
 estimate partition function using Annealed Importance Sampling and average log-probability lower-bound (=evidence lower-bound, ELBO) 
 on the test set. 
 
-| who | # intermediate distributions | proposal (p<sub>0</sub>) | logẐ | log(Ẑ &plusmn; &#963;<sub>Z</sub>) | Avg. test ELBO |
+| algorithm | # intermediate distributions | proposal (p<sub>0</sub>) | logẐ | log(Ẑ &plusmn; &#963;<sub>Z</sub>) | avg. test ELBO |
 | :---: | :---: | :---: | :---: | :---: | :---: |
-| 784-500-1000 DBM [**[1]**](#1) | 20'000 | base-rate? | 356.18 | 356.06, 356.29 | **-84.62** |
+| [**[1]**](#1) | 20'000 | base-rate? | 356.18 | 356.06, 356.29 | **-84.62** |
 | this example | 200'000 | uniform | 1040.39 | 1040.18, 1040.58 | **-86.37** |
 | this example | 20'000 | uniform | 1040.58 | 1039.93, 1041.03 | **-86.59** |
 
@@ -104,7 +104,7 @@ Couple of nats could have been lost because of single-precision.
   <img src="img/dbm_mnist/samples.gif" width="295" />
 </p>
 
-| Number of labeled data pairs (train + val) | DBM + fine-tuning | random initialization | gain |
+| number of labeled data pairs (train + val) | DBM + fine-tuning | random initialization | gain |
 | :---: | :---: | :---: | :---: |
 | 60k (55k + 5k) | 98.68% | 98.28% | **+0.40%** |
 | 10k (9k + 1k) | 97.11% | 94.50% | **+2.61%** |
@@ -136,14 +136,13 @@ Large number of parameters is one of the most crucial reasons why one-shot learn
   <img src="img/dbm_cifar_naive/samples.gif" width="296" />
 </p>
 
-| <div align="center">Algorithm</div> | Test Accuracy, % |
+| <div align="center">algorithm</div> | test accuracy, % |
 | :--- | :---: |
 | *Best known MLP w/o data augmentation*: 8 layer ZLin net [**[4]**](#4) | **69.62** |
 | *Best known method using RBM*: 10k hiddens, trained on unwhitened data + fine-tuning [**[3]**](#3) | **64.84** |
 | Gaussian RBM + discriminative fine-tuning | **59.78** |
 | Pure backprop 3072-5000-10 on smoothed data | **58.20** |
 | Pure backprop 782-10k-10 on PCA whitened data [**[1]**](#1) | **51.53** |
-
 
 ---
 
