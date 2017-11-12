@@ -9,3 +9,4 @@ notebooks/.ipynb_checkpoints/*
 bm/test_rbm_1/*
 bm/test_rbm_2/*
 models/*
+!models/fetch_models.sh
