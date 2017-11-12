@@ -126,10 +126,9 @@ def im_gif(matrices, im, fig, fname=None, title_func=None,
     return anim
 
 
-def plot_confusion_matrix(C, labels=None, labels_fontsize=None, **heatmap_params):
+def plot_confusion_matrix(C, labels=None, labels_fontsize=13, **heatmap_params):
     # default params
     labels = labels or range(C.shape[0])
-    labels_fontsize = labels_fontsize or 13
     annot_fontsize = 14
     xy_label_fontsize = 21
 
