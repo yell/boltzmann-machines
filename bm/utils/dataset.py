@@ -161,19 +161,12 @@ def im_rescale(X, mean=0., std=1.):
     return X
 
 
+def get_cifar10_labels():
+    return ['airplane', 'auto', 'bird', 'cat', 'deer',
+            'dog', 'frog', 'horse', 'ship', 'truck']
+
 def get_cifar10_label(index):
-    return {
-        0: 'airplane',
-        1: 'auto',
-        2: 'bird',
-        3: 'cat',
-        4: 'deer',
-        5: 'dog',
-        6: 'frog',
-        7: 'horse',
-        8: 'ship',
-        9: 'truck'
-    }[index]
+    return get_cifar10_labels()[index]
 
 
 def plot_cifar10(X, y, samples_per_class=7,
