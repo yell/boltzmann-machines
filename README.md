@@ -1,10 +1,10 @@
 <p float="left">
   <img src="img/dbm_mnist/rbm1.png" width="140" />
   <img src="img/dbm_mnist/samples.png" width="143" />
-  <img src="img/dbm_cifar/rbm_small_0.png" width="140" />
-  <img src="img/dbm_cifar/grbm.png" width="140" />
-  <img src="img/dbm_cifar/mrbm.png" width="140" />
-  <img src="img/dbm_cifar_naive/samples.png" width="140" />
+  <img src="img/dbm_cifar2/rbm_small_0.png" width="140" />
+  <img src="img/dbm_cifar2/grbm.png" width="140" />
+  <img src="img/dbm_cifar2/mrbm.png" width="140" />
+  <img src="img/dbm_cifar/samples.png" width="140" />
 </p>
 
 # Boltzmann Machines
@@ -147,14 +147,31 @@ Large number of parameters is one of the most crucial reasons why one-shot learn
   <img src="img/dbm_cifar/rbm_small_20.png" width="210" />
 </p>
 <p float="left">
-  <img src="img/dbm_cifar/grbm.png" width="280" />
-  <img src="img/dbm_cifar/mrbm.png" width="280" /> 
-  <img src="img/dbm_cifar/mrbm.png" width="280" /> 
+  <img src="img/dbm_cifar/grbm.png" width="275" />
+  <img src="img/dbm_cifar/mrbm.png" width="275" /> 
+  <img src="img/dbm_cifar/samples.png" width="275" hspace="11" /> 
 </p>
 <p float="left">
-  <img src="img/dbm_cifar/grbm.png" width="280" />
-  <img src="img/dbm_cifar/mrbm.png" width="280" /> 
-  <img src="img/dbm_cifar/mrbm.png" width="280" /> 
+  <img src="img/dbm_cifar/W1_joint.png" width="275" />
+  <img src="img/dbm_cifar/W2_joint.png" width="275" /> 
+  <img src="img/dbm_cifar/samples.gif" width="296" /> 
+</p>
+
+<p float="left">
+  <img src="img/dbm_cifar2/rbm_small_0.png" width="210" />
+  <img src="img/dbm_cifar2/rbm_small_2.png" width="210" /> 
+  <img src="img/dbm_cifar2/rbm_small_10.png" width="210" />
+  <img src="img/dbm_cifar2/rbm_small_20.png" width="210" />
+</p>
+<p float="left">
+  <img src="img/dbm_cifar2/grbm.png" width="275" />
+  <img src="img/dbm_cifar2/mrbm.png" width="275" /> 
+  <img src="img/dbm_cifar2/samples.png" width="275" hspace="11" /> 
+</p>
+<p float="left">
+  <img src="img/dbm_cifar2/W1_joint.png" width="275" />
+  <img src="img/dbm_cifar2/W2_joint.png" width="275" /> 
+  <img src="img/dbm_cifar2/samples.gif" width="296" /> 
 </p>
 
 ***TODO***: takes quite a lot of time to compute, but once trained, these nets can be used for other (similar) datasets/tasks.
