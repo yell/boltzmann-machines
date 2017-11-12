@@ -158,6 +158,8 @@ Notice how infrequently animal is mistaken for a non-animal (or vice versa) and 
 
 ### #4 DBM CIFAR-10: [script](examples/dbm_cifar.py), *[notebook](notebooks/dbm_cifar.py)*
 
+***TODO*** in [**[2]**](#2) they trained on 4M images, here only 490k (x10 augmented CIFAR-10 only)
+
 <p float="left">
   <img src="img/dbm_cifar/rbm_small_0.png" width="210" />
   <img src="img/dbm_cifar/rbm_small_2.png" width="210" /> 
