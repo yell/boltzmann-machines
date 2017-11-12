@@ -136,6 +136,8 @@ Large number of parameters is one of the most crucial reasons why one-shot learn
   <img src="img/dbm_cifar_naive/samples.gif" width="296" />
 </p>
 
+***TODO***: note that this is *modified* G-RBM for DBM pre-training (see notes or [**[1]**] for details):
+
 | <div align="center">algorithm</div> | test accuracy, % |
 | :--- | :---: |
 | *Best known MLP w/o data augmentation*: 8 layer ZLin net [**[4]**](#4) | **69.62** |
@@ -144,9 +146,19 @@ Large number of parameters is one of the most crucial reasons why one-shot learn
 | Pure backprop 3072-5000-10 on smoothed data | **58.20** |
 | Pure backprop 782-10k-10 on PCA whitened data [**[3]**](#3) | **51.53** |
 
+<p float="left">
+  <img src="img/dbm_cifar_naive/grbm.png" width="265" />
+  <img src="img/dbm_cifar_naive/grbm_finetuned.png" width="265" /> 
+  <img src="img/dbm_cifar_naive/grbm_confusion_matrix.png" width="307" />
+</p>
+
+Notice how infrequently animal is mistaken for a non-animal (or vice versa) and how frequently animal is mistaken to another animal (and the same for non-animal).
+
 ---
 
 ### #4 DBM CIFAR-10: [script](examples/dbm_cifar.py), *[notebook](notebooks/dbm_cifar.py)*
+
+***TODO*** in [**[2]**](#2) they trained on 4M images, here only 490k (x10 augmented CIFAR-10 only)
 
 <p float="left">
   <img src="img/dbm_cifar/rbm_small_0.png" width="210" />
