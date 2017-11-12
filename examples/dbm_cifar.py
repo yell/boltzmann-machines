@@ -4,18 +4,31 @@
 Train 3072-7800-512 Gaussian-Bernoulli-Multinomial DBM with pre-training
 on CIFAR-10, augmented (x10) using shifts by 1 pixel in all directions
 and horizontal mirroring.
-Gaussian RBM is initialized from 26 small RBMs trained on patches 8x8
-of images, as in [1].
 
-Multinomial RBM trained with increasing k in CD-k and decreasing
+Gaussian RBM is initialized from 26 small RBMs trained on patches 8x8
+of images, as in [1]. Multinomial RBM trained with increasing k in CD-k and decreasing
 learning rate over time.
 
-features from G-RBM are in half precision
-~9 GB RAM
-1.6 GB augmented data +
+Per sample validation mean reconstruction error for DBM monotonically
+decreases during training from ~0.3 to ~0.11 at the end.
 
-The training took approx. 26 x 61m + 7h 19m + 14h 46m + D =
- = Z on GTX 1060.
+The training took approx. 26 x 35m + 5h 52m + 4h 55m + 11h 11m =
+ = 1d 13h 8m on GTX 1060.
+
+I also trained for longer with options
+```
+--small-l2 2e-3 \
+--small-epochs 120 \
+--small-sparsity-cost 0 \
+--increase-n-gibbs-steps-every 20 \
+--epochs 80 72 200 \
+--l2 2e-3 0.01 1e-8 \
+--max-mf-updates 70
+```
+with a decrease of MSRE from ~0.6 to ~0.147 at the end and it took
+~3d 2h 7m on GTX 1060.
+
+Note that DBM is trained without centering.
 
 References
 ----------
@@ -105,7 +118,8 @@ def make_small_rbms((X_train, X_val), args):
                             l2=args.small_l2,
                             sample_v_states=True,
                             sample_h_states=True,
-                            sparsity_cost=0.,
+                            sparsity_target=args.small_sparsity_target,
+                            sparsity_cost=args.small_sparsity_cost,
                             dbm_first=True,  # !!!
                             metrics_config=dict(
                                 msre=True,
@@ -424,19 +438,23 @@ def main():
     # small RBMs related
     parser.add_argument('--small-lr', type=float, default=1e-3, metavar='LR', nargs='+',
                         help='learning rate or sequence of such (per epoch)')
-    parser.add_argument('--small-epochs', type=int, default=120, metavar='N',
+    parser.add_argument('--small-epochs', type=int, default=100, metavar='N',
                         help='number of epochs to train')
     parser.add_argument('--small-batch-size', type=int, default=48, metavar='B',
                         help='input batch size for training')
-    parser.add_argument('--small-l2', type=float, default=2e-3, metavar='L2',
+    parser.add_argument('--small-l2', type=float, default=1e-3, metavar='L2',
                         help='L2 weight decay coefficient')
+    parser.add_argument('--small-sparsity-target', type=float, default=0.1, metavar='T',
+                        help='desired probability of hidden activation')
+    parser.add_argument('--small-sparsity-cost', type=float, default=1e-3, metavar='C',
+                        help='controls the amount of sparsity penalty')
     parser.add_argument('--small-random-seed', type=int, default=9000, metavar='N',
                         help="random seeds for models training")
     parser.add_argument('--small-dirpath-prefix', type=str, default='../models/rbm_cifar_small_', metavar='PREFIX',
                         help='directory path prefix to save RBMs trained on patches')
 
     # M-RBM related
-    parser.add_argument('--increase-n-gibbs-steps-every', type=int, default=20, metavar='I',
+    parser.add_argument('--increase-n-gibbs-steps-every', type=int, default=16, metavar='I',
                         help='increase number of Gibbs steps every specified number of epochs for M-RBM')
 
     # common for RBMs and DBM
@@ -444,12 +462,12 @@ def main():
                         help='(initial) number of Gibbs steps for CD/PCD')
     parser.add_argument('--lr', type=float, default=(5e-4, 5e-5, 4e-5), metavar='LR', nargs='+',
                         help='(initial) learning rates')
-    parser.add_argument('--epochs', type=int, default=(80, 72, 200), metavar='N', nargs='+',
+    parser.add_argument('--epochs', type=int, default=(64, 33, 100), metavar='N', nargs='+',
                         help='number of epochs to train')
     parser.add_argument('--batch-size', type=int, default=(100, 100, 100), metavar='B', nargs='+',
                         help='input batch size for training, `--n-train` and `--n-val`' + \
                              'must be divisible by this number (for DBM)')
-    parser.add_argument('--l2', type=float, default=(2e-3, 0.01, 1e-8), metavar='L2', nargs='+',
+    parser.add_argument('--l2', type=float, default=(1e-3, 0.005, 0.), metavar='L2', nargs='+',
                         help='L2 weight decay coefficients')
     parser.add_argument('--random-seed', type=int, default=(1111, 2222, 3333), metavar='N', nargs='+',
                         help='random seeds for models training')
@@ -465,7 +483,7 @@ def main():
     # DBM related
     parser.add_argument('--n-particles', type=int, default=100, metavar='M',
                         help='number of persistent Markov chains')
-    parser.add_argument('--max-mf-updates', type=int, default=70, metavar='N',
+    parser.add_argument('--max-mf-updates', type=int, default=50, metavar='N',
                         help='maximum number of mean-field updates per weight update')
     parser.add_argument('--mf-tol', type=float, default=1e-11, metavar='TOL',
                         help='mean-field tolerance')

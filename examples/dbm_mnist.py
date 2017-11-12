@@ -5,11 +5,10 @@ Train 2-layer Bernoulli DBM on MNIST dataset with pre-training.
 Hyper-parameters are similar to those in MATLAB code [1].
 Some of them were changed for more efficient computation on GPUs,
 another ones to obtain more stable learning (lesser number of "died" units etc.)
-
 RBM #2 trained with increasing k in CD-k and decreasing learning rate
 over time.
 
-Average validation mean reconstruction error for DBM (mostly) monotonically
+Per sample validation mean reconstruction error for DBM (mostly) monotonically
 decreases during training and is about 5.27e-3 at the end.
 
 The training took approx. 9 + 55 + 185 min = 4h 9m on GTX 1060.
