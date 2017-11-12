@@ -12,6 +12,9 @@ The training took approx. 47m + 119m + 22h 40m ~ 1d 1h 30m on GTX 1060.
 
 Note that DBM is trained without centering.
 
+After models are trained, Gaussian RBM is discriminatively fine-tuned.
+It achieves 59.78% accuracy on a test set.
+
 References
 ----------
 [1] A. Krizhevsky and G. Hinton. Learning multiple layers of features
