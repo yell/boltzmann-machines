@@ -152,7 +152,7 @@ Large number of parameters is one of the most crucial reasons why one-shot learn
   <img src="img/dbm_cifar_naive/grbm_confusion_matrix.png" width="307" />
 </p>
 
-Notice how infrequently animal is mistaken for a non-animal (or vice versa) and how frequently animal is mistaken to another animal (and the same for non-animal).
+Notice block structure of confusion matrix and thus how infrequently animal is mistaken for a non-animal (or vice versa) and how frequently animal is mistaken to another animal (and the same for non-animal).
 
 ---
 
