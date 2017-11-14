@@ -407,8 +407,10 @@ def main():
     X_test -= X_s_mean
     X_test /= X_s_std
 
-    # G-RBM discriminative fine-tuning
-    print "\nDiscriminative fine-tuning ...\n\n"
+    # G-RBM discriminative fine-tuning:
+    # initialize MLP with learned weights,
+    # add FC layer and train using backprop
+    print "\nG-RBM Discriminative fine-tuning ...\n\n"
 
     W, hb = None, None
     if not args.mlp_no_init:
