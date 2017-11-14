@@ -39,7 +39,6 @@ def load_mnist(mode='train', path='.'):
 
     return data.astype(float), target
 
-
 def load_cifar10(mode='train', path='.'):
     """
     Load and return CIFAR-10 dataset.
@@ -72,7 +71,6 @@ def load_cifar10(mode='train', path='.'):
         start += 10000
     return data, target
 
-
 def im_flatten(X):
     """Flatten batch of 3-channel images `X`
     for learning.
@@ -93,7 +91,6 @@ def im_flatten(X):
     if X.shape[0] == 1:
         X = X[0, ...]
     return X
-
 
 def im_unflatten(X):
     """Convert batch of 3-channel images `X`
@@ -138,7 +135,6 @@ def im_unflatten(X):
         X = X[0, ...]
     return X
 
-
 def im_rescale(X, mean=0., std=1.):
     """Same as `im_unflatten` but also scale range
     of images for better visual perception.
@@ -160,14 +156,12 @@ def im_rescale(X, mean=0., std=1.):
     X = X.astype('uint8')
     return X
 
-
 def get_cifar10_labels():
     return ['airplane', 'auto', 'bird', 'cat', 'deer',
             'dog', 'frog', 'horse', 'ship', 'truck']
 
 def get_cifar10_label(index):
     return get_cifar10_labels()[index]
-
 
 def plot_cifar10(X, y, samples_per_class=7,
                  title='CIFAR-10 dataset', title_params=None, imshow_params=None):
@@ -183,7 +177,7 @@ def plot_cifar10(X, y, samples_per_class=7,
     classes = range(num_classes)
     for c in classes:
         idxs = np.flatnonzero(y == c)
-        idxs = RNG(1337).choice(idxs, samples_per_class, replace=False)
+        idxs = RNG(seed=1337).choice(idxs, samples_per_class, replace=False)
         for i, idx in enumerate(idxs):
             plt_idx = i * num_classes + c + 1
             ax = plt.subplot(samples_per_class, num_classes, plt_idx)

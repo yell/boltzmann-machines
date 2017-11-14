@@ -1,7 +1,6 @@
 import numpy as np
 import tensorflow as tf
 
-from base import is_attribute_name
 from bm.utils import RNG
 
 

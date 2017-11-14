@@ -12,7 +12,6 @@ def tick_params():
                 bottom='off', top='off', left='off', right='off',
                 labelbottom='off', labelleft='off', labelright='off')
 
-
 def im_plot(X, n_width=10, n_height=10, shape=None, title=None,
             title_params=None, imshow_params=None):
     """Plot batch of images `X` on a single graph."""
@@ -42,7 +41,6 @@ def im_plot(X, n_width=10, n_height=10, shape=None, title=None,
     if title:
         plt.suptitle(title, **title_params)
     plt.subplots_adjust(wspace=0, hspace=0)
-
 
 def im_reshape(X, n_width=10, n_height=10, shape=None, normalize=False):
     """Reshape batch of images `X` to a single grid-image
@@ -81,7 +79,6 @@ def im_reshape(X, n_width=10, n_height=10, shape=None, normalize=False):
         Z = Z[:, :, 0]
 
     return Z
-
 
 def im_gif(matrices, im, fig, fname=None, title_func=None,
            title_params=None, anim_params=None, save_params=None):
@@ -124,7 +121,6 @@ def im_gif(matrices, im, fig, fname=None, title_func=None,
     if fname:
         anim.save(fname, **save_params)
     return anim
-
 
 def plot_confusion_matrix(C, labels=None, labels_fontsize=13, **heatmap_params):
     # default params

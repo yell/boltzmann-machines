@@ -4,11 +4,7 @@ import tensorflow as tf
 from functools import wraps
 
 from bm.base import (BaseModel, DtypeMixin,
-                     is_param_name, is_attribute_name)
-
-
-def is_weight_name(name):
-    return not name.startswith('_') and name.endswith('_')
+                     is_param_name)
 
 
 def run_in_tf_session(check_initialized=True, update_seed=False):
