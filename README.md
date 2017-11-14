@@ -141,7 +141,7 @@ Large number of parameters is one of the most crucial reasons why one-shot learn
 | <div align="center">algorithm</div> | test accuracy, % |
 | :--- | :---: |
 | *Best known MLP w/o data augmentation*: 8 layer ZLin net [**[4]**](#4) | **69.62** |
-| *Best known method using RBM*: 10k hiddens, trained on unwhitened data + fine-tuning [**[3]**](#3) | **64.84** |
+| *Best known method using RBM (w/o data augmentation?)*: 10k hiddens + fine-tuning [**[3]**](#3) | **64.84** |
 | Gaussian RBM + discriminative fine-tuning | **59.78** |
 | Pure backprop 3072-5000-10 on smoothed data | **58.20** |
 | Pure backprop 782-10k-10 on PCA whitened data [**[3]**](#3) | **51.53** |
@@ -193,6 +193,15 @@ Large number of parameters is one of the most crucial reasons why one-shot learn
 </p>
 
 ***TODO***: takes quite a lot of time to compute, but once trained, these nets can be used for other (similar) datasets/tasks.
+
+| <div align="center">algorithm</div> | test accuracy, % |
+| :--- | :---: |
+| Gaussian RBM + discriminative fine-tuning + augmentation | **68.11** |
+| *Best known method using RBM (w/o data augmentation?)*: 10k hiddens + fine-tuning [**[3]**](#3) | **64.84** |
+| Gaussian RBM + discriminative fine-tuning | **64.38** |
+| Gaussian RBM + discriminative fine-tuning (example #3) | **59.78** |
+
+How to reproduce the this table see [here](docs/grbm_discriminative.md).
 
 ---
 
