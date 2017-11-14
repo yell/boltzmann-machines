@@ -494,6 +494,8 @@ def main():
                         help='number of validation examples')
     parser.add_argument('--data-path', type=str, default='../data/', metavar='PATH',
                         help='directory for storing augmented data etc.')
+    parser.add_argument('--no-aug', action='store_true',
+                        help="if enabled, don't augment data")
 
     # small RBMs related
     parser.add_argument('--small-lr', type=float, default=1e-3, metavar='LR', nargs='+',
@@ -602,25 +604,27 @@ def main():
     y_train = y[:n_train]
     y_val = y[-n_val:]
 
-    # augment data
-    X_aug, y_train = make_augmentation(X_train, y_train, n_train, args)
+    if not args.no_aug:
+        # augment data
+        X_aug, y_train = make_augmentation(X_train, y_train, n_train, args)
 
-    # convert + scale augmented data again
-    X_train = X_aug.astype(np.float32)
-    X_train /= 255.
-    print "Augmented shape: {0}".format(X_train.shape)
-    print "Augmented range: {0}".format((X_train.min(), X_train.max()))
+        # convert + scale augmented data again
+        X_train = X_aug.astype(np.float32)
+        X_train /= 255.
+        print "Augmented shape: {0}".format(X_train.shape)
+        print "Augmented range: {0}".format((X_train.min(), X_train.max()))
 
     # center and normalize training data
     X_mean = X_train.mean(axis=0)
     X_std = X_train.std(axis=0)
 
-    mean_path = os.path.join(args.data_path, 'X_aug_mean.npy')
-    std_path = os.path.join(args.data_path, 'X_aug_std.npy')
-    if not os.path.isfile(mean_path):
-        np.save(mean_path, X_mean)
-    if not os.path.isfile(std_path):
-        np.save(std_path, X_std)
+    if not args.no_aug:
+        mean_path = os.path.join(args.data_path, 'X_aug_mean.npy')
+        std_path = os.path.join(args.data_path, 'X_aug_std.npy')
+        if not os.path.isfile(mean_path):
+            np.save(mean_path, X_mean)
+        if not os.path.isfile(std_path):
+            np.save(std_path, X_std)
 
     X_train -= X_mean
     X_train /= X_std
@@ -666,8 +670,8 @@ def main():
     # load test data
     X_test, y_test = load_cifar10(mode='test', path=args.data_path)
     X_test /= 255.
-    X_test -= X_aug_mean
-    X_test /= X_aug_std
+    X_test -= X_mean
+    X_test /= X_std
 
     # G-RBM discriminative fine-tuning:
     # initialize MLP with learned weights, 
