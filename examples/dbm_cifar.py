@@ -26,7 +26,7 @@ I also trained for longer with options
 --max-mf-updates 70
 ```
 with a decrease of MSRE from ~0.6 to ~0.147 at the end and it took
-~3d 2h 7m on GTX 1060.
+~3d 1h 41m on GTX 1060.
 
 Note that DBM is trained without centering.
 
@@ -41,19 +41,29 @@ print __doc__
 import os
 import argparse
 import numpy as np
+from keras import regularizers
+from keras.callbacks import EarlyStopping, ReduceLROnPlateau
+from keras.initializers import glorot_uniform
+from keras.models import Sequential
+from keras.layers import Dense, Activation, Dropout, BatchNormalization as BN
+from sklearn.metrics import accuracy_score
 
 import env
 from bm import DBM
 from bm.rbm import GaussianRBM, MultinomialRBM
-from bm.utils import RNG, Stopwatch
+from bm.utils import (RNG, Stopwatch,
+                      one_hot, one_hot_decision_function, unhot)
 from bm.utils.augmentation import shift, horizontal_mirror
 from bm.utils.dataset import (load_cifar10,
                               im_flatten, im_unflatten)
+from bm.utils.optimizers import MultiAdam
 
 
-def make_augmentation(X_train, n_train, args):
+def make_augmentation(X_train, y_train, n_train, args):
     X_aug = None
     X_aug_path = os.path.join(args.data_path, 'X_aug.npy')
+    y_train = y_train.tolist() * 10
+    RNG(seed=1337).shuffle(y_train)
 
     augment = True
     if os.path.isfile(X_aug_path):
@@ -98,7 +108,7 @@ def make_augmentation(X_train, n_train, args):
         s.elapsed()
         print "\n"
 
-    return X_aug
+    return X_aug, y_train
 
 def make_small_rbms((X_train, X_val), args):
     X_train = im_unflatten(X_train)
@@ -418,6 +428,56 @@ def make_dbm((X_train, X_val), rbms, (Q, G), args):
         dbm.fit(X_train, X_val)
     return dbm
 
+def make_mlp((X_train, y_train), (X_val, y_val), (X_test, y_test),
+             (W, hb), args):
+    dense_params = {}
+    if W is not None and hb is not None:
+        dense_params['weights'] = (W, hb)
+
+    # define and initialize MLP model
+    mlp = Sequential([
+        Dense(7800, input_shape=(3 * 32 * 32,),
+              kernel_regularizer=regularizers.l2(args.mlp_l2),
+              kernel_initializer=glorot_uniform(seed=3333),
+              **dense_params),
+        BN(),
+        Activation('relu'),
+        Dropout(args.mlp_dropout, seed=4444),
+        Dense(10, kernel_initializer=glorot_uniform(seed=5555)),
+        Activation('softmax'),
+    ])
+    mlp.compile(optimizer=MultiAdam(lr=0.001,
+                                    lr_multipliers={'dense_1': args.mlp_lrm[0],
+                                                    'dense_2': args.mlp_lrm[1]}),
+                loss='categorical_crossentropy',
+                metrics=['accuracy'])
+
+    # train and evaluate classifier
+    with Stopwatch(verbose=True) as s:
+        early_stopping = EarlyStopping(monitor=args.mlp_val_metric, patience=6, verbose=2)
+        reduce_lr = ReduceLROnPlateau(monitor=args.mlp_val_metric, factor=0.2, verbose=2,
+                                      patience=3, min_lr=1e-5)
+        callbacks = [early_stopping, reduce_lr]
+        try:
+            mlp.fit(X_train, one_hot(y_train, n_classes=10),
+                    epochs=args.mlp_epochs,
+                    batch_size=args.mlp_batch_size,
+                    shuffle=False,
+                    validation_data=(X_val, one_hot(y_val, n_classes=10)),
+                    callbacks=callbacks)
+        except KeyboardInterrupt:
+            pass
+
+    y_pred = mlp.predict(X_test)
+    y_pred = unhot(one_hot_decision_function(y_pred), n_classes=10)
+    print "Test accuracy: {:.4f}".format(accuracy_score(y_test, y_pred))
+
+    # save predictions, targets, and fine-tuned weights
+    np.save(args.mlp_save_prefix + 'y_pred.npy', y_pred)
+    np.save(args.mlp_save_prefix + 'y_test.npy', y_test)
+    W_finetuned, _ = mlp.layers[0].get_weights()
+    np.save(args.mlp_save_prefix + 'W_finetuned.npy', W_finetuned)
+
 
 def main():
     # training settings
@@ -496,6 +556,24 @@ def main():
     parser.add_argument('--sparsity-damping', type=float, default=0.9, metavar='D',
                         help='decay rate for hidden activations probs')
 
+    # MLP related
+    parser.add_argument('--mlp-no-init', action='store_true',
+                        help='if enabled, use random initialization')
+    parser.add_argument('--mlp-l2', type=float, default=1e-4, metavar='L2',
+                        help='L2 weight decay coefficient')
+    parser.add_argument('--mlp-lrm', type=float, default=(0.01, 1.), metavar='LRM', nargs='+',
+                        help='learning rate multipliers of 1e-3')
+    parser.add_argument('--mlp-epochs', type=int, default=100, metavar='N',
+                        help='number of epochs to train')
+    parser.add_argument('--mlp-val-metric', type=str, default='val_acc', metavar='S',
+                        help="metric on validation set to perform early stopping, {'val_acc', 'val_loss'}")
+    parser.add_argument('--mlp-batch-size', type=int, default=128, metavar='N',
+                        help='input batch size for training')
+    parser.add_argument('--mlp-dropout', type=float, default=0.7, metavar='P',
+                        help='probability of visible units being set to zero')
+    parser.add_argument('--mlp-save-prefix', type=str, default='../data/grbm_', metavar='PREFIX',
+                        help='prefix to save MLP predictions and targets')
+
     # parse and check params
     args = parser.parse_args()
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
@@ -512,17 +590,20 @@ def main():
 
     # prepare data (load + scale + split)
     print "\nPreparing data ..."
-    X, _ = load_cifar10(mode='train', path=args.data_path)
+    X, y = load_cifar10(mode='train', path=args.data_path)
     X = X.astype(np.float32)
     X /= 255.
     RNG(seed=42).shuffle(X)
+    RNG(seed=42).shuffle(y)
     n_train = min(len(X), args.n_train)
     n_val = min(len(X), args.n_val)
     X_train = X[:n_train]
     X_val = X[-n_val:]
+    y_train = y[:n_train]
+    y_val = y[-n_val:]
 
     # augment data
-    X_aug = make_augmentation(X_train, n_train, args)
+    X_aug, y_train = make_augmentation(X_train, y_train, n_train, args)
 
     # convert + scale augmented data again
     X_train = X_aug.astype(np.float32)
@@ -533,6 +614,7 @@ def main():
     # center and normalize training data
     X_mean = X_train.mean(axis=0)
     X_std = X_train.std(axis=0)
+
     mean_path = os.path.join(args.data_path, 'X_aug_mean.npy')
     std_path = os.path.join(args.data_path, 'X_aug_std.npy')
     if not os.path.isfile(mean_path):
@@ -580,6 +662,26 @@ def main():
 
     # jointly train DBM
     dbm = make_dbm((X_train, X_val), (grbm, mrbm), (Q, G), args)
+
+    # load test data
+    X_test, y_test = load_cifar10(mode='test', path=args.data_path)
+    X_test /= 255.
+    X_test -= X_aug_mean
+    X_test /= X_aug_std
+
+    # G-RBM discriminative fine-tuning:
+    # initialize MLP with learned weights, 
+    # add FC layer and train using backprop
+    print "\nG-RBM Discriminative fine-tuning ...\n\n"
+
+    W, hb = None, None
+    if not args.mlp_no_init:
+        weights = grbm.get_tf_params(scope='weights')
+        W = weights['W']
+        hb = weights['hb']
+
+    make_mlp((X_train, y_train), (X_val, y_val), (X_test, y_test),
+             (W, hb), args)
 
 
 if __name__ == '__main__':
