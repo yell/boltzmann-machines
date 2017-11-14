@@ -136,7 +136,7 @@ Large number of parameters is one of the most crucial reasons why one-shot learn
   <img src="img/dbm_cifar_naive/samples.gif" width="296" />
 </p>
 
-***TODO***: note that this is *modified* G-RBM for DBM pre-training (see notes or [**[1]**] for details):
+***TODO***: note that this is *modified* G-RBM for DBM pre-training (see notes or [**[1]**](#1) for details):
 
 | <div align="center">algorithm</div> | test accuracy, % |
 | :--- | :---: |
@@ -202,6 +202,12 @@ Large number of parameters is one of the most crucial reasons why one-shot learn
 | Gaussian RBM + discriminative fine-tuning (example #3) | **59.78** |
 
 How to reproduce the this table see [here](docs/grbm_discriminative.md).
+
+<p float="left">
+  <img src="img/dbm_cifar2/grbm.png" width="265" />
+  <img src="img/dbm_cifar2/grbm_no_aug_finetuned.png" width="265" /> 
+  <img src="img/dbm_cifar2/grbm_confusion_matrix.png" width="307" />
+</p>
 
 ---
 
@@ -281,7 +287,7 @@ Note that training is skipped if there is already a model in `model-dirpath` (yo
 * GPU memory: at most 2-3 GB for each model in each example, and it is always possible to decrease batch size and number of negative particles;
 * RAM: at most 11GB (to run last example, features from Gaussian RBM are in `half` precision) and (much) lesser for other examples.
 
-## TeX Notes
+## TeX notes
 ***TODO*** definitely check them out!
 
 ## How to install
