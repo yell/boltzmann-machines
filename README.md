@@ -417,7 +417,7 @@ All models from all experiments can be downloaded using `models/fetch_models.sh`
 Also, you can download additional data (fine-tuned models' predictions, fine-tuned weights, means and standard deviations for datasets for examples [#3](#3-dbm-cifar-10-naïve-script-notebook), [#4](#4-dbm-cifar-10-script-notebook)) using `data/fetch_additional_data.sh`
 
 ## TeX notes
-***TODO*** definitely check them out!
+Check also my [notes](tex/notes.pdf) with some historical outlines, derivations, additional experiments and observations etc.
 
 ## How to install
 By default, the following commands install (among others) **tensorflow-gpu~=1.3.0**. If you want to install tensorflow without GPU support, replace corresponding line in [requirements.txt](requirements.txt). If you have already tensorflow installed, comment that line.
