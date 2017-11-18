@@ -8,20 +8,23 @@
 </p>
 
 # Boltzmann Machines
-Goal was to reproduce experiments from [**[1]**](#1) (at least there was numbers to compare with) + [**[2]**](#2) +
-[**[3]**](#3) + additional experiments along the way
+This repository implements generic and flexible RBM and DBM models with lots of features and reproduces some experiments from *"Deep boltzmann machines"* [**[1]**](#1), *"Learning with hierarchical-deep models"* [**[2]**](#2), *"Learning multiple layers of features from tiny images"* [**[3]**](#3), and some others.
 
 ## Table of contents
 ***TODO***
 
 ## What's Implemented
 ### Restricted Boltzmann Machines (RBM)
-* *k-step Contrastive Divergence* with *variable* learning rate, momentum and number of Gibbs steps;
-* L2 weight decay, dropout, sparsity targets, ***TODO***: rest;
-* *different types of RBMs*: Bernoulli, Multinomial, Gaussian;
-* *easy to add new type of RBM*: implement new type of stochastic units or create new RBM from existing types of units
-* initialize from another RBM
-* **visualizations in Tensorboard**:
+* k-step Contrastive Divergence;
+* whether to sample or use probabilities for visible and hidden units;
+* *variable* learning rate, momentum and number of Gibbs steps per weight update;
+* *regularization*: L2 weight decay, dropout, sparsity targets;
+* *different types of stochastic layers and RBMs*: implement new type of stochastic units or create new RBM from existing types of units;
+* *predefined stochastic layers*: Bernoulli, Multinomial, Gaussian;
+* *predefined RBMs*: Bernoulli-Bernoulli, Bernoulli-Multinomial, Gaussian-Bernoulli;
+* initialize weights randomly, or from `np.ndarray`s or from another RBM;
+* can be modified for greedy layer-wise pretraining of DBM (see [**[1]**](#1) or notes for details);
+* *visualizations in Tensorboard* (hover images for details) and more:
 <p align="center">
   <img src="img/tensorboard_rbm/msre.png" height="170" title="Mean squared reconstruction error" />
   <img src="img/tensorboard_rbm/pll.png" height="170" title="Pseudo log-likelihood" />
@@ -61,15 +64,18 @@ Goal was to reproduce experiments from [**[1]**](#1) (at least there was numbers
 </p>
 
 ### Deep Boltzmann Machines (DBM)
-* arbitrary number of layers of any types
-* initialize from greedy layer-wise pretrained RBMs and jointly fine-tune using PCD + mean-field approximation
-* one can use `DBM` class with 1 hidden layer to train **RBM** with this more efficient algorithm + generating samples after training + AIS
-* visualize filters and hidden activations for all layers
-* sparsity targets
-* visualize norms of weights in each layer
-* visualize visible negative particles
-* implemented Annealed Importance Sampling to estimate log partition function
-* **visualizations in Tensorboard**:
+* EM-like learning algorithm based on PCD and mean-field variational inference [**[1]**](#1);
+* arbitrary number of layers of any types;
+* initialize from greedy layer-wise pretrained RBMs (no random initialization for now);
+* whether to sample or use probabilities for visible and hidden units;
+* *variable* learning rate, momentum and number of Gibbs steps per weight update;
+* *regularization*: L2 weight decay, maxnorm, sparsity targets;
+* estimate partition function using Annealed Importance Sampling ([**[1]**](#1));
+* estimate variational lower-bound (ELBO) using logẐ (currently only for 2-layer binary BM);
+* generate samples after training;
+* initialize negative particles (visible and hidden in all layers) from data;
+* `DBM` class can be used also for training RBM and its features: more powerful learning algorithm, to estimate logẐ and ELBO, to generate samples after training;
+* *visualizations in Tensorboard* (hover images for details) and more:
 <p align="center">
   <img src="img/tensorboard_dbm/msre.png"         height="170" title="Mean squared reconstruction error" />
   <img src="img/tensorboard_dbm/n_mf_updates.png" height="170" title="Actual number of mean-field updates" />
@@ -114,20 +120,16 @@ Goal was to reproduce experiments from [**[1]**](#1) (at least there was numbers
   <img src="img/tensorboard_dbm/mnist_particles_L23.gif" height="200" title="Negative particles (in each layer)" />
 </p>
 
-### Features
-* easy to use `sklearn`-like interface
-* serialization (tf saver + python class hyperparams + RNG state), easy to save and to load
-* reproducible (random seeds)
-* all models support both `float32` and `float64` precision
-* choose metrics to display during learning
-* easy to resume training; note that changing parameters other than placeholders or python-level parameters (such as `batch_size`, `learning_rate`, `momentum`, `sample_v_states` etc.) between `fit` calls have no effect as this would require altering the computation graph, which is not yet supported; **however**, one can build model with new desired TF graph, and initialize weights and biases from old model by using `init_from` method
-* *visualization*: python routines to display images, learned filters, confusion matrices etc.
+### Common features
+* easy to use with `sklearn`-like interface;
+* easy to load and save models;
+* easy to reproduce (`random_seed` make reproducible both TensorFlow and numpy operations inside the model);
+* all models support any precision (tested `float32` and `float64`);
+* configure metrics to display during learning (which ones, frequency, format etc.);
+* easy to resume training (note that changing parameters other than placeholders or python-level parameters (such as `batch_size`, `learning_rate`, `momentum`, `sample_v_states` etc.) between `fit` calls have no effect as this would require altering the computation graph, which is not yet supported; **however**, one can build model with new desired TF graph, and initialize weights and biases from old model by using `init_from` method);
+* *visualization*: apart from TensorBoard, there also plenty of python routines to display images, learned filters, confusion matrices etc and more.
 
-### Tensorboard visualization
-* **RBM**: ***TODO***
-* **DBM**: ***TODO***
-
-## Examples (***TODO*** add demo images, download models)
+## Examples
 ### #1 RBM MNIST: [script](examples/rbm_mnist.py), *[notebook](notebooks/rbm_mnist.ipynb)*
 Train Bernoulli RBM with 1024 hidden units on MNIST dataset and use it for classification.
 
@@ -144,7 +146,7 @@ Train Bernoulli RBM with 1024 hidden units on MNIST dataset and use it for class
   <img src="img/rbm_mnist/confusion_matrix.png" width="310" />
 </p>
 
-Also, [one-shot learning idea]:
+Another simple experiment illustrates main idea of *one-shot learning* approach proposed in [**[2]**](#2): to train generative neural network (RBM or DBM) on large corpus of unlabeled data and after that to *fine-tune* model only on limited amount of labeled data. Of course, in [**[2]**](#2) they do much more complex things than simply pre-training RBM or DBM, but the difference is already noticeable:
 
 | number of labeled data pairs (train + val) | RBM + fine-tuning | random initialization | gain |
 | :---: | :---: | :---: | :---: |
@@ -160,13 +162,14 @@ Even better results can be obtained if one will tune MLP and other classifiers.
 ---
 
 ### #2 DBM MNIST: [script](examples/dbm_mnist.py), *[notebook](notebooks/dbm_mnist.ipynb)*
-Train 784-512-1024 Bernoulli DBM on MNIST dataset and use it for classification, generate samples after training, 
-estimate partition function using Annealed Importance Sampling and average log-probability lower-bound (=evidence lower-bound, ELBO) 
-on the test set. 
+Train 784-512-1024 Bernoulli DBM on MNIST dataset with pre-training and:
+* use it for classification;
+* generate samples after training;
+* estimate partition function using AIS and average ELBO on the test set.
 
 | algorithm | # intermediate distributions | proposal (p<sub>0</sub>) | logẐ | log(Ẑ &plusmn; &#963;<sub>Z</sub>) | avg. test ELBO |
 | :---: | :---: | :---: | :---: | :---: | :---: |
-| [**[1]**](#1) | 20'000 | base-rate? | 356.18 | 356.06, 356.29 | **-84.62** |
+| [**[1]**](#1) | 20'000 | base-rate? [**[5]**](#5) | 356.18 | 356.06, 356.29 | **-84.62** |
 | this example | 200'000 | uniform | 1040.39 | 1040.18, 1040.58 | **-86.37** |
 | this example | 20'000 | uniform | 1040.58 | 1039.93, 1041.03 | **-86.59** |
 
@@ -197,16 +200,20 @@ Couple of nats could have been lost because of single-precision.
 
 How to reproduce the this table see [here](docs/dbm_discriminative.md).
 
-Again **tune better**.
-
-Performance on full training set is slightly worse because of harder optimization problem + vanishing gradients.
-Also because the optimization problem is harder, the gain when not much datapoints are used is typically larger.
-
-Large number of parameters is one of the most crucial reasons why one-shot learning is not successfuly by utilizing deep learning only. Instead, it is much better to combine deep learning and hierarchical Bayesian modeling by putting HDP prior over units from top-most hidden layer as in #paper.
+Again, MLP is not tuned.
+<br>
+Performance on full training set is slightly worse compared to RBM because of harder optimization problem + possible vanishing gradients. Also because the optimization problem is harder, the gain when not much datapoints are used is typically larger.
+<br>
+Large number of parameters is one of the most crucial reasons why one-shot learning is not (so) successful by utilizing deep learning only. Instead, it is much better to combine deep learning and hierarchical Bayesian modeling by putting HDP prior over units from top-most hidden layer as in [**[2]**](#2).
 
 ---
 
-### #3 DBM CIFAR-10 Naïve: [script](examples/dbm_cifar_naive.py), *[notebook](notebooks/dbm_cifar_naive.py)*
+### #3 DBM CIFAR-10 "Naïve": [script](examples/dbm_cifar_naive.py), *[notebook](notebooks/dbm_cifar_naive.py)*
+
+(Simply) train 3072-5000-1000 Gaussian-Bernoulli-Multinomial DBM on "smoothed" CIFAR-10 dataset (with 1000 least
+significant singular values removed, as suggested in [**[3]**](#3)) with pre-training and:
+* generate samples after training;
+* use pre-trained Gaussian RBM (G-RBM) for classification.
 
 <p float="left">
   <img src="img/dbm_cifar_naive/grbm.png" width="210" />
@@ -220,11 +227,11 @@ Large number of parameters is one of the most crucial reasons why one-shot learn
   <img src="img/dbm_cifar_naive/samples.gif" width="296" />
 </p>
 
-***TODO***: note that this is *modified* G-RBM for DBM pre-training (see notes or [**[1]**](#1) for details):
+Despite poor-looking G-RBM features, classification performance after discriminative fine-tuning is much larger than reported backprop from random initialization [**[3]**](#3), and is 5% behind best reported result using RBM (with twice larger number of hidden units). Note also that G-RBM is *modified* for DBM pre-training (see notes or [**[1]**](#1) for details):
 
 | <div align="center">algorithm</div> | test accuracy, % |
 | :--- | :---: |
-| *Best known MLP w/o data augmentation*: 8 layer ZLin net [**[5]**](#5) | **69.62** |
+| *Best known MLP w/o data augmentation*: 8 layer ZLin net [**[6]**](#6) | **69.62** |
 | *Best known method using RBM (w/o data augmentation?)*: 10k hiddens + fine-tuning [**[3]**](#3) | **64.84** |
 | Gaussian RBM + discriminative fine-tuning | **59.78** |
 | Pure backprop 3072-5000-10 on smoothed data | **58.20** |
@@ -240,7 +247,10 @@ Large number of parameters is one of the most crucial reasons why one-shot learn
 
 ### #4 DBM CIFAR-10: [script](examples/dbm_cifar.py), *[notebook](notebooks/dbm_cifar.py)*
 
-***TODO*** in [**[2]**](#2) they trained on 4M images, here only 490k (x10 augmented CIFAR-10 only)
+Train 3072-7800-512 G-B-M DBM with pre-training on CIFAR-10, 
+augmented (x10) using shifts by 1 pixel in all directions and horizontal mirroring and using more advanced training of G-RBM which is initialized from pre-trained 26 small RBM on patches of images, as in [**[3]**](#3).
+<br>
+Notice how some of the particles are already resemble natural images of horses, cars etc. and note that the model is trained only on augmented CIFAR-10 (490k images), compared to 4M images that were used in [**[2]**](#2).
 
 <p float="left">
   <img src="img/dbm_cifar/rbm_small_0.png" width="210" />
@@ -259,6 +269,14 @@ Large number of parameters is one of the most crucial reasons why one-shot learn
   <img src="img/dbm_cifar/samples.gif" width="296" /> 
 </p>
 
+I also trained for longer with
+```bash
+python dbm_cifar.py --small-l2 2e-3 --small-epochs 120 --small-sparsity-cost 0 \
+                    --increase-n-gibbs-steps-every 20 --epochs 80 72 200 \
+                    --l2 2e-3 0.01 1e-8 --max-mf-updates 70
+```
+While all RBMs have nicer features, this means that they overfit more than previously, and thus overall DBM performance is slightly worse.
+
 <p float="left">
   <img src="img/dbm_cifar2/rbm_small_0.png" width="210" />
   <img src="img/dbm_cifar2/rbm_small_2.png" width="210" /> 
@@ -276,7 +294,7 @@ Large number of parameters is one of the most crucial reasons why one-shot learn
   <img src="img/dbm_cifar2/samples.gif" width="296" /> 
 </p>
 
-***TODO***: takes quite a lot of time to compute, but once trained, these nets can be used for other (similar) datasets/tasks.
+The training with all pre-trainings takes quite a lot of time, but once trained, these nets can be used for other (similar) datasets/tasks.
 
 | <div align="center">algorithm</div> | test accuracy, % |
 | :--- | :---: |
@@ -302,10 +320,10 @@ $ python rbm_mnist.py -h
 
 (...)
 
-usage: rbm_mnist.py [-h] [--gpu ID] [--n-train N] [--n-val N] [--n-hidden N]
-                    [--w-init STD] [--vb-init] [--hb-init HB]
-                    [--n-gibbs-steps N [N ...]] [--lr LR [LR ...]]
-                    [--epochs N] [--batch-size B] [--l2 L2]
+usage: rbm_mnist.py [-h] [--gpu ID] [--n-train N] [--n-val N]
+                    [--data-path PATH] [--n-hidden N] [--w-init STD]
+                    [--vb-init] [--hb-init HB] [--n-gibbs-steps N [N ...]]
+                    [--lr LR [LR ...]] [--epochs N] [--batch-size B] [--l2 L2]
                     [--sample-v-states] [--dropout P] [--sparsity-target T]
                     [--sparsity-cost C] [--sparsity-damping D]
                     [--random-seed N] [--dtype T] [--model-dirpath DIRPATH]
@@ -319,6 +337,8 @@ optional arguments:
                         (default: 0)
   --n-train N           number of training examples (default: 55000)
   --n-val N             number of validation examples (default: 5000)
+  --data-path PATH      directory for storing augmented data etc. (default:
+                        ../data/)
   --n-hidden N          number of hidden units (default: 1024)
   --w-init STD          initialize weights from zero-centered Gaussian with
                         this standard deviation (default: 0.01)
@@ -362,14 +382,21 @@ optional arguments:
 ```
 or download pretrained ones with default parameters using `models/fetch_models.sh`, 
 </br>
-and check **notebook**s for corresponding inference / visualization etc.
-Note that training is skipped if there is already a model in `model-dirpath` (you can choose different location for training another model).
+and check **notebook**s for corresponding inference / visualizations etc.
+Note that training is skipped if there is already a model in `model-dirpath`, and similarly for other experiments (you can choose different location for training another model).
 
 ---
 
 ### Memory requirements
 * GPU memory: at most 2-3 GB for each model in each example, and it is always possible to decrease batch size and number of negative particles;
 * RAM: at most 11GB (to run last example, features from Gaussian RBM are in `half` precision) and (much) lesser for other examples.
+
+---
+
+## Download models and stuff
+All models from all experiments can be downloaded using `models/fetch_models.sh` or directly from [Google Drive](https://drive.google.com/open?id=1jFsh4Jh3s41B-_hPHe_VS9apkMmIWiNy).
+<br>
+Also, you can download additional data (fine-tuned models' predictions, fine-tuned weights, means and standard deviations for datasets for examples #3, #4) using `data/fetch_additional_data.sh`
 
 ## TeX notes
 ***TODO*** definitely check them out!
@@ -404,15 +431,15 @@ make data
 TensorFlow 1.3.0 assumes cuDNN v6.0 by default. If you have different one installed, you can create symlink to `libcudnn.so.6` in `/usr/local/cuda/lib64` or `/usr/local/cuda-8.0/lib64`. More details [here](https://stackoverflow.com/questions/42013316/after-building-tensorflow-from-source-seeing-libcudart-so-and-libcudnn-errors).
 
 ## TODO
-* add stratification
-* experiment: generate half MNIST digit conditioned on the other half using RBM 
-* feature: Centering trick
-* feature: classification RBMs/DBMs
-* feature: ELBO and AIS for arbitrary DBM (again, visible and topmost hidden units can be analytically summed out) and for RBM (perhaps by using DBM class)
+* add stratification;
+* generate half MNIST digit conditioned on the other half using RBM;
+* implement Centering [**[7]**](#7) for all models;
+* implement classification RBMs/DBMs?;
+* implement ELBO and AIS for arbitrary DBM (again, visible and topmost hidden units can be analytically summed out);
 * optimize input pipeline e.g. use queues instead of `feed_dict` etc.
 
 ## Contributing
-***TODO***
+Feel free to improve existing code, documentation or implement new feature (including those listed in **TODO**). Please open an issue to propose your changes if they are big enough.
 
 ## References
 **[1]**<a name="1"></a> R. Salakhutdinov and G. Hinton. *Deep boltzmann machines.* In: Artificial Intelligence and
@@ -425,4 +452,11 @@ Statistics, pages 448–455, 2009. [[PDF](http://proceedings.mlr.press/v5/salakh
 **[4]**<a name="4"></a> G. Hinton. *A practical guide to training restricted boltzmann machines.* Momentum, 9(1):926,
 2010. [[PDF](https://www.cs.toronto.edu/~hinton/absps/guideTR.pdf)]
 
-**[5]**<a name="5"></a> Lin Z, Memisevic R, Konda K. *How far can we go without convolution: Improving fully-connected networks*, ICML 2016. [[arXiv](https://arxiv.org/abs/1511.02580)]
+**[5]**<a name="5"></a> R. Salakhutdinov and I. Murray. *On the quantitative analysis of Deep Belief Networks.* In
+A. McCallum and S. Roweis, editors, Proceedings of the 25th Annual International Conference
+on Machine Learning (ICML 2008), pages 872–879. Omnipress, 2008 [[PDF](http://homepages.inf.ed.ac.uk/imurray2/pub/08dbn_ais/dbn_ais.pdf)]
+
+**[6]**<a name="6"></a> Lin Z, Memisevic R, Konda K. *How far can we go without convolution: Improving fully-connected networks*, ICML 2016. [[arXiv](https://arxiv.org/abs/1511.02580)]
+
+**[7]**<a name="7"></a> G. Montavon and K.-R. Müller. *Deep boltzmann machines and the centering trick.* In Neural
+Networks: Tricks of the Trade, pages 621–637. Springer, 2012. [[PDF](http://gregoire.montavon.name/publications/montavon-lncs12.pdf)]
