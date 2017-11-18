@@ -21,7 +21,7 @@ Goal was to reproduce experiments from [**[1]**](#1) (at least there was numbers
 * *different types of RBMs*: Bernoulli, Multinomial, Gaussian;
 * *easy to add new type of RBM*: implement new type of stochastic units or create new RBM from existing types of units
 * initialize from another RBM
-* *visualization in Tensorboard*: learning curves, distribution of weights and weights updates in TensorBoard; hidden activations and weight filters:
+* **visualizations in Tensorboard**:
 <p align="center">
   <img src="img/tensorboard_rbm/msre.png" height="170" title="Mean squared reconstruction error" />
   <img src="img/tensorboard_rbm/pll.png" height="170" title="Pseudo log-likelihood" />
@@ -48,16 +48,16 @@ Goal was to reproduce experiments from [**[1]**](#1) (at least there was numbers
 
 <p align="center">
   <img src="img/tensorboard_rbm/hidden_activations.gif" height="246" title="Hidden activations probabilities (means)" />
-  <img src="img/tensorboard_rbm/mnist_5.gif" height="246" title="Filters visualization" />
-  <img src="img/tensorboard_rbm/mnist_8.gif" height="246" title="Filters visualization" />
+  <img src="img/tensorboard_rbm/mnist_5.gif" height="246" title="Weight filters" />
+  <img src="img/tensorboard_rbm/mnist_8.gif" height="246" title="Weight filters" />
 </p>
 
 <p align="center">
-  <img src="img/tensorboard_rbm/cifar_small_6_1.gif" width="161" title="Filters visualization" />
-  <img src="img/tensorboard_rbm/cifar_small_8_6.gif" width="161" title="Filters visualization" />
-  <img src="img/tensorboard_rbm/cifar_6.gif"  width="161" title="Filters visualization" />
-  <img src="img/tensorboard_rbm/cifar_18.gif" width="161" title="Filters visualization" />
-  <img src="img/tensorboard_rbm/cifar_9.gif"  width="161" title="Filters visualization" />
+  <img src="img/tensorboard_rbm/cifar_small_6_1.gif" width="161" title="Weight filters" />
+  <img src="img/tensorboard_rbm/cifar_small_8_6.gif" width="161" title="Weight filters" />
+  <img src="img/tensorboard_rbm/cifar_6.gif"  width="161" title="Weight filters" />
+  <img src="img/tensorboard_rbm/cifar_18.gif" width="161" title="Weight filters" />
+  <img src="img/tensorboard_rbm/cifar_9.gif"  width="161" title="Weight filters" />
 </p>
 
 ### Deep Boltzmann Machines (DBM)
@@ -69,6 +69,30 @@ Goal was to reproduce experiments from [**[1]**](#1) (at least there was numbers
 * visualize norms of weights in each layer
 * visualize visible negative particles
 * implemented Annealed Importance Sampling to estimate log partition function
+* **visualizations in Tensorboard**:
+<p align="center">
+  <img src="img/tensorboard_dbm/msre.png"         height="170" title="Mean squared reconstruction error" />
+  <img src="img/tensorboard_dbm/n_mf_updates.png" height="170" title="Actual number of mean-field updates" />
+  <img src="img/tensorboard_dbm/W_norm.png"       height="170" title="Maximum absolute value of weight matrix (for each layer)" />
+</p>  
+
+<p align="center">
+  <img src="img/tensorboard_dbm/dist_W.png"   width="280" title="Distribution of weights and biases (for each layer)" />
+  <img src="img/tensorboard_dbm/dist_W2.png"  width="280" title="Distribution of weights and biases (for each layer)" />
+  <img src="img/tensorboard_dbm/dist_hb2.png" width="280" title="Distribution of weights and biases (for each layer)" />
+</p>
+
+<p align="center">
+  <img src="img/tensorboard_dbm/dist_dW.png"  width="280" title="Distribution of weights and biases updates (for each layer)" />
+  <img src="img/tensorboard_dbm/dist_dvb.png" width="280" title="Distribution of weights and biases updates (for each layer)" />
+  <img src="img/tensorboard_dbm/dist_mu2.png" width="280" title="Distribution of variational parameters (for each layer)" />
+</p>
+
+<p align="center">
+  <img src="img/tensorboard_dbm/hist_W.png"  width="280" title="Histogram of weights and biases (for each layer)" />
+  <img src="img/tensorboard_dbm/hist_dW.png" width="280" title="Histogram of weights and biases updates (for each layer)" />
+  <img src="img/tensorboard_dbm/hist_mu.png" width="280" title="Histogram of variational parameters (for each layer)" />
+</p>
 
 ### Features
 * easy to use `sklearn`-like interface
