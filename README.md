@@ -77,21 +77,29 @@ Goal was to reproduce experiments from [**[1]**](#1) (at least there was numbers
 </p>  
 
 <p align="center">
-  <img src="img/tensorboard_dbm/dist_W.png"   width="280" title="Distribution of weights and biases (for each layer)" />
-  <img src="img/tensorboard_dbm/dist_W2.png"  width="280" title="Distribution of weights and biases (for each layer)" />
-  <img src="img/tensorboard_dbm/dist_hb2.png" width="280" title="Distribution of weights and biases (for each layer)" />
+  <img src="img/tensorboard_dbm/dist_W.png"   width="280" title="Distribution of weights and biases (in each layer)" />
+  <img src="img/tensorboard_dbm/dist_W2.png"  width="280" title="Distribution of weights and biases (in each layer)" />
+  <img src="img/tensorboard_dbm/dist_hb2.png" width="280" title="Distribution of weights and biases (in each layer)" />
 </p>
 
 <p align="center">
-  <img src="img/tensorboard_dbm/dist_dW.png"  width="280" title="Distribution of weights and biases updates (for each layer)" />
-  <img src="img/tensorboard_dbm/dist_dvb.png" width="280" title="Distribution of weights and biases updates (for each layer)" />
-  <img src="img/tensorboard_dbm/dist_mu2.png" width="280" title="Distribution of variational parameters (for each layer)" />
+  <img src="img/tensorboard_dbm/dist_dW.png"  width="280" title="Distribution of weights and biases updates (in each layer)" />
+  <img src="img/tensorboard_dbm/dist_dvb.png" width="280" title="Distribution of weights and biases updates (in each layer)" />
+  <img src="img/tensorboard_dbm/dist_mu2.png" width="280" title="Distribution of variational parameters (in each layer)" />
 </p>
 
 <p align="center">
-  <img src="img/tensorboard_dbm/hist_W.png"  width="280" title="Histogram of weights and biases (for each layer)" />
-  <img src="img/tensorboard_dbm/hist_dW.png" width="280" title="Histogram of weights and biases updates (for each layer)" />
-  <img src="img/tensorboard_dbm/hist_mu.png" width="280" title="Histogram of variational parameters (for each layer)" />
+  <img src="img/tensorboard_dbm/hist_W.png"  width="280" title="Histogram of weights and biases (in each layer)" />
+  <img src="img/tensorboard_dbm/hist_dW.png" width="280" title="Histogram of weights and biases updates (in each layer)" />
+  <img src="img/tensorboard_dbm/hist_mu.png" width="280" title="Histogram of variational parameters (in each layer)" />
+</p>
+
+<p align="center">
+  <img src="img/tensorboard_dbm/mnist_filter_L1_5.gif" width="161" title="Weight filters (in each layer)" />
+  <img src="img/tensorboard_dbm/mnist_filter_L2_6.gif" width="161" title="Weight filters (in each layer)" />
+  <img src="img/tensorboard_dbm/cifar_filter_L1_6.gif" width="161" title="Weight filters (in each layer)" />
+  <img src="img/tensorboard_dbm/cifar_filter_L2_2.gif" width="161" title="Weight filters (in each layer)" />
+  <img src="img/tensorboard_dbm/cifar_filter_L2_6.gif" width="161" title="Weight filters (in each layer)" />
 </p>
 
 ### Features
