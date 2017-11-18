@@ -26,17 +26,38 @@ Goal was to reproduce experiments from [**[1]**](#1) (at least there was numbers
   <img src="img/tensorboard_rbm/msre.png" height="170" title="Mean squared reconstruction error" />
   <img src="img/tensorboard_rbm/pll.png" height="170" title="Pseudo log-likelihood" />
   <img src="img/tensorboard_rbm/feg.png" height="170" title="Free energy gap [4]" />
+</p>  
+
+<p align="center">
   <img src="img/tensorboard_rbm/l2_loss.png" height="170" title="L2 loss (weight decay cost times 0.5||W||^2)" />
-  
   <img src="img/tensorboard_rbm/dist_W.png" width="280" title="Distribution of weights and biases" />
   <img src="img/tensorboard_rbm/dist_hb.png" width="280" title="Distribution of weights and biases" />
+</p>
+
+<p align="center">
   <img src="img/tensorboard_rbm/dist_dW.png" width="280" title="Distribution of weights and biases updates" />
   <img src="img/tensorboard_rbm/dist_dvb.png" width="280" title="Distribution of weights and biases updates" />
-  
   <img src="img/tensorboard_rbm/hist_W.png" width="280" title="Histogram of weights and biases" />
+</p>
+
+<p align="center">
   <img src="img/tensorboard_rbm/hist_hb.png" width="280" title="Histogram of weights and biases" />
   <img src="img/tensorboard_rbm/hist_dW.png" width="280" title="Histogram of weights and biases updates" />
   <img src="img/tensorboard_rbm/hist_dvb.png" width="280" title="Histogram of weights and biases updates" />
+</p>
+
+<p align="center">
+  <img src="img/tensorboard_rbm/hidden_activations.gif" height="246" title="Hidden activations probabilities (means)" />
+  <img src="img/tensorboard_rbm/mnist_5.gif" height="246" title="Filters visualization" />
+  <img src="img/tensorboard_rbm/mnist_8.gif" height="246" title="Filters visualization" />
+</p>
+
+<p align="center">
+  <img src="img/tensorboard_rbm/cifar_small_6_1.gif" width="161" title="Filters visualization" />
+  <img src="img/tensorboard_rbm/cifar_small_8_6.gif" width="161" title="Filters visualization" />
+  <img src="img/tensorboard_rbm/cifar_6.gif"  width="161" title="Filters visualization" />
+  <img src="img/tensorboard_rbm/cifar_18.gif" width="161" title="Filters visualization" />
+  <img src="img/tensorboard_rbm/cifar_9.gif"  width="161" title="Filters visualization" />
 </p>
 
 ### Deep Boltzmann Machines (DBM)
