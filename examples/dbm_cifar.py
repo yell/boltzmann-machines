@@ -17,13 +17,9 @@ The training took approx. 26 x 35m + 5h 52m + 4h 55m + 11h 11m =
 
 I also trained for longer with options
 ```
---small-l2 2e-3 \
---small-epochs 120 \
---small-sparsity-cost 0 \
---increase-n-gibbs-steps-every 20 \
---epochs 80 72 200 \
---l2 2e-3 0.01 1e-8 \
---max-mf-updates 70
+--small-l2 2e-3 --small-epochs 120 --small-sparsity-cost 0 \
+--increase-n-gibbs-steps-every 20 --epochs 80 72 200 \
+--l2 2e-3 0.01 1e-8 --max-mf-updates 70
 ```
 with a decrease of MSRE from ~0.6 to ~0.147 at the end and it took
 ~3d 1h 41m on GTX 1060.
