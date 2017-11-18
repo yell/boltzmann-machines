@@ -8,8 +8,8 @@
 </p>
 
 # Boltzmann Machines
-Goal was to reproduce experiments from [**[1]**](#1) (at least there was numbers to compare with) + [**[2]**](#2)
- + [**[3]**](#3) + additional experiments along the way
+Goal was to reproduce experiments from [**[1]**](#1) (at least there was numbers to compare with) + [**[2]**](#2) +
+[**[3]**](#3) + additional experiments along the way
 
 ## Table of contents
 ***TODO***
@@ -21,7 +21,12 @@ Goal was to reproduce experiments from [**[1]**](#1) (at least there was numbers
 * *different types of RBMs*: Bernoulli, Multinomial, Gaussian;
 * *easy to add new type of RBM*: implement new type of stochastic units or create new RBM from existing types of units
 * initialize from another RBM
-* *visualization in Tensorboard*: learning curves, distribution of weights and weights updates in TensorBoard; hidden activations and weight filters
+* *visualization in Tensorboard*: learning curves, distribution of weights and weights updates in TensorBoard; hidden activations and weight filters:
+<p float="left">
+  <img src="img/tensorboard_rbm/msre.png" height="170" alt="Mean squared A" title="Mean squared T" />
+  <img src="img/tensorboard_rbm/pll.png" height="170" />
+  <img src="img/tensorboard_rbm/feg.png" height="170" />
+</p>
 
 ### Deep Boltzmann Machines (DBM)
 * arbitrary number of layers of any types
