@@ -8,17 +8,20 @@
 </p>
 
 # Boltzmann Machines
-Goal was to reproduce experiments from [**[1]**](#1) (at least there was numbers to compare with) + [**[2]**](#2) + additional experiments along the way
+Goal was to reproduce experiments from [**[1]**](#1) (at least there was numbers to compare with) + [**[2]**](#2)
+ + [**[3]**](#3) + additional experiments along the way
 
 ## Table of contents
+***TODO***
 
 ## What's Implemented
 ### Restricted Boltzmann Machines (RBM)
-* *k-step Contrastive Divergence*: *variable* learning rate and momentum, L2 weight decay, maxnorm, dropout, sparsity targets, ***TODO***: rest;
+* *k-step Contrastive Divergence* with *variable* learning rate, momentum and number of Gibbs steps;
+* L2 weight decay, dropout, sparsity targets, ***TODO***: rest;
 * *different types of RBMs*: Bernoulli, Multinomial, Gaussian;
 * *easy to add new type of RBM*: implement new type of stochastic units or create new RBM from existing types of units
-* *visualization in Tensorboard*: learning curves (reconstruction RMSE, pseudo log-likelihood, free energy gap, L2 loss), distribution of weights and weights updates in TensorBoard; hidden activations and weight filters
-* variable number of Gibbs steps withing training is not yet supported, but possible (need to implement `tf.while_loop` with variable number of steps) + see `init_from` method
+* initialize from another RBM
+* *visualization in Tensorboard*: learning curves, distribution of weights and weights updates in TensorBoard; hidden activations and weight filters
 
 ### Deep Boltzmann Machines (DBM)
 * arbitrary number of layers of any types
