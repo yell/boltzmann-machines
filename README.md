@@ -319,7 +319,7 @@ The training with all pre-trainings takes quite a lot of time, but once trained,
 | Gaussian RBM + discriminative fine-tuning + augmentation | **68.11** |
 | *Best known method using RBM (w/o data augmentation?)*: 10k hiddens + fine-tuning [**[3]**](#3) | **64.84** |
 | Gaussian RBM + discriminative fine-tuning | **64.38** |
-| Gaussian RBM + discriminative fine-tuning (example #3) | **59.78** |
+| Gaussian RBM + discriminative fine-tuning (example [#3](#3-dbm-cifar-10-naïve-script-notebook)) | **59.78** |
 
 How to reproduce the this table see [here](docs/grbm_discriminative.md).
 
@@ -414,7 +414,7 @@ Note that training is skipped if there is already a model in `model-dirpath`, an
 ## Download models and stuff
 All models from all experiments can be downloaded using `models/fetch_models.sh` or directly from [Google Drive](https://drive.google.com/open?id=1jFsh4Jh3s41B-_hPHe_VS9apkMmIWiNy).
 <br>
-Also, you can download additional data (fine-tuned models' predictions, fine-tuned weights, means and standard deviations for datasets for examples #3, #4) using `data/fetch_additional_data.sh`
+Also, you can download additional data (fine-tuned models' predictions, fine-tuned weights, means and standard deviations for datasets for examples [#3](#3-dbm-cifar-10-naïve-script-notebook), [#4](#4-dbm-cifar-10-script-notebook)) using `data/fetch_additional_data.sh`
 
 ## TeX notes
 ***TODO*** definitely check them out!
