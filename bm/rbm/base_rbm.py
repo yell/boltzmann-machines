@@ -479,7 +479,7 @@ class BaseRBM(EnergyBasedModel):
             tf.add_to_collection('train_op', train_op)
 
         # compute metrics
-        with tf.name_scope('l2_loss'):
+        with tf.name_scope('L2_loss'):
             l2_loss = self._l2 * tf.nn.l2_loss(self._W)
             tf.add_to_collection('l2_loss', l2_loss)
 

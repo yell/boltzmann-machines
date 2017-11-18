@@ -144,7 +144,7 @@ def main():
                         help='number of training examples')
     parser.add_argument('--n-val', type=int, default=5000, metavar='N',
                         help='number of validation examples')
-    parser.add_argument('--data-path', type=str, default=args.data_path, metavar='PATH',
+    parser.add_argument('--data-path', type=str, default='../data/', metavar='PATH',
                         help='directory for storing augmented data etc.')
 
     # RBM related
