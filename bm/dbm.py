@@ -12,7 +12,7 @@ from utils import (make_list_from, write_during_training,
 
 
 class DBM(EnergyBasedModel):
-    """Deep Boltzmann Machine with EM-like learning algorithms
+    """Deep Boltzmann Machine with EM-like learning algorithm
     based on PCD and mean-field variational inference [1].
 
     Parameters
