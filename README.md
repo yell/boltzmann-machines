@@ -102,6 +102,18 @@ Goal was to reproduce experiments from [**[1]**](#1) (at least there was numbers
   <img src="img/tensorboard_dbm/cifar_filter_L2_6.gif" width="161" title="Weight filters (in each layer)" />
 </p>
 
+<p align="center">
+  <img src="img/tensorboard_dbm/mnist_particle_L1_2.gif" width="161" title="Negative particles (in each layer)" />
+  <img src="img/tensorboard_dbm/mnist_particle_L1_4.gif" width="161" title="Negative particles (in each layer)" />
+  <img src="img/tensorboard_dbm/cifar_particle_L1_1.gif" width="161" title="Negative particles (in each layer)" />
+  <img src="img/tensorboard_dbm/cifar_particle_L1_2.gif" width="161" title="Negative particles (in each layer)" />
+  <img src="img/tensorboard_dbm/cifar_particle_L1_4.gif" width="161" title="Negative particles (in each layer)" />
+</p>
+
+<p align="center">
+  <img src="img/tensorboard_dbm/mnist_particles_L23.gif" height="200" title="Negative particles (in each layer)" />
+</p>
+
 ### Features
 * easy to use `sklearn`-like interface
 * serialization (tf saver + python class hyperparams + RNG state), easy to save and to load
