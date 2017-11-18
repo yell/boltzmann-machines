@@ -22,10 +22,21 @@ Goal was to reproduce experiments from [**[1]**](#1) (at least there was numbers
 * *easy to add new type of RBM*: implement new type of stochastic units or create new RBM from existing types of units
 * initialize from another RBM
 * *visualization in Tensorboard*: learning curves, distribution of weights and weights updates in TensorBoard; hidden activations and weight filters:
-<p float="left">
-  <img src="img/tensorboard_rbm/msre.png" height="170" alt="Mean squared A" title="Mean squared T" />
-  <img src="img/tensorboard_rbm/pll.png" height="170" />
-  <img src="img/tensorboard_rbm/feg.png" height="170" />
+<p align="center">
+  <img src="img/tensorboard_rbm/msre.png" height="170" title="Mean squared reconstruction error" />
+  <img src="img/tensorboard_rbm/pll.png" height="170" title="Pseudo log-likelihood" />
+  <img src="img/tensorboard_rbm/feg.png" height="170" title="Free energy gap [4]" />
+  <img src="img/tensorboard_rbm/l2_loss.png" height="170" title="L2 loss (weight decay cost times 0.5||W||^2)" />
+  
+  <img src="img/tensorboard_rbm/dist_W.png" width="280" title="Distribution of weights and biases" />
+  <img src="img/tensorboard_rbm/dist_hb.png" width="280" title="Distribution of weights and biases" />
+  <img src="img/tensorboard_rbm/dist_dW.png" width="280" title="Distribution of weights and biases updates" />
+  <img src="img/tensorboard_rbm/dist_dvb.png" width="280" title="Distribution of weights and biases updates" />
+  
+  <img src="img/tensorboard_rbm/hist_W.png" width="280" title="Histogram of weights and biases" />
+  <img src="img/tensorboard_rbm/hist_hb.png" width="280" title="Histogram of weights and biases" />
+  <img src="img/tensorboard_rbm/hist_dW.png" width="280" title="Histogram of weights and biases updates" />
+  <img src="img/tensorboard_rbm/hist_dvb.png" width="280" title="Histogram of weights and biases updates" />
 </p>
 
 ### Deep Boltzmann Machines (DBM)
@@ -148,7 +159,7 @@ Large number of parameters is one of the most crucial reasons why one-shot learn
 
 | <div align="center">algorithm</div> | test accuracy, % |
 | :--- | :---: |
-| *Best known MLP w/o data augmentation*: 8 layer ZLin net [**[4]**](#4) | **69.62** |
+| *Best known MLP w/o data augmentation*: 8 layer ZLin net [**[5]**](#5) | **69.62** |
 | *Best known method using RBM (w/o data augmentation?)*: 10k hiddens + fine-tuning [**[3]**](#3) | **64.84** |
 | Gaussian RBM + discriminative fine-tuning | **59.78** |
 | Pure backprop 3072-5000-10 on smoothed data | **58.20** |
@@ -346,4 +357,7 @@ Statistics, pages 448–455, 2009. [[PDF](http://proceedings.mlr.press/v5/salakh
 
 **[3]**<a name="3"></a> A. Krizhevsky and G. Hinton. *Learning multiple layers of features from tiny images.* 2009. [[PDF](https://www.cs.toronto.edu/~kriz/learning-features-2009-TR.pdf)]
 
-**[4]**<a name="4"></a> Lin Z, Memisevic R, Konda K. *How far can we go without convolution: Improving fully-connected networks*, ICML 2016. [[arXiv](https://arxiv.org/abs/1511.02580)]
+**[4]**<a name="4"></a> G. Hinton. *A practical guide to training restricted boltzmann machines.* Momentum, 9(1):926,
+2010. [[PDF](https://www.cs.toronto.edu/~hinton/absps/guideTR.pdf)]
+
+**[5]**<a name="5"></a> Lin Z, Memisevic R, Konda K. *How far can we go without convolution: Improving fully-connected networks*, ICML 2016. [[arXiv](https://arxiv.org/abs/1511.02580)]
