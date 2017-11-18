@@ -11,7 +11,25 @@
 This repository implements generic and flexible RBM and DBM models with lots of features and reproduces some experiments from *"Deep boltzmann machines"* [**[1]**](#1), *"Learning with hierarchical-deep models"* [**[2]**](#2), *"Learning multiple layers of features from tiny images"* [**[3]**](#3), and some others.
 
 ## Table of contents
-***TODO***
+* [Table of contents](#table-of-contents)
+* [What's Implemented](#whats-implemented)
+   * [Restricted Boltzmann Machines (RBM)](#restricted-boltzmann-machines-rbm)
+   * [Deep Boltzmann Machines (DBM)](#deep-boltzmann-machines-dbm)
+   * [Common features](#common-features)
+* [Examples](#examples)
+   * [#1 RBM MNIST: <a href="examples/rbm_mnist.py">script</a>, <em><a href="notebooks/rbm_mnist.ipynb">notebook</a></em>](#1-rbm-mnist-script-notebook)
+   * [#2 DBM MNIST: <a href="examples/dbm_mnist.py">script</a>, <em><a href="notebooks/dbm_mnist.ipynb">notebook</a></em>](#2-dbm-mnist-script-notebook)
+   * [#3 DBM CIFAR-10 "Naïve": <a href="examples/dbm_cifar_naive.py">script</a>, <em><a href="notebooks/dbm_cifar_naive.py">notebook</a></em>](#3-dbm-cifar-10-naïve-script-notebook)
+   * [#4 DBM CIFAR-10: <a href="examples/dbm_cifar.py">script</a>, <em><a href="notebooks/dbm_cifar.py">notebook</a></em>](#4-dbm-cifar-10-script-notebook)
+   * [How to use examples](#how-to-use-examples)
+   * [Memory requirements](#memory-requirements)
+* [Download models and stuff](#download-models-and-stuff)
+* [TeX notes](#tex-notes)
+* [How to install](#how-to-install)
+   * [Common installation issues](#common-installation-issues)
+* [Todo](#todo)
+* [Contributing](#contributing)
+* [References](#references)
 
 ## What's Implemented
 ### Restricted Boltzmann Machines (RBM)
@@ -23,7 +41,7 @@ This repository implements generic and flexible RBM and DBM models with lots of 
 * *predefined stochastic layers*: Bernoulli, Multinomial, Gaussian;
 * *predefined RBMs*: Bernoulli-Bernoulli, Bernoulli-Multinomial, Gaussian-Bernoulli;
 * initialize weights randomly, or from `np.ndarray`s or from another RBM;
-* can be modified for greedy layer-wise pretraining of DBM (see [**[1]**](#1) or notes for details);
+* can be modified for greedy layer-wise pretraining of DBM (see [notes](#tex-notes) or [**[1]**](#1) for details);
 * *visualizations in Tensorboard* (hover images for details) and more:
 <p align="center">
   <img src="img/tensorboard_rbm/msre.png" height="170" title="Mean squared reconstruction error" />
@@ -227,7 +245,7 @@ significant singular values removed, as suggested in [**[3]**](#3)) with pre-tra
   <img src="img/dbm_cifar_naive/samples.gif" width="296" />
 </p>
 
-Despite poor-looking G-RBM features, classification performance after discriminative fine-tuning is much larger than reported backprop from random initialization [**[3]**](#3), and is 5% behind best reported result using RBM (with twice larger number of hidden units). Note also that G-RBM is *modified* for DBM pre-training (see notes or [**[1]**](#1) for details):
+Despite poor-looking G-RBM features, classification performance after discriminative fine-tuning is much larger than reported backprop from random initialization [**[3]**](#3), and is 5% behind best reported result using RBM (with twice larger number of hidden units). Note also that G-RBM is *modified* for DBM pre-training ([notes](#tex-notes) or [**[1]**](#1) for details):
 
 | <div align="center">algorithm</div> | test accuracy, % |
 | :--- | :---: |
@@ -430,7 +448,7 @@ make data
 **ImportError: libcudnn.so.6: cannot open shared object file: No such file or directory**.<br/>
 TensorFlow 1.3.0 assumes cuDNN v6.0 by default. If you have different one installed, you can create symlink to `libcudnn.so.6` in `/usr/local/cuda/lib64` or `/usr/local/cuda-8.0/lib64`. More details [here](https://stackoverflow.com/questions/42013316/after-building-tensorflow-from-source-seeing-libcudart-so-and-libcudnn-errors).
 
-## TODO
+## Todo
 * add stratification;
 * generate half MNIST digit conditioned on the other half using RBM;
 * implement Centering [**[7]**](#7) for all models;
@@ -439,7 +457,7 @@ TensorFlow 1.3.0 assumes cuDNN v6.0 by default. If you have different one instal
 * optimize input pipeline e.g. use queues instead of `feed_dict` etc.
 
 ## Contributing
-Feel free to improve existing code, documentation or implement new feature (including those listed in **TODO**). Please open an issue to propose your changes if they are big enough.
+Feel free to improve existing code, documentation or implement new feature (including those listed in [Todo](#todo)). Please open an issue to propose your changes if they are big enough.
 
 ## References
 **[1]**<a name="1"></a> R. Salakhutdinov and G. Hinton. *Deep boltzmann machines.* In: Artificial Intelligence and
