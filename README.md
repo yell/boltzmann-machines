@@ -8,20 +8,23 @@
 </p>
 
 # Boltzmann Machines
-Goal was to reproduce experiments from [**[1]**](#1) (at least there was numbers to compare with) + [**[2]**](#2) +
-[**[3]**](#3) + additional experiments along the way
+This repository implements generic and flexible RBM and DBM models with lots of features and reproduces some experiments from *"Deep boltzmann machines"* [**[1]**](#1), *"Learning with hierarchical-deep models"* [**[2]**](#2), *"Learning multiple layers of features from tiny images"* [**[3]**](#3), and some others.
 
 ## Table of contents
 ***TODO***
 
 ## What's Implemented
 ### Restricted Boltzmann Machines (RBM)
-* *k-step Contrastive Divergence* with *variable* learning rate, momentum and number of Gibbs steps;
-* L2 weight decay, dropout, sparsity targets, ***TODO***: rest;
-* *different types of RBMs*: Bernoulli, Multinomial, Gaussian;
-* *easy to add new type of RBM*: implement new type of stochastic units or create new RBM from existing types of units
-* initialize from another RBM
-* **visualizations in Tensorboard**:
+* k-step Contrastive Divergence;
+* whether to sample or use probabilities for visible and hidden units;
+* *variable* learning rate, momentum and number of Gibbs steps per weight update;
+* *regularization*: L2 weight decay, dropout, sparsity targets;
+* *different types of stochastic layers and RBMs*: implement new type of stochastic units or create new RBM from existing types of units;
+* *predefined stochastic layers*: Bernoulli, Multinomial, Gaussian;
+* *predefined RBMs*: Bernoulli-Bernoulli, Bernoulli-Multinomial, Gaussian-Bernoulli;
+* initialize weights randomly, or from `np.ndarray`s or from another RBM;
+* can be modified for greedy layer-wise pretraining of DBM (see [**[1]**](#1) or notes for details);
+* *visualizations in Tensorboard* (hover images for details) and more:
 <p align="center">
   <img src="img/tensorboard_rbm/msre.png" height="170" title="Mean squared reconstruction error" />
   <img src="img/tensorboard_rbm/pll.png" height="170" title="Pseudo log-likelihood" />
@@ -61,15 +64,18 @@ Goal was to reproduce experiments from [**[1]**](#1) (at least there was numbers
 </p>
 
 ### Deep Boltzmann Machines (DBM)
-* arbitrary number of layers of any types
-* initialize from greedy layer-wise pretrained RBMs and jointly fine-tune using PCD + mean-field approximation
-* one can use `DBM` class with 1 hidden layer to train **RBM** with this more efficient algorithm + generating samples after training + AIS
-* visualize filters and hidden activations for all layers
-* sparsity targets
-* visualize norms of weights in each layer
-* visualize visible negative particles
-* implemented Annealed Importance Sampling to estimate log partition function
-* **visualizations in Tensorboard**:
+* EM-like learning algorithm based on PCD and mean-field variational inference [**[1]**](#1);
+* arbitrary number of layers of any types;
+* initialize from greedy layer-wise pretrained RBMs (no random initialization for now);
+* whether to sample or use probabilities for visible and hidden units;
+* *variable* learning rate, momentum and number of Gibbs steps per weight update;
+* *regularization*: L2 weight decay, maxnorm, sparsity targets;
+* estimate partition function using Annealed Importance Sampling ([**[1]**](#1));
+* estimate variational lower-bound (ELBO) using logẐ (currently only for 2-layer binary BM);
+* generate samples after training;
+* initialize negative particles (visible and hidden in all layers) from data;
+* `DBM` class can be used also for training RBM and its features: more powerful learning algorithm, to estimate logẐ and ELBO, to generate samples after training;
+* **visualizations in Tensorboard** (hover images for details) and more:
 <p align="center">
   <img src="img/tensorboard_dbm/msre.png"         height="170" title="Mean squared reconstruction error" />
   <img src="img/tensorboard_dbm/n_mf_updates.png" height="170" title="Actual number of mean-field updates" />
@@ -115,19 +121,15 @@ Goal was to reproduce experiments from [**[1]**](#1) (at least there was numbers
 </p>
 
 ### Features
-* easy to use `sklearn`-like interface
-* serialization (tf saver + python class hyperparams + RNG state), easy to save and to load
-* reproducible (random seeds)
-* all models support both `float32` and `float64` precision
-* choose metrics to display during learning
-* easy to resume training; note that changing parameters other than placeholders or python-level parameters (such as `batch_size`, `learning_rate`, `momentum`, `sample_v_states` etc.) between `fit` calls have no effect as this would require altering the computation graph, which is not yet supported; **however**, one can build model with new desired TF graph, and initialize weights and biases from old model by using `init_from` method
-* *visualization*: python routines to display images, learned filters, confusion matrices etc.
+* easy to use with `sklearn`-like interface;
+* easy to load and save models;
+* easy to reproduce (`random_seed` make reproducible both TensorFlow and numpy operations inside the model);
+* all models support any precision (tested `float32` and `float64`);
+* configure metrics to display during learning (which ones, frequency, format etc.);
+* easy to resume training (note that changing parameters other than placeholders or python-level parameters (such as `batch_size`, `learning_rate`, `momentum`, `sample_v_states` etc.) between `fit` calls have no effect as this would require altering the computation graph, which is not yet supported; **however**, one can build model with new desired TF graph, and initialize weights and biases from old model by using `init_from` method);
+* *visualization*: apart from TensorBoard, there also plenty of python routines to display images, learned filters, confusion matrices etc and more.
 
-### Tensorboard visualization
-* **RBM**: ***TODO***
-* **DBM**: ***TODO***
-
-## Examples (***TODO*** add demo images, download models)
+## Examples
 ### #1 RBM MNIST: [script](examples/rbm_mnist.py), *[notebook](notebooks/rbm_mnist.ipynb)*
 Train Bernoulli RBM with 1024 hidden units on MNIST dataset and use it for classification.
 
