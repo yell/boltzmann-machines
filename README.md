@@ -17,10 +17,10 @@ This repository implements generic and flexible RBM and DBM models with lots of 
    * [Deep Boltzmann Machines (DBM)](#deep-boltzmann-machines-dbm)
    * [Common features](#common-features)
 * [Examples](#examples)
-   * [#1 RBM MNIST: <a href="examples/rbm_mnist.py">script</a>, <em><a href="notebooks/rbm_mnist.ipynb">notebook</a></em>](#1-rbm-mnist-script-notebook)
-   * [#2 DBM MNIST: <a href="examples/dbm_mnist.py">script</a>, <em><a href="notebooks/dbm_mnist.ipynb">notebook</a></em>](#2-dbm-mnist-script-notebook)
-   * [#3 DBM CIFAR-10 "Naïve": <a href="examples/dbm_cifar_naive.py">script</a>, <em><a href="notebooks/dbm_cifar_naive.py">notebook</a></em>](#3-dbm-cifar-10-naïve-script-notebook)
-   * [#4 DBM CIFAR-10: <a href="examples/dbm_cifar.py">script</a>, <em><a href="notebooks/dbm_cifar.py">notebook</a></em>](#4-dbm-cifar-10-script-notebook)
+   * [#1 RBM MNIST: <a href="examples/rbm_mnist.py">script</a>, <a href="https://nbviewer.jupyter.org/github/monsta-hd/boltzmann-machines/blob/master/notebooks/rbm_mnist.ipynb">notebook</a>](#1-rbm-mnist-script-notebook)
+   * [#2 DBM MNIST: <a href="examples/dbm_mnist.py">script</a>, <a href="https://nbviewer.jupyter.org/github/monsta-hd/boltzmann-machines/blob/master/notebooks/dbm_mnist.ipynb">notebook</a>](#2-dbm-mnist-script-notebook)
+   * [#3 DBM CIFAR-10 "Naïve": <a href="examples/dbm_cifar_naive.py">script</a>, <a href="https://nbviewer.jupyter.org/github/monsta-hd/boltzmann-machines/blob/master/notebooks/dbm_cifar_naive.ipynb">notebook</a>](#3-dbm-cifar-10-naïve-script-notebook)
+   * [#4 DBM CIFAR-10: <a href="examples/dbm_cifar.py">script</a>, <a href="https://nbviewer.jupyter.org/github/monsta-hd/boltzmann-machines/blob/master/notebooks/dbm_cifar.ipynb">notebook</a>](#4-dbm-cifar-10-script-notebook)
    * [How to use examples](#how-to-use-examples)
    * [Memory requirements](#memory-requirements)
 * [Download models and stuff](#download-models-and-stuff)
@@ -32,7 +32,8 @@ This repository implements generic and flexible RBM and DBM models with lots of 
 * [References](#references)
 
 ## What's Implemented
-### Restricted Boltzmann Machines (RBM) [[computational graph]](img/tensorboard_rbm/tf_graph.png)
+### Restricted Boltzmann Machines (RBM) 
+* [[computational graph]](img/tensorboard_rbm/tf_graph.png)
 * k-step Contrastive Divergence;
 * whether to sample or use probabilities for visible and hidden units;
 * *variable* learning rate, momentum and number of Gibbs steps per weight update;
@@ -81,7 +82,8 @@ This repository implements generic and flexible RBM and DBM models with lots of 
   <img src="img/tensorboard_rbm/cifar_9.gif"  width="161" title="Weight filters" />
 </p>
 
-### Deep Boltzmann Machines (DBM) [[computational graph]](img/tensorboard_dbm/tf_graph.png)
+### Deep Boltzmann Machines (DBM) 
+* [[computational graph]](img/tensorboard_dbm/tf_graph.png)
 * EM-like learning algorithm based on PCD and mean-field variational inference [**[1]**](#1);
 * arbitrary number of layers of any types;
 * initialize from greedy layer-wise pretrained RBMs (no random initialization for now);
@@ -148,7 +150,7 @@ This repository implements generic and flexible RBM and DBM models with lots of 
 * *visualization*: apart from TensorBoard, there also plenty of python routines to display images, learned filters, confusion matrices etc and more.
 
 ## Examples
-### #1 RBM MNIST: [script](examples/rbm_mnist.py), *[notebook](notebooks/rbm_mnist.ipynb)*
+### #1 RBM MNIST: [script](examples/rbm_mnist.py), [notebook](https://nbviewer.jupyter.org/github/monsta-hd/boltzmann-machines/blob/master/notebooks/rbm_mnist.ipynb)
 Train Bernoulli RBM with 1024 hidden units on MNIST dataset and use it for classification.
 
 | <div align="center">algorithm</div> | test error, % |
@@ -179,7 +181,7 @@ Even better results can be obtained if one will tune MLP and other classifiers.
 
 ---
 
-### #2 DBM MNIST: [script](examples/dbm_mnist.py), *[notebook](notebooks/dbm_mnist.ipynb)*
+### #2 DBM MNIST: [script](examples/dbm_mnist.py), [notebook](https://nbviewer.jupyter.org/github/monsta-hd/boltzmann-machines/blob/master/notebooks/dbm_mnist.ipynb)
 Train 784-512-1024 Bernoulli DBM on MNIST dataset with pre-training and:
 * use it for classification;
 * generate samples after training;
@@ -226,7 +228,7 @@ Large number of parameters is one of the most crucial reasons why one-shot learn
 
 ---
 
-### #3 DBM CIFAR-10 "Naïve": [script](examples/dbm_cifar_naive.py), *[notebook](notebooks/dbm_cifar_naive.py)*
+### #3 DBM CIFAR-10 "Naïve": [script](examples/dbm_cifar_naive.py), [notebook](https://nbviewer.jupyter.org/github/monsta-hd/boltzmann-machines/blob/master/notebooks/dbm_cifar_naive.ipynb)
 
 (Simply) train 3072-5000-1000 Gaussian-Bernoulli-Multinomial DBM on "smoothed" CIFAR-10 dataset (with 1000 least
 significant singular values removed, as suggested in [**[3]**](#3)) with pre-training and:
@@ -263,7 +265,7 @@ Despite poor-looking G-RBM features, classification performance after discrimina
 
 ---
 
-### #4 DBM CIFAR-10: [script](examples/dbm_cifar.py), *[notebook](notebooks/dbm_cifar.py)*
+### #4 DBM CIFAR-10: [script](examples/dbm_cifar.py), [notebook](https://nbviewer.jupyter.org/github/monsta-hd/boltzmann-machines/blob/master/notebooks/dbm_cifar.ipynb)
 
 Train 3072-7800-512 G-B-M DBM with pre-training on CIFAR-10, 
 augmented (x10) using shifts by 1 pixel in all directions and horizontal mirroring and using more advanced training of G-RBM which is initialized from pre-trained 26 small RBM on patches of images, as in [**[3]**](#3).
