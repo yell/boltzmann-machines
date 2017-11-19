@@ -32,7 +32,7 @@ This repository implements generic and flexible RBM and DBM models with lots of 
 * [References](#references)
 
 ## What's Implemented
-### Restricted Boltzmann Machines (RBM)
+### Restricted Boltzmann Machines (RBM) [[computational graph]](img/tensorboard_rbm/tf_graph.png)
 * k-step Contrastive Divergence;
 * whether to sample or use probabilities for visible and hidden units;
 * *variable* learning rate, momentum and number of Gibbs steps per weight update;
@@ -81,7 +81,7 @@ This repository implements generic and flexible RBM and DBM models with lots of 
   <img src="img/tensorboard_rbm/cifar_9.gif"  width="161" title="Weight filters" />
 </p>
 
-### Deep Boltzmann Machines (DBM)
+### Deep Boltzmann Machines (DBM) [[computational graph]](img/tensorboard_dbm/tf_graph.png)
 * EM-like learning algorithm based on PCD and mean-field variational inference [**[1]**](#1);
 * arbitrary number of layers of any types;
 * initialize from greedy layer-wise pretrained RBMs (no random initialization for now);
