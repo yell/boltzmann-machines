@@ -1,0 +1,136 @@
+\documentclass[12pt]{article}
+
+% --------------
+% setup packages
+% --------------
+\usepackage[english]{babel} % set default language to English
+\usepackage[margin=.8in,top=1.1in,bottom=1.1in]{geometry} % page layout
+\usepackage{amsmath,amsthm,amssymb,amsfonts} % math things
+\usepackage{graphicx} % include graphics
+\usepackage{titlesec} % help with section naming
+\usepackage{xcolor} % color text [+ in math mode]
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{bookmark}
+\usepackage{epsfig}
+\usepackage[nottoc,numbib]{tocbibind} % add references to ToC
+\usepackage{pifont} % for xmark == ding{53}
+\usepackage{empheq} % for colorbox
+\usepackage{mdframed} % for box around figures
+
+\hypersetup{bookmarksopen=false,bookmarksnumbered=true}
+\hypersetup{colorlinks=true,urlbordercolor=magenta}
+
+% -------------
+% custom colors
+% -------------
+\definecolor{darkgray}{RGB}{100, 100, 100}
+\definecolor{darkergray}{RGB}{66, 66, 66}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{orange}{rgb}{1.0,0.3,0.01}
+\definecolor{violet}{rgb}{0.4,0.0,0.6}
+\definecolor{yellow}{rgb}{1.0,0.7,0.0}
+\definecolor{boxc}{rgb}{1.0, 1.0, .9}
+\definecolor{mygreen}{rgb}{0, 0.75, 0.18}
+
+% ----------------
+% custom shortcuts
+% ----------------
+\renewcommand{\l}{\left}
+\renewcommand{\r}{\right}
+\renewcommand{\b}[1]{\textbf{\textit{#1}}}
+\renewcommand{\t}[1]{\widehat{#1}}
+\renewcommand{\u}[1]{\underline{#1}}
+\newcommand{\bs}[1]{\boldsymbol{#1}}
+\newcommand{\mb}[1]{\mathbf{#1}}
+\newcommand{\mc}[1]{\mathcal{#1}}
+\newcommand{\tb}[1]{\textbf{#1}}
+\def\bg#1\eg{%
+    \begin{gather}%
+    #1%
+    \end{gather}%
+}
+
+% --------------
+% custom symbols
+% --------------
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\D}{\mathbb{D}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\R}{\mathbb{R}}
+\renewcommand{\P}{\mathbb{P}}
+
+% ---------------
+% custom commands
+% ---------------
+\newcommand{\boldmm}[1]{\textbf{\textit{#1}}}
+\newcommand{\comment}[1]{ \color{darkgray}\left[\text{#1}\right]\color{black}}
+\newcommand{\commenttwo}[2]{\color{darkgray}\left[\begin{array}{c}\text{#1}\\ \text{#2}\end{array}\right]\color{black}}
+\newcommand{\gooditem}{\item[\checkmark]}
+\newcommand{\baditem}{\item[\ding{53}]}
+\newcommand{\evalat}[1]{\biggr\rvert _{#1}}
+\newcommand{\bad}{\textbf{\color{red}[\ding{53}]} }
+\newcommand{\good}{\textbf{\color{green}[\checkmark]} }
+
+% ---------
+% color box
+% ---------
+\newlength\mytemplen
+\newsavebox\mytempbox
+
+\makeatletter
+\newcommand\mybox{%
+    \@ifnextchar[%]
+       {\@mybox}%
+       {\@mybox[0pt]}}
+
+\def\@mybox[#1]{%
+    \@ifnextchar[%]
+       {\@@mybox[#1]}%
+       {\@@mybox[#1][0pt]}}
+
+\def\@@mybox[#1][#2]#3{
+    \sbox\mytempbox{#3}%
+    \mytemplen\ht\mytempbox
+    \advance\mytemplen #1\relax
+    \ht\mytempbox\mytemplen
+    \mytemplen\dp\mytempbox
+    \advance\mytemplen #2\relax
+    \dp\mytempbox\mytemplen
+    \colorbox{boxc}{\hspace{0em}\usebox{\mytempbox}\hspace{0em}}}
+
+\makeatother
+
+% --------------
+% begin document
+% --------------
+\begin{document}
+	\pagenumbering{arabic}
+	\begin{titlepage}
+		\vspace*{0.1\paperheight}
+		\centering
+		\vspace*{8em}
+		{\Huge \textbf{Boltzmann Machines}}\\
+		\vspace*{1em}
+		{\Large Yelysei Bondarenko}
+		\vspace{0.2\paperheight}
+	\end{titlepage}
+
+	\pdfbookmark{Contents}{contents}
+	\tableofcontents
+	\setcounter{page}{1}
+	
+	\include{chapter_1}
+	\include{chapter_2}
+	\include{chapter_3}
+	\include{chapter_4}
+	\include{conclusions}
+
+	\newpage
+	\pdfbookmark{References}{references}
+	
+	\nocite{*}
+	\bibliographystyle{ieee}
+	\bibliography{bib}
+
+\end{document}

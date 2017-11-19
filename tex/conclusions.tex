@@ -1,0 +1,15 @@
+\newpage
+\section{Some conclusions}
+\begin{itemize}
+	\gooditem RBM, DBM: small models (1-2 layers) yet powerful;
+	\gooditem large enough to overfit (millions of learnable parameters) but they don't, thank to in-built regularizer / information bottleneck -- random sampling;
+	\gooditem RBM, DBM and other energy-based models are quite principled from theoretical perspective: structure, distribution of visible and hidden units and basically everything is determined by and can be derived from energy function;
+	\gooditem for inference no need to input any additional information, as opposed to e.g. VAE (where for inference we need input latent code $\mb{z}$, and if we are not careful enough we may infer $\mb{x}$ somewhere between the modes which will result in unlikely image if the model was trained on images, unless something like cVAE has been used); this is not happen with RBM/DBM, we simply run Gibbs sampler using trained weights, and on decently trained model, most of the time particles output valid e.g. digits (MNIST);
+	\baditem samples are highly correlated between one another, therefore many Gibbs steps need to be performed to obtain image from different mode ("slow-mixing problem");
+	\baditem hard to tune, many hyperparameters, and they are not transferable between models, units' distriutions or tasks
+	\baditem \u{really} hard to tune for complex tasks, many tricks;
+	\baditem in papers lots of details omitted: exact hyperparameters in most cases, biases are omitted for "simplicity" in most papers etc.;
+	\baditem hardly any working and complete examples of DBM codes;
+	\item most of the features can be extracted in unsupervised manner, and then only limited amount of labeled information can be used to slightly adjust the layers of features already discovered by the DBM;
+	\item RBMs and DBMs, especially classes for stochastic units could have been implemented purely in \texttt{edward}.
+\end{itemize}
