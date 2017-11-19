@@ -41,7 +41,7 @@ This repository implements generic and flexible RBM and DBM models with lots of 
 * *different types of stochastic layers and RBMs*: implement new type of stochastic units or create new RBM from existing types of units;
 * *predefined stochastic layers*: Bernoulli, Multinomial, Gaussian;
 * *predefined RBMs*: Bernoulli-Bernoulli, Bernoulli-Multinomial, Gaussian-Bernoulli;
-* initialize weights randomly, or from `np.ndarray`s or from another RBM;
+* initialize weights randomly, from `np.ndarray`-s or from another RBM;
 * can be modified for greedy layer-wise pretraining of DBM (see [notes](#tex-notes) or [**[1]**](#1) for details);
 * *visualizations in Tensorboard* (hover images for details) and more:
 <p align="center">
@@ -94,7 +94,7 @@ This repository implements generic and flexible RBM and DBM models with lots of 
 * estimate variational lower-bound (ELBO) using logẐ (currently only for 2-layer binary BM);
 * generate samples after training;
 * initialize negative particles (visible and hidden in all layers) from data;
-* `DBM` class can be used also for training RBM and its features: more powerful learning algorithm, to estimate logẐ and ELBO, to generate samples after training;
+* `DBM` class can be used also for training RBM and its features: more powerful learning algorithm, estimating logẐ and ELBO, generating samples after training;
 * *visualizations in Tensorboard* (hover images for details) and more:
 <p align="center">
   <img src="img/tensorboard_dbm/msre.png"         height="170" title="Mean squared reconstruction error" />
@@ -316,7 +316,7 @@ While all RBMs have nicer features, this means that they overfit more than previ
 
 The training with all pre-trainings takes quite a lot of time, but once trained, these nets can be used for other (similar) datasets/tasks.
 <br>
-Discriminative performance now is very close to state of the art (having 7800 vs. 10k hidden units), and data augmentation given another 4% of test accuracy:
+Discriminative performance of Gaussian RBM now is very close to state of the art (having 7800 vs. 10k hidden units), and data augmentation given another 4% of test accuracy:
 
 | <div align="center">algorithm</div> | test accuracy, % |
 | :--- | :---: |
