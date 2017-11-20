@@ -8,11 +8,11 @@ This container assumes python2 (and CUDA if needed) installed, and simply instal
 
 3) Build the project image
 ```bash
-docker build . -t hd-models
+docker build . -t bm
 ```
 4) Run the container (`--rm` option will automatically remove container when it exits)
 ```bash
-nvidia-docker run --rm --name=hd-models-container -it hd-models bash
+nvidia-docker run --rm --name=bm-container -it bm bash
 ```
 
 ## Ubuntu-CUDA container
@@ -22,9 +22,9 @@ This container builds CUDA, cuDNN and python before installing dependencies.
 
 3) Build the project image
 ```bash
-docker build . -t hd-models-cuda -f Dockerfile-gpu
+docker build . -t bm-cuda -f Dockerfile-gpu
 ```
 4) Run the container
 ```bash
-nvidia-docker run --rm --name=hd-models-cuda-container -it hd-models-cuda
+nvidia-docker run --rm --name=bm-cuda-container -it bm-cuda
 ```

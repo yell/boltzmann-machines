@@ -1,8 +1,8 @@
 # Run from a virtual environment
 Clone the repository
 ```bash
-git clone https://github.com/monsta-hd/hd-models
-cd hd-models/
+git clone https://github.com/monsta-hd/boltzmann-machines
+cd boltzmann-machines/
 ```
 Install virtualenv if needed
 ```bash
