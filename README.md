@@ -426,8 +426,8 @@ Check also my supplementary [notes](tex/notes.pdf) with some historical outlines
 ## How to install
 By default, the following commands install (among others) **tensorflow-gpu~=1.3.0**. If you want to install tensorflow without GPU support, replace corresponding line in [requirements.txt](requirements.txt). If you have already tensorflow installed, comment that line.
 ```bash
-git clone https://github.com/monsta-hd/hd-models
-cd hd-models/
+git clone https://github.com/monsta-hd/boltzmann-machines.git
+cd boltzmann-machines
 pip install -r requirements.txt
 ```
 See [here](docs/virtualenv.md) how to run from a ***virtual environment***.
