@@ -90,7 +90,7 @@ This repository implements generic and flexible RBM and DBM models with lots of 
 * whether to sample or use probabilities for visible and hidden units;
 * *variable* learning rate, momentum and number of Gibbs steps per weight update;
 * *regularization*: L2 weight decay, maxnorm, sparsity targets;
-* estimate partition function using Annealed Importance Sampling ([**[1]**](#1));
+* estimate partition function using Annealed Importance Sampling [**[1]**](#1);
 * estimate variational lower-bound (ELBO) using logẐ (currently only for 2-layer binary BM);
 * generate samples after training;
 * initialize negative particles (visible and hidden in all layers) from data;
