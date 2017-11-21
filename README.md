@@ -11,7 +11,6 @@
 This repository implements generic and flexible RBM and DBM models with lots of features and reproduces some experiments from *"Deep boltzmann machines"* [**[1]**](#1), *"Learning with hierarchical-deep models"* [**[2]**](#2), *"Learning multiple layers of features from tiny images"* [**[3]**](#3), and some others.
 
 ## Table of contents
-* [Table of contents](#table-of-contents)
 * [What's Implemented](#whats-implemented)
    * [Restricted Boltzmann Machines (RBM)](#restricted-boltzmann-machines-rbm)
    * [Deep Boltzmann Machines (DBM)](#deep-boltzmann-machines-dbm)
