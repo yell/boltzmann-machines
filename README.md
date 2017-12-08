@@ -454,6 +454,7 @@ TensorFlow 1.3.0 assumes cuDNN v6.0 by default. If you have different one instal
 ## Todo
 * [x] everything that is done so far;
 * [ ] add stratification;
+* [ ] add t-SNE visualization for extracted features;
 * [ ] generate half MNIST digit conditioned on the other half using RBM;
 * [ ] implement Centering [**[7]**](#7) for all models;
 * [ ] implement classification RBMs/DBMs?;
