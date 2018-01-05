@@ -415,7 +415,7 @@ Note that training is skipped if there is already a model in `model-dirpath`, an
 ---
 
 ## Download models and stuff
-All models from all experiments can be downloaded using `models/fetch_models.sh` or directly from [Google Drive](https://drive.google.com/open?id=1jFsh4Jh3s41B-_hPHe_VS9apkMmIWiNy).
+All models from all experiments can be downloaded by running `models/fetch_models.sh` or manually from [Google Drive](https://drive.google.com/open?id=1jFsh4Jh3s41B-_hPHe_VS9apkMmIWiNy).
 <br>
 Also, you can download additional data (fine-tuned models' predictions, fine-tuned weights, means and standard deviations for datasets for examples [#3](#3-dbm-cifar-10-naïve-script-notebook), [#4](#4-dbm-cifar-10-script-notebook)) using `data/fetch_additional_data.sh`
 
