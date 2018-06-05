@@ -11,7 +11,6 @@
 This repository implements generic and flexible RBM and DBM models with lots of features and reproduces some experiments from *"Deep boltzmann machines"* [**[1]**](#1), *"Learning with hierarchical-deep models"* [**[2]**](#2), *"Learning multiple layers of features from tiny images"* [**[3]**](#3), and some others.
 
 ## Table of contents
-* [Table of contents](#table-of-contents)
 * [What's Implemented](#whats-implemented)
    * [Restricted Boltzmann Machines (RBM)](#restricted-boltzmann-machines-rbm)
    * [Deep Boltzmann Machines (DBM)](#deep-boltzmann-machines-dbm)
@@ -27,7 +26,7 @@ This repository implements generic and flexible RBM and DBM models with lots of 
 * [TeX notes](#tex-notes)
 * [How to install](#how-to-install)
    * [Common installation issues](#common-installation-issues)
-* [Todo](#todo)
+* [Possible future work](#possible-future-work)
 * [Contributing](#contributing)
 * [References](#references)
 
@@ -416,12 +415,12 @@ Note that training is skipped if there is already a model in `model-dirpath`, an
 ---
 
 ## Download models and stuff
-All models from all experiments can be downloaded using `models/fetch_models.sh` or directly from [Google Drive](https://drive.google.com/open?id=1jFsh4Jh3s41B-_hPHe_VS9apkMmIWiNy).
+All models from all experiments can be downloaded by running `models/fetch_models.sh` or manually from [Google Drive](https://drive.google.com/open?id=1jFsh4Jh3s41B-_hPHe_VS9apkMmIWiNy).
 <br>
 Also, you can download additional data (fine-tuned models' predictions, fine-tuned weights, means and standard deviations for datasets for examples [#3](#3-dbm-cifar-10-naïve-script-notebook), [#4](#4-dbm-cifar-10-script-notebook)) using `data/fetch_additional_data.sh`
 
 ## TeX notes
-Check also my supplementary [notes](tex/notes.pdf) with some historical outlines, theory, derivations, observations etc.
+Check also my supplementary [notes](tex/notes.pdf) (or [dropbox](https://www.dropbox.com/s/7pk4yeixkxogcem/bm_notes.pdf?dl=0)) with some historical outlines, theory, derivations, observations etc.
 
 ## How to install
 By default, the following commands install (among others) **tensorflow-gpu~=1.3.0**. If you want to install tensorflow without GPU support, replace corresponding line in [requirements.txt](requirements.txt). If you have already tensorflow installed, comment that line.
@@ -452,9 +451,10 @@ make data
 **ImportError: libcudnn.so.6: cannot open shared object file: No such file or directory**.<br/>
 TensorFlow 1.3.0 assumes cuDNN v6.0 by default. If you have different one installed, you can create symlink to `libcudnn.so.6` in `/usr/local/cuda/lib64` or `/usr/local/cuda-8.0/lib64`. More details [here](https://stackoverflow.com/questions/42013316/after-building-tensorflow-from-source-seeing-libcudart-so-and-libcudnn-errors).
 
-## Todo
+## Possible future work
 * [x] everything that is done so far;
 * [ ] add stratification;
+* [ ] add t-SNE visualization for extracted features;
 * [ ] generate half MNIST digit conditioned on the other half using RBM;
 * [ ] implement Centering [**[7]**](#7) for all models;
 * [ ] implement classification RBMs/DBMs?;
@@ -462,7 +462,7 @@ TensorFlow 1.3.0 assumes cuDNN v6.0 by default. If you have different one instal
 * [ ] optimize input pipeline e.g. use queues instead of `feed_dict` etc.
 
 ## Contributing
-Feel free to improve existing code, documentation or implement new feature (including those listed in [Todo](#todo)). Please open an issue to propose your changes if they are big enough.
+Feel free to improve existing code, documentation or implement new feature (including those listed in [Possible future work](#possible-future-work)). Please open an issue to propose your changes if they are big enough.
 
 ## References
 **[1]**<a name="1"></a> R. Salakhutdinov and G. Hinton. *Deep boltzmann machines.* In: Artificial Intelligence and

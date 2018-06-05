@@ -48,7 +48,7 @@ class DBM(EnergyBasedModel):
     sample_v_states : bool
         Whether to sample visible states, or to use probabilities
         w/o sampling.
-    sample_h_states : (n_layers,) bool iterable
+    sample_h_states : (n_layers,) bool
         Whether to sample hidden states, or to use probabilities
         w/o sampling.
     sparsity_target : float in (0, 1) or iterable
@@ -711,7 +711,6 @@ class DBM(EnergyBasedModel):
                 return beta < 1. - delta_beta + 1e-5
 
             def body(log_Z, x, beta, delta_beta):
-                # with tf.control_dependencies([tf.Print('beta', [beta])]):
                 # + log p_i(x_i)
                 log_Z += self._unnormalized_log_prob_H0(x, beta)
                 # x_{i + 1} ~ T_{i + 1}(x_{i + 1} | x_i)
@@ -766,7 +765,6 @@ class DBM(EnergyBasedModel):
 
         self._make_train_op()
         self._make_sample_v()
-
         self._make_ais()
         self._make_log_proba()
 
