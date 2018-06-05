@@ -21,7 +21,6 @@ It achieves 1.27% misclassification rate on the test set.
 """
 print __doc__
 
-
 import os
 import argparse
 import numpy as np
