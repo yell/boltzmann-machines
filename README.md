@@ -26,7 +26,7 @@ This repository implements generic and flexible RBM and DBM models with lots of 
 * [TeX notes](#tex-notes)
 * [How to install](#how-to-install)
    * [Common installation issues](#common-installation-issues)
-* [Todo](#todo)
+* [Possible future work](#possible-future-work)
 * [Contributing](#contributing)
 * [References](#references)
 
@@ -451,7 +451,7 @@ make data
 **ImportError: libcudnn.so.6: cannot open shared object file: No such file or directory**.<br/>
 TensorFlow 1.3.0 assumes cuDNN v6.0 by default. If you have different one installed, you can create symlink to `libcudnn.so.6` in `/usr/local/cuda/lib64` or `/usr/local/cuda-8.0/lib64`. More details [here](https://stackoverflow.com/questions/42013316/after-building-tensorflow-from-source-seeing-libcudart-so-and-libcudnn-errors).
 
-## Todo
+## Possible future work
 * [x] everything that is done so far;
 * [ ] add stratification;
 * [ ] add t-SNE visualization for extracted features;
@@ -462,7 +462,7 @@ TensorFlow 1.3.0 assumes cuDNN v6.0 by default. If you have different one instal
 * [ ] optimize input pipeline e.g. use queues instead of `feed_dict` etc.
 
 ## Contributing
-Feel free to improve existing code, documentation or implement new feature (including those listed in [Todo](#todo)). Please open an issue to propose your changes if they are big enough.
+Feel free to improve existing code, documentation or implement new feature (including those listed in [Possible future work](#possible-future-work)). Please open an issue to propose your changes if they are big enough.
 
 ## References
 **[1]**<a name="1"></a> R. Salakhutdinov and G. Hinton. *Deep boltzmann machines.* In: Artificial Intelligence and
