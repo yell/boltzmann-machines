@@ -452,14 +452,13 @@ make data
 TensorFlow 1.3.0 assumes cuDNN v6.0 by default. If you have different one installed, you can create symlink to `libcudnn.so.6` in `/usr/local/cuda/lib64` or `/usr/local/cuda-8.0/lib64`. More details [here](https://stackoverflow.com/questions/42013316/after-building-tensorflow-from-source-seeing-libcudart-so-and-libcudnn-errors).
 
 ## Possible future work
-* [x] everything that is done so far;
-* [ ] add stratification;
-* [ ] add t-SNE visualization for extracted features;
-* [ ] generate half MNIST digit conditioned on the other half using RBM;
-* [ ] implement Centering [**[7]**](#7) for all models;
-* [ ] implement classification RBMs/DBMs?;
-* [ ] implement ELBO and AIS for arbitrary DBM (again, visible and topmost hidden units can be analytically summed out);
-* [ ] optimize input pipeline e.g. use queues instead of `feed_dict` etc.
+* add stratification;
+* add t-SNE visualization for extracted features;
+* generate half MNIST digit conditioned on the other half using RBM;
+* implement Centering [**[7]**](#7) for all models;
+* implement classification RBMs/DBMs?;
+* implement ELBO and AIS for arbitrary DBM (again, visible and topmost hidden units can be analytically summed out);
+* optimize input pipeline e.g. use queues instead of `feed_dict` etc.
 
 ## Contributing
 Feel free to improve existing code, documentation or implement new feature (including those listed in [Possible future work](#possible-future-work)). Please open an issue to propose your changes if they are big enough.
