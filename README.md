@@ -186,13 +186,14 @@ Train 784-512-1024 Bernoulli DBM on MNIST dataset with pre-training and:
 * generate samples after training;
 * estimate partition function using AIS and average ELBO on the test set.
 
-| algorithm | # intermediate distributions | proposal (p<sub>0</sub>) | logẐ | log(Ẑ &plusmn; &#963;<sub>Z</sub>) | avg. test ELBO |
-| :---: | :---: | :---: | :---: | :---: | :---: |
-| [**[1]**](#1) | 20'000 | base-rate? [**[5]**](#5) | 356.18 | 356.06, 356.29 | **-84.62** |
-| this example | 200'000 | uniform | 1040.39 | 1040.18, 1040.58 | **-86.37** |
-| this example | 20'000 | uniform | 1040.58 | 1039.93, 1041.03 | **-86.59** |
+| algorithm | # intermediate distributions | proposal (p<sub>0</sub>) | logẐ | log(Ẑ &plusmn; &#963;<sub>Z</sub>) | avg. test ELBO | tightness of test ELBO |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| [**[1]**](#1) | 20'000 | base-rate? [**[5]**](#5) | 356.18 | 356.06, 356.29 | **-84.62** | about **0.5** nats |
+| this example | 200'000 | uniform | 1040.39 | 1040.18, 1040.58 | **-86.37** | &mdash; |
+| this example | 20'000 | uniform | 1040.58 | 1039.93, 1041.03 | **-86.59** | &mdash; |
 
-Couple of nats could have been lost because of single-precision.
+One can probably get better results by tuning the model slightly more. 
+Also couple of nats could have been lost because of single-precision (for both training and AIS estimation).
 
 <p float="left">
   <img src="img/dbm_mnist/rbm1.png" width="280" />
@@ -219,7 +220,7 @@ Couple of nats could have been lost because of single-precision.
 
 How to reproduce the this table see [here](docs/dbm_discriminative.md).
 
-Again, MLP is not tuned.
+Again, MLP is not tuned. With tuned MLP and slightly more tuned generative model in [**[1]**](#1) they achieved **0.95%** error on full test set.
 <br>
 Performance on full training set is slightly worse compared to RBM because of harder optimization problem + possible vanishing gradients. Also because the optimization problem is harder, the gain when not much datapoints are used is typically larger.
 <br>
@@ -252,8 +253,8 @@ Despite poor-looking G-RBM features, classification performance after discrimina
 | :--- | :---: |
 | *Best known MLP w/o data augmentation*: 8 layer ZLin net [**[6]**](#6) | **69.62** |
 | *Best known method using RBM (w/o data augmentation?)*: 10k hiddens + fine-tuning [**[3]**](#3) | **64.84** |
-| Gaussian RBM + discriminative fine-tuning | **59.78** |
-| Pure backprop 3072-5000-10 on smoothed data | **58.20** |
+| Gaussian RBM + discriminative fine-tuning (this example) | **59.78** |
+| Pure backprop 3072-5000-10 on smoothed data (this example) | **58.20** |
 | Pure backprop 782-10k-10 on PCA whitened data [**[3]**](#3) | **51.53** |
 
 <p float="left">
@@ -319,9 +320,9 @@ Discriminative performance of Gaussian RBM now is very close to state of the art
 
 | <div align="center">algorithm</div> | test accuracy, % |
 | :--- | :---: |
-| Gaussian RBM + discriminative fine-tuning + augmentation | **68.11** |
+| Gaussian RBM + discriminative fine-tuning + augmentation (this example) | **68.11** |
 | *Best known method using RBM (w/o data augmentation?)*: 10k hiddens + fine-tuning [**[3]**](#3) | **64.84** |
-| Gaussian RBM + discriminative fine-tuning | **64.38** |
+| Gaussian RBM + discriminative fine-tuning (this example) | **64.38** |
 | Gaussian RBM + discriminative fine-tuning (example [#3](#3-dbm-cifar-10-naïve-script-notebook)) | **59.78** |
 
 How to reproduce the this table see [here](docs/grbm_discriminative.md).
