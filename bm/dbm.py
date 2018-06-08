@@ -715,7 +715,7 @@ class DBM(EnergyBasedModel):
                 log_Z += self._unnormalized_log_prob_H0(x, beta)
                 # x_{i + 1} ~ T_{i + 1}(x_{i + 1} | x_i)
                 x_new = self._make_ais_next_sample(x, beta + delta_beta)
-                # -log p_i(x_{i + 1})
+                # - log p_i(x_{i + 1})
                 log_Z -= self._unnormalized_log_prob_H0(x_new, beta)
                 return log_Z, x_new, beta + delta_beta, delta_beta
 
