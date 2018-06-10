@@ -3,7 +3,7 @@ THIS_FILE := $(lastword $(MAKEFILE_LIST))
 
 test:
 	@$(MAKE) -f $(THIS_FILE) clean
-	nosetests
+	nosetests --config .noserc
 	@$(MAKE) -f $(THIS_FILE) clean
 
 clean:
