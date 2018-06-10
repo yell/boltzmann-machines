@@ -1,4 +1,4 @@
-# need to be able to call other targets within given one
+# for calling other targets within given one
 THIS_FILE := $(lastword $(MAKEFILE_LIST))
 
 test:
