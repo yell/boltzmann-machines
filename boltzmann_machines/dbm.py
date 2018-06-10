@@ -959,5 +959,5 @@ class DBM(EnergyBasedModel):
 
 if __name__ == '__main__':
     # run corresponding tests
-    from bm.utils.testing import run_tests
+    from boltzmann_machines.utils.testing import run_tests
     run_tests(__file__)

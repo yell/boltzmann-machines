@@ -2,11 +2,11 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.core.framework import summary_pb2
 
-from bm import EnergyBasedModel
-from bm.base import run_in_tf_session, is_attribute_name
-from bm.utils import (make_list_from, batch_iter, epoch_iter,
-                      write_during_training)
-from bm.utils.testing import assert_len, assert_shape
+from boltzmann_machines import EnergyBasedModel
+from boltzmann_machines.base import run_in_tf_session, is_attribute_name
+from boltzmann_machines.utils import (make_list_from, batch_iter, epoch_iter,
+                                      write_during_training)
+from boltzmann_machines.utils.testing import assert_len, assert_shape
 
 
 class BaseRBM(EnergyBasedModel):

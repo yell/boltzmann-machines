@@ -1,6 +1,6 @@
 from nose.tools import eq_
 
-from bm.base import TensorFlowModel as TFM
+from boltzmann_machines.base import TensorFlowModel as TFM
 
 
 class TestWorkingPaths(object):

@@ -34,12 +34,12 @@ from keras.layers import Dense, Activation, Dropout, BatchNormalization as BN
 from sklearn.metrics import accuracy_score
 
 import env
-from bm import DBM
-from bm.rbm import GaussianRBM, MultinomialRBM
-from bm.utils import (RNG, Stopwatch,
-                      one_hot, one_hot_decision_function, unhot)
-from bm.utils.dataset import load_cifar10
-from bm.utils.optimizers import MultiAdam
+from boltzmann_machines import DBM
+from boltzmann_machines.rbm import GaussianRBM, MultinomialRBM
+from boltzmann_machines.utils import (RNG, Stopwatch,
+                                      one_hot, one_hot_decision_function, unhot)
+from boltzmann_machines.utils.dataset import load_cifar10
+from boltzmann_machines.utils.optimizers import MultiAdam
 
 
 def make_smoothing(X_train, n_train, args):

@@ -32,11 +32,11 @@ from keras.layers import Dense, Activation
 from sklearn.metrics import accuracy_score
 
 import env
-from bm.rbm import BernoulliRBM, logit_mean
-from bm.utils import (RNG, Stopwatch,
-                      one_hot, one_hot_decision_function, unhot)
-from bm.utils.dataset import load_mnist
-from bm.utils.optimizers import MultiAdam
+from boltzmann_machines.rbm import BernoulliRBM, logit_mean
+from boltzmann_machines.utils import (RNG, Stopwatch,
+                                      one_hot, one_hot_decision_function, unhot)
+from boltzmann_machines.utils.dataset import load_mnist
+from boltzmann_machines.utils.optimizers import MultiAdam
 
 
 def make_rbm(X_train, X_val, args):

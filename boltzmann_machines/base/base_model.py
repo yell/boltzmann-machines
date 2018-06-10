@@ -3,7 +3,7 @@ from copy import deepcopy
 
 from base import is_param_name, is_attribute_name
 from mixin import SeedMixin
-from bm.utils import write_during_training
+from boltzmann_machines.utils import write_during_training
 
 
 class BaseModel(SeedMixin):
