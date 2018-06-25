@@ -3,7 +3,7 @@ THIS_FILE := $(lastword $(MAKEFILE_LIST))
 
 test:
 	@$(MAKE) -f $(THIS_FILE) clean
-	nosetests --config .noserc
+	TF_CPP_MIN_LOG_LEVEL=3 nosetests --config .noserc --nologcapture
 	@$(MAKE) -f $(THIS_FILE) clean
 
 clean:
