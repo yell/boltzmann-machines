@@ -174,7 +174,7 @@ Another simple experiment illustrates main idea of *one-shot learning* approach 
 | 1k (900 + 100) | 93.65% | 88.71% | **+4.94%** |
 | 100 (90 + 10) | 81.70% | 76.02% | **+5.68%** |
 
-How to reproduce the this table see [here](docs/rbm_discriminative.md). 
+How to reproduce this table see [here](docs/rbm_discriminative.md). 
 In these experiments only RBM was tuned to have high pseudo log-likelihood on a held-out validation set.
 Even better results can be obtained if one will tune MLP and other classifiers.
 
@@ -218,7 +218,7 @@ Also couple of nats could have been lost because of single-precision (for both t
 | 1k (900 + 100) | 93.54% | 89.14% | **+4.40%** |
 | 100 (90 + 10) | 83.79% | 76.24% | **+7.55%** |
 
-How to reproduce the this table see [here](docs/dbm_discriminative.md).
+How to reproduce this table see [here](docs/dbm_discriminative.md).
 
 Again, MLP is not tuned. With tuned MLP and slightly more tuned generative model in [**[1]**](#1) they achieved **0.95%** error on full test set.
 <br>
@@ -325,7 +325,7 @@ Discriminative performance of Gaussian RBM now is very close to state of the art
 | Gaussian RBM + discriminative fine-tuning (this example) | **64.38** |
 | Gaussian RBM + discriminative fine-tuning (example [#3](#3-dbm-cifar-10-naïve-script-notebook)) | **59.78** |
 
-How to reproduce the this table see [here](docs/grbm_discriminative.md).
+How to reproduce this table see [here](docs/grbm_discriminative.md).
 
 <p float="left">
   <img src="img/dbm_cifar2/grbm.png" width="265" />
