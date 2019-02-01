@@ -64,5 +64,5 @@ class RNG(np.random.RandomState):
 
 if __name__ == '__main__':
     # run corresponding tests
-    from testing import run_tests
+    from .testing import run_tests
     run_tests(__file__)

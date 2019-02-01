@@ -1,9 +1,8 @@
 import numpy as np
 from copy import deepcopy
-
-from base import is_param_name, is_attribute_name
-from mixin import SeedMixin
-from boltzmann_machines.utils import write_during_training
+from ..base.base import is_param_name, is_attribute_name
+from .mixin import SeedMixin
+from ..utils.utils import write_during_training
 
 
 class BaseModel(SeedMixin):

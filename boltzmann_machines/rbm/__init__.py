@@ -1,2 +1,2 @@
-from base_rbm import *
-from rbm import *
+from .base_rbm import *
+from .rbm import *

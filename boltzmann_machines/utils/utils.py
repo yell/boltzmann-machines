@@ -41,7 +41,7 @@ def batch_iter(X, batch_size=10, verbose=False, desc='epoch'):
         yield X[i*batch_size:(i + 1)*batch_size]
 
 def epoch_iter(start_epoch, max_epoch, verbose=False):
-    gen = xrange(start_epoch + 1, max_epoch + 1)
+    gen = range(start_epoch + 1, max_epoch + 1)
     if verbose: gen = progress_bar(gen, leave=True, ncols=84, desc='training')
     for epoch in gen:
         yield epoch
@@ -170,5 +170,5 @@ def log_std_exp(x, log_mean_exp_x=None):
 
 if __name__ == '__main__':
     # run corresponding tests
-    from testing import run_tests
+    from .testing import run_tests
     run_tests(__file__)

@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.contrib.distributions import Bernoulli, Multinomial, Normal
 
-from base import DtypeMixin
+from boltzmann_machines.base import DtypeMixin
 
 
 class BaseLayer(DtypeMixin):

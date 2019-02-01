@@ -4,7 +4,7 @@ import os.path
 import numpy as np
 import matplotlib.pyplot as plt
 
-from rng import RNG
+from .rng import RNG
 
 
 def load_mnist(mode='train', path='.'):
@@ -53,7 +53,7 @@ def load_cifar10(mode='train', path='.'):
     dirpath = os.path.join(path, 'cifar-10-batches-py/')
     batch_size = 10000
     if mode == 'train':
-        fnames = ['data_batch_{0}'.format(i) for i in xrange(1, 5 + 1)]
+        fnames = ['data_batch_{0}'.format(i) for i in range(1, 5 + 1)]
     elif mode == 'test':
         fnames = ['test_batch']
     else:
@@ -197,5 +197,5 @@ def plot_cifar10(X, y, samples_per_class=7,
 
 if __name__ == '__main__':
     # run corresponding tests
-    from testing import run_tests
+    from .testing import run_tests
     run_tests(__file__)

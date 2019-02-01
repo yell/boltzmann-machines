@@ -1,4 +1,4 @@
-from base import TensorFlowModel
+from .base import TensorFlowModel
 
 
 class EnergyBasedModel(TensorFlowModel):
