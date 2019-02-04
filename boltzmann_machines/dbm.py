@@ -98,7 +98,7 @@ class DBM(EnergyBasedModel):
                  display_filters=0, display_particles=0, v_shape=(28, 28),
                  model_path='dbm_model/', *args, **kwargs):
         super(DBM, self).__init__(model_path=model_path, *args, **kwargs)
-        self.n_layers_ = None
+        self.n_layers_ = len(rbms) if rbms is not None else None
         self.n_visible_ = None
         self.n_hiddens_ = []
         self.load_rbms(rbms)
@@ -123,7 +123,7 @@ class DBM(EnergyBasedModel):
 
         self.sparsity_target = make_list_from(sparsity_target)
         self.sparsity_cost = make_list_from(sparsity_cost)
-        if self.n_layers_ > 1:
+        if self.n_layers_ is not None and self.n_layers_ > 1:
             for x in (self.sparsity_target, self.sparsity_cost):
                 if len(x) == 1:
                     x *= self.n_layers_
