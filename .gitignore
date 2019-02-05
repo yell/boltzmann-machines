@@ -11,3 +11,4 @@ notebooks/.ipynb_checkpoints/*
 models/*
 !models/fetch_models.sh
 tex/*.swp
+.idea

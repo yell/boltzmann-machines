@@ -2,11 +2,11 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.core.framework import summary_pb2
 
-from boltzmann_machines import EnergyBasedModel
-from boltzmann_machines.base import run_in_tf_session, is_attribute_name
-from boltzmann_machines.utils import (make_list_from, batch_iter, epoch_iter,
+from ..ebm import EnergyBasedModel
+from ..base import run_in_tf_session, is_attribute_name
+from ..utils import (make_list_from, batch_iter, epoch_iter,
                                       write_during_training)
-from boltzmann_machines.utils.testing import assert_len, assert_shape
+from ..utils.testing import assert_len, assert_shape
 
 
 class BaseRBM(EnergyBasedModel):
@@ -379,7 +379,7 @@ class BaseRBM(EnergyBasedModel):
 
     def _make_gibbs_chain_fixed(self, h_states):
         v_states = v_means = h_means = None
-        for _ in xrange(self.n_gibbs_steps[0]):
+        for _ in range(self.n_gibbs_steps[0]):
             v_states, v_means, h_states, h_means = self._make_gibbs_step(h_states)
         return v_states, v_means, h_states, h_means
 
@@ -547,7 +547,7 @@ class BaseRBM(EnergyBasedModel):
         return feed_dict
 
     def _train_epoch(self, X):
-        results = [[] for _ in xrange(len(self._train_metrics_map))]
+        results = [[] for _ in range(len(self._train_metrics_map))]
         for X_batch in batch_iter(X, self.batch_size,
                                   verbose=self.verbose):
             self.iter_ += 1
@@ -571,7 +571,7 @@ class BaseRBM(EnergyBasedModel):
         return dict(zip(sorted(self._train_metrics_map), results))
 
     def _run_val_metrics(self, X_val):
-        results = [[] for _ in xrange(len(self._val_metrics_map))]
+        results = [[] for _ in range(len(self._val_metrics_map))]
         for X_vb in batch_iter(X_val, batch_size=self.batch_size):
             run_ops = [v for _, v in sorted(self._val_metrics_map.items())]
             values = \
@@ -600,14 +600,14 @@ class BaseRBM(EnergyBasedModel):
         self._free_energy_op = tf.get_collection('free_energy_op')[0]
 
         train_fes = []
-        for _, X_b in zip(xrange(self.metrics_config['n_batches_for_feg']),
+        for _, X_b in zip(range(self.metrics_config['n_batches_for_feg']),
                           batch_iter(X, batch_size=self.batch_size)):
             train_fe = self._tf_session.run(self._free_energy_op,
                                             feed_dict=self._make_tf_feed_dict(X_b))
             train_fes.append(train_fe)
 
         val_fes = []
-        for _, X_vb in zip(xrange(self.metrics_config['n_batches_for_feg']),
+        for _, X_vb in zip(range(self.metrics_config['n_batches_for_feg']),
                            batch_iter(X_val, batch_size=self.batch_size)):
             val_fe = self._tf_session.run(self._free_energy_op,
                                           feed_dict=self._make_tf_feed_dict(X_vb))

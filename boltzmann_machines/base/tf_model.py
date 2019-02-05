@@ -3,7 +3,7 @@ import json
 import tensorflow as tf
 from functools import wraps
 
-from boltzmann_machines.base import (BaseModel, DtypeMixin,
+from ..base import (BaseModel, DtypeMixin,
                                      is_param_name)
 
 
@@ -204,6 +204,6 @@ class TensorFlowModel(BaseModel, DtypeMixin):
 
 if __name__ == '__main__':
     # run corresponding tests
-    from boltzmann_machines.utils.testing import run_tests
-    from tests import test_tf_model as t
+    from ..utils.testing import run_tests
+    from .tests import test_tf_model as t
     run_tests(__file__, t)

@@ -28,7 +28,7 @@ def im_plot(X, n_width=10, n_height=10, shape=None, title=None,
     imshow_params.setdefault('interpolation', 'nearest')
 
     # plot
-    for i in xrange(n_height * n_width):
+    for i in range(n_height * n_width):
         if i < len(X):
             img = X[i]
             if shape is not None:
@@ -64,8 +64,8 @@ def im_reshape(X, n_width=10, n_height=10, shape=None, normalize=False):
     Y = Y.reshape(-1, *shape)
     Z = np.zeros((n_height * shape[0], n_width * shape[1], shape[2]), dtype=Y.dtype)
 
-    for i in xrange(n_height):
-        for j in xrange(n_width):
+    for i in range(n_height):
+        for j in range(n_width):
             ind_Y = n_height * i + j
             if ind_Y < len(Y):
                 Y_i = Y[ind_Y, ...]

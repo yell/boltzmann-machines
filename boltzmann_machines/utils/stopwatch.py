@@ -54,7 +54,7 @@ class Stopwatch(object):
             self._total += (now - self._start)
             self._start = now
         if self.verbose:
-            print "Elapsed time: {0:.3f} sec".format(self._total)
+            print("Elapsed time: {0:.3f} sec".format(self._total))
         return self._total
 
     def reset(self):
