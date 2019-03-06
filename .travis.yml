@@ -18,7 +18,7 @@ sudo: required
 install:
   #- pip3 install -U setuptools
   #- pip3 install cffi
-  #- python setup_cpu.py develop
+  - python setup_cpu.py develop
   - TF_CPP_MIN_LOG_LEVEL=3 pytest -q boltzmann_machines/* --cov=boltzmann_machines
   - codecov
   #- make install-tests-requirements
