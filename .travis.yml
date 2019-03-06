@@ -1,8 +1,7 @@
 language: python
 
 python:
-  # Matplotlib dropout python 2.x support
-  #- "2.7"
+  - "2.7"
   - "3.5"
   - "3.6"
 
@@ -17,7 +16,7 @@ sudo: required
 
 install:
   - pip install -U setuptools
-  - pip uninstall pytest
+  - pip uninstall --yes pytest
   - python setup_cpu.py develop
   - make test
   - codecov
