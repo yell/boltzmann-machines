@@ -13,10 +13,10 @@ setup(name='boltzmann_machines',
                         'seaborn>=0.8.1',
                         'tqdm>=4.14.0',
                         # Tests
-                        'pytest=4.3.*',
+                        'pytest==4.3.*',
                         'pytest-cov>=2.6.1',
                         'nose>=1.3.4',
                         'nose-exclude>=0.5.0',
-                        'codecov',
+                        'codecov>=2.0.*',
 ],
 packages=find_packages())
