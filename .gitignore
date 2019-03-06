@@ -29,6 +29,8 @@ boltzmann_machines.egg-info/
 
 # Coverage
 .coverage
+.coverage*
+!.coveragerc
 
 # Research projects
 .tests/

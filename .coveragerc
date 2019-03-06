@@ -8,3 +8,4 @@ exclude_lines =
 omit =
         *__init__*
         *future*
+#data_file = /tmp/.coverage
