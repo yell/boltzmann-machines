@@ -18,7 +18,7 @@ def batch_iter(X, batch_size=10, verbose=False, desc='epoch'):
     --------
     >>> X = np.arange(36).reshape((12, 3))
     >>> for X_b in batch_iter(X, batch_size=5):
-    ...     print X_b
+    ...     print(X_b)
     [[ 0  1  2]
      [ 3  4  5]
      [ 6  7  8]
@@ -34,15 +34,17 @@ def batch_iter(X, batch_size=10, verbose=False, desc='epoch'):
     """
     X = np.asarray(X)
     N = len(X)
-    n_batches = N / batch_size + (N % batch_size > 0)
+    n_batches = N // batch_size + (N % batch_size > 0)
     gen = range(n_batches)
-    if verbose: gen = progress_bar(gen, leave=False, ncols=64, desc=desc)
+    if verbose:
+        gen = progress_bar(gen, leave=False, ncols=64, desc=desc)
     for i in gen:
         yield X[i*batch_size:(i + 1)*batch_size]
 
 def epoch_iter(start_epoch, max_epoch, verbose=False):
     gen = range(start_epoch + 1, max_epoch + 1)
-    if verbose: gen = progress_bar(gen, leave=True, ncols=84, desc='training')
+    if verbose:
+        gen = progress_bar(gen, leave=True, ncols=84, desc='training')
     for epoch in gen:
         yield epoch
 
