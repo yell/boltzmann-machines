@@ -19,7 +19,7 @@ After the model is trained, it is discriminatively fine-tuned.
 The code uses early stopping so max number of MLP epochs is often not reached.
 It achieves 1.27% misclassification rate on the test set.
 """
-print __doc__
+print(__doc__)
 
 import os
 import argparse
@@ -31,7 +31,7 @@ from keras.models import Sequential
 from keras.layers import Dense, Activation
 from sklearn.metrics import accuracy_score
 
-import env
+import boltzmann_machines.examples.env
 from boltzmann_machines.rbm import BernoulliRBM, logit_mean
 from boltzmann_machines.utils import (RNG, Stopwatch,
                                       one_hot, one_hot_decision_function, unhot)
@@ -41,10 +41,10 @@ from boltzmann_machines.utils.optimizers import MultiAdam
 
 def make_rbm(X_train, X_val, args):
     if os.path.isdir(args.model_dirpath):
-        print "\nLoading model ...\n\n"
+        print("\nLoading model ...\n\n")
         rbm = BernoulliRBM.load_model(args.model_dirpath)
     else:
-        print "\nTraining model ...\n\n"
+        print("\nTraining model ...\n\n")
         rbm = BernoulliRBM(n_visible=784,
                            n_hidden=args.n_hidden,
                            W_init=args.w_init,
@@ -82,8 +82,13 @@ def make_rbm(X_train, X_val, args):
         rbm.fit(X_train, X_val)
     return rbm
 
-def make_mlp((X_train, y_train), (X_val, y_val), (X_test, y_test),
-             (W, hb), args):
+
+def make_mlp(train, val, test, params, args):
+    X_train, y_train = train
+    X_val, y_val = val
+    X_test, y_test = test
+    W, hb = params
+
     dense_params = {}
     if W is not None and hb is not None:
         dense_params['weights'] = (W, hb)
@@ -122,7 +127,7 @@ def make_mlp((X_train, y_train), (X_val, y_val), (X_test, y_test),
 
     y_pred = mlp.predict(X_test)
     y_pred = unhot(one_hot_decision_function(y_pred), n_classes=10)
-    print "Test accuracy: {:.4f}".format(accuracy_score(y_test, y_pred))
+    print("Test accuracy: {:.4f}".format(accuracy_score(y_test, y_pred)))
 
     # save predictions, targets, and fine-tuned weights
     np.save(args.mlp_save_prefix + 'y_pred.npy', y_pred)
@@ -204,7 +209,7 @@ def main():
         args.mlp_lrm *= 2
 
     # prepare data (load + scale + split)
-    print "\nPreparing data ...\n\n"
+    print("\nPreparing data ...\n\n")
     X, y = load_mnist(mode='train', path=args.data_path)
     X /= 255.
     RNG(seed=42).shuffle(X)
@@ -225,7 +230,7 @@ def main():
 
     # discriminative fine-tuning: initialize MLP with
     # learned weights, add FC layer and train using backprop
-    print "\nDiscriminative fine-tuning ...\n\n"
+    print("\nDiscriminative fine-tuning ...\n\n")
 
     W, hb = None, None
     if not args.mlp_no_init:

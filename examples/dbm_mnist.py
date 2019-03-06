@@ -23,7 +23,7 @@ Links
 -----
 [1] http://www.cs.toronto.edu/~rsalakhu/DBM.html
 """
-print __doc__
+print(__doc__)
 
 import os
 import argparse
@@ -35,7 +35,7 @@ from keras.models import Sequential
 from keras.layers import Dense, Activation
 from sklearn.metrics import accuracy_score
 
-import env
+import boltzmann_machines.examples.env
 from boltzmann_machines import DBM
 from boltzmann_machines.rbm import BernoulliRBM
 from boltzmann_machines.utils import (RNG, Stopwatch,
@@ -46,10 +46,10 @@ from boltzmann_machines.utils.optimizers import MultiAdam
 
 def make_rbm1(X, args):
     if os.path.isdir(args.rbm1_dirpath):
-        print "\nLoading RBM #1 ...\n\n"
+        print("\nLoading RBM #1 ...\n\n")
         rbm1 = BernoulliRBM.load_model(args.rbm1_dirpath)
     else:
-        print "\nTraining RBM #1 ...\n\n"
+        print("\nTraining RBM #1 ...\n\n")
         rbm1 = BernoulliRBM(n_visible=784,
                             n_hidden=args.n_hiddens[0],
                             W_init=0.001,
@@ -83,10 +83,10 @@ def make_rbm1(X, args):
 
 def make_rbm2(Q, args):
     if os.path.isdir(args.rbm2_dirpath):
-        print "\nLoading RBM #2 ...\n\n"
+        print("\nLoading RBM #2 ...\n\n")
         rbm2 = BernoulliRBM.load_model(args.rbm2_dirpath)
     else:
-        print "\nTraining RBM #2 ...\n\n"
+        print("\nTraining RBM #2 ...\n\n")
 
         epochs = args.epochs[1]
         n_every = args.increase_n_gibbs_steps_every
@@ -127,13 +127,16 @@ def make_rbm2(Q, args):
         rbm2.fit(Q)
     return rbm2
 
-def make_dbm((X_train, X_val), rbms, (Q, G), args):
+def make_dbm(data, rbms, params, args):
+    X_train, X_val = data
+    Q, G = params
+
     if os.path.isdir(args.dbm_dirpath):
-        print "\nLoading DBM ...\n\n"
+        print("\nLoading DBM ...\n\n")
         dbm = DBM.load_model(args.dbm_dirpath)
         dbm.load_rbms(rbms)  # !!!
     else:
-        print "\nTraining DBM ...\n\n"
+        print("\nTraining DBM ...\n\n")
         dbm = DBM(rbms=rbms,
                   n_particles=args.n_particles,
                   v_particle_init=X_train[:args.n_particles].copy(),
@@ -166,8 +169,14 @@ def make_dbm((X_train, X_val), rbms, (Q, G), args):
         dbm.fit(X_train, X_val)
     return dbm
 
-def make_mlp((X_train, y_train), (X_val, y_val), (X_test, y_test),
-             (W, hb), (W2, hb2), args):
+
+def make_mlp(train, val, test, params, params2, args):
+    X_train, y_train = train
+    X_val, y_val = val
+    X_test, y_test = test
+    W, hb = params
+    W2, hb2 = params2
+
     dense_params = {}
     if W is not None and hb is not None:
         dense_params['weights'] = (W, hb)
@@ -215,7 +224,7 @@ def make_mlp((X_train, y_train), (X_val, y_val), (X_test, y_test),
 
     y_pred = mlp.predict(X_test)
     y_pred = unhot(one_hot_decision_function(y_pred), n_classes=10)
-    print "Test accuracy: {:.4f}".format(accuracy_score(y_test, y_pred))
+    print("Test accuracy: {:.4f}".format(accuracy_score(y_test, y_pred)))
 
     # save predictions, targets, and fine-tuned weights
     np.save(args.mlp_save_prefix + 'y_pred.npy', y_pred)
@@ -317,7 +326,7 @@ def main():
             x *= m
 
     # prepare data (load + scale + split)
-    print "\nPreparing data ...\n\n"
+    print("\nPreparing data ...\n\n")
     X, y = load_mnist(mode='train', path='../data/')
     X /= 255.
     RNG(seed=42).shuffle(X)
@@ -336,9 +345,9 @@ def main():
     # freeze RBM #1 and extract features Q = p_{RBM_1}(h|v=X)
     Q = None
     if not os.path.isdir(args.rbm2_dirpath) or not os.path.isdir(args.dbm_dirpath):
-        print "\nExtracting features from RBM #1 ..."
+        print("\nExtracting features from RBM #1 ...")
         Q = rbm1.transform(X)
-        print "\n"
+        print("\n")
 
     # pre-train RBM #2
     rbm2 = make_rbm2(Q, args)
@@ -346,9 +355,9 @@ def main():
     # freeze RBM #2 and extract features G = p_{RBM_2}(h|v=Q)
     G = None
     if not os.path.isdir(args.dbm_dirpath):
-        print "\nExtracting features from RBM #2 ..."
+        print("\nExtracting features from RBM #2 ...")
         G = rbm2.transform(Q)
-        print "\n"
+        print("\n")
 
     # jointly train DBM
     dbm = make_dbm((X_train, X_val), (rbm1, rbm2), (Q, G), args)
@@ -359,7 +368,7 @@ def main():
 
     # discriminative fine-tuning: initialize MLP with
     # learned weights, add FC layer and train using backprop
-    print "\nDiscriminative fine-tuning ...\n\n"
+    print("\nDiscriminative fine-tuning ...\n\n")
 
     W, hb = None, None
     W2, hb2 = None, None

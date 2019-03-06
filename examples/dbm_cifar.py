@@ -31,7 +31,7 @@ References
 [1] A. Krizhevsky and G. Hinton. Learning multiple layers of features
     from tine images. 2009.
 """
-print __doc__
+print(__doc__)
 
 import os
 import argparse
@@ -43,7 +43,7 @@ from keras.models import Sequential
 from keras.layers import Dense, Activation, Dropout, BatchNormalization as BN
 from sklearn.metrics import accuracy_score
 
-import env
+import examples.env
 from boltzmann_machines import DBM
 from boltzmann_machines.rbm import GaussianRBM, MultinomialRBM
 from boltzmann_machines.utils import (RNG, Stopwatch,
@@ -62,20 +62,20 @@ def make_augmentation(X_train, y_train, n_train, args):
 
     augment = True
     if os.path.isfile(X_aug_path):
-        print "\nLoading augmented data ..."
+        print("\nLoading augmented data ...")
         X_aug = np.load(X_aug_path)
-        print "Checking augmented data ..."
+        print("Checking augmented data ...")
         if len(X_aug) == 10 * n_train:
             augment = False
 
     if augment:
-        print "\nAugmenting data ..."
+        print("\nAugmenting data ...")
         s = Stopwatch(verbose=True).start()
 
         X_aug = np.zeros((10 * n_train, 32, 32, 3), dtype=np.float32)
         X_train = im_unflatten(X_train)
         X_aug[:n_train] = X_train
-        for i in xrange(n_train):
+        for i in range(n_train):
             for k, offset in enumerate((
                     ( 1,  0),
                     (-1,  0),
@@ -84,7 +84,7 @@ def make_augmentation(X_train, y_train, n_train, args):
             )):
                 img = X_train[i].copy()
                 X_aug[(k + 1) * n_train + i] = shift(img, offset=offset)
-        for i in xrange(5 * n_train):
+        for i in range(5 * n_train):
             X_aug[5 * n_train + i] = horizontal_mirror(X_aug[i].copy())
 
         # shuffle once again
@@ -101,11 +101,13 @@ def make_augmentation(X_train, y_train, n_train, args):
         np.save(X_aug_path, X_aug)
 
         s.elapsed()
-        print "\n"
+        print("\n")
 
     return X_aug, y_train
 
-def make_small_rbms((X_train, X_val), args):
+def make_small_rbms(X, args):
+    X_train, X_val = X
+
     X_train = im_unflatten(X_train)
     X_val = im_unflatten(X_val)
 
@@ -143,16 +145,16 @@ def make_small_rbms((X_train, X_val), args):
     small_rbms = []
 
     # first 16 ...
-    for i in xrange(4):
-        for j in xrange(4):
+    for i in range(4):
+        for j in range(4):
             rbm_id = 4 * i + j
             rbm_dirpath = args.small_dirpath_prefix + str(rbm_id) + '/'
 
             if os.path.isdir(rbm_dirpath):
-                print "\nLoading small RBM #{0} ...\n\n".format(rbm_id)
+                print("\nLoading small RBM #{0} ...\n\n".format(rbm_id))
                 rbm = GaussianRBM.load_model(rbm_dirpath)
             else:
-                print "\nTraining small RBM #{0} ...\n\n".format(rbm_id)
+                print("\nTraining small RBM #{0} ...\n\n".format(rbm_id))
                 X_patches = X_train[:, 8 * i:8 * (i + 1),
                                        8 * j:8 * (j + 1), :]
                 X_patches_val = X_val[:, 8 * i:8 * (i + 1),
@@ -167,16 +169,16 @@ def make_small_rbms((X_train, X_val), args):
             small_rbms.append(rbm)
 
     # next 9 ...
-    for i in xrange(3):
-        for j in xrange(3):
+    for i in range(3):
+        for j in range(3):
             rbm_id = 16 + 3 * i + j
             rbm_dirpath = args.small_dirpath_prefix + str(rbm_id) + '/'
 
             if os.path.isdir(rbm_dirpath):
-                print "\nLoading small RBM #{0} ...\n\n".format(rbm_id)
+                print("\nLoading small RBM #{0} ...\n\n".format(rbm_id))
                 rbm = GaussianRBM.load_model(rbm_dirpath)
             else:
-                print "\nTraining small RBM #{0} ...\n\n".format(rbm_id)
+                print("\nTraining small RBM #{0} ...\n\n".format(rbm_id))
                 X_patches = X_train[:, 4 + 8 * i:4 + 8 * (i + 1),
                                        4 + 8 * j:4 + 8 * (j + 1), :]
                 X_patches_val = X_val[:, 4 + 8 * i:4 + 8 * (i + 1),
@@ -195,10 +197,10 @@ def make_small_rbms((X_train, X_val), args):
     rbm_dirpath = args.small_dirpath_prefix + str(rbm_id) + '/'
 
     if os.path.isdir(rbm_dirpath):
-        print "\nLoading small RBM #{0} ...\n\n".format(rbm_id)
+        print("\nLoading small RBM #{0} ...\n\n".format(rbm_id))
         rbm = GaussianRBM.load_model(rbm_dirpath)
     else:
-        print "\nTraining small RBM #{0} ...\n\n".format(rbm_id)
+        print("\nTraining small RBM #{0} ...\n\n".format(rbm_id))
         X_patches = X_train.copy()  # (N, 32, 32, 3)
         X_patches = X_patches.transpose(0, 3, 1, 2)  # (N, 3, 32, 32)
         X_patches = X_patches.reshape((-1, 3, 4, 8, 4, 8)).mean(axis=4).mean(axis=2)  # (N, 3, 8, 8)
@@ -224,8 +226,8 @@ def make_large_weights(small_rbms):
     vb = np.zeros((32, 32, 3))
     hb = np.zeros(300 * 26)
 
-    for i in xrange(4):
-        for j in xrange(4):
+    for i in range(4):
+        for j in range(4):
             rbm_id = 4 * i + j
             weights = small_rbms[rbm_id].get_tf_params(scope='weights')
             W_small = weights['W']
@@ -237,8 +239,8 @@ def make_large_weights(small_rbms):
                8 * j:8 * (j + 1), :] += im_unflatten(weights['vb'])
             hb[300 * rbm_id: 300 * (rbm_id + 1)] = weights['hb']
 
-    for i in xrange(3):
-        for j in xrange(3):
+    for i in range(3):
+        for j in range(3):
             rbm_id = 16 + 3 * i + j
             weights = small_rbms[rbm_id].get_tf_params(scope='weights')
             W_small = weights['W']
@@ -255,8 +257,8 @@ def make_large_weights(small_rbms):
     W_small = W_small.T
     W_small = im_unflatten(W_small)
     vb_small = im_unflatten(weights['vb'])
-    for i in xrange(8):
-        for j in xrange(8):
+    for i in range(8):
+        for j in range(8):
             U = W_small[:, i, j, :]
             U = np.expand_dims(U, -1)
             U = np.expand_dims(U, -1)
@@ -275,15 +277,17 @@ def make_large_weights(small_rbms):
 
     return W, vb, hb
 
-def make_grbm((X_train, X_val), small_rbms, args):
+def make_grbm(X, small_rbms, args):
+    X_train, X_val = X
+
     if os.path.isdir(args.grbm_dirpath):
-        print "\nLoading G-RBM ...\n\n"
+        print("\nLoading G-RBM ...\n\n")
         grbm = GaussianRBM.load_model(args.grbm_dirpath)
     else:
-        print "\nAssembling weights for large Gaussian RBM ...\n\n"
+        print("\nAssembling weights for large Gaussian RBM ...\n\n")
         W, vb, hb = make_large_weights(small_rbms)
 
-        print "\nTraining G-RBM ...\n\n"
+        print("\nTraining G-RBM ...\n\n")
         grbm = GaussianRBM(n_visible=32 * 32 * 3,
                            n_hidden=300 * 26,
                            sigma=1.,
@@ -320,12 +324,14 @@ def make_grbm((X_train, X_val), small_rbms, args):
         grbm.fit(X_train, X_val)
     return grbm
 
-def make_mrbm((Q_train, Q_val), args):
+def make_mrbm(Q, args):
+    Q_train, Q_val = Q
+
     if os.path.isdir(args.mrbm_dirpath):
-        print "\nLoading M-RBM ...\n\n"
+        print("\nLoading M-RBM ...\n\n")
         mrbm = MultinomialRBM.load_model(args.mrbm_dirpath)
     else:
-        print "\nTraining M-RBM ...\n\n"
+        print("\nTraining M-RBM ...\n\n")
 
         epochs = args.epochs[1]
         n_every = args.increase_n_gibbs_steps_every
@@ -384,13 +390,16 @@ def make_rbm_transform(rbm, X, path, np_dtype=None):
         np.save(path, H)
     return H
 
-def make_dbm((X_train, X_val), rbms, (Q, G), args):
+def make_dbm(X, rbms, params, args):
+    X_train, X_val = X
+    Q, G = params
+
     if os.path.isdir(args.dbm_dirpath):
-        print "\nLoading DBM ...\n\n"
+        print("\nLoading DBM ...\n\n")
         dbm = DBM.load_model(args.dbm_dirpath)
         dbm.load_rbms(rbms)  # !!!
     else:
-        print "\nTraining DBM ...\n\n"
+        print("\nTraining DBM ...\n\n")
         dbm = DBM(rbms=rbms,
                   n_particles=args.n_particles,
                   v_particle_init=X_train[:args.n_particles].copy(),
@@ -423,8 +432,12 @@ def make_dbm((X_train, X_val), rbms, (Q, G), args):
         dbm.fit(X_train, X_val)
     return dbm
 
-def make_mlp((X_train, y_train), (X_val, y_val), (X_test, y_test),
-             (W, hb), args):
+def make_mlp(train, val, test, params, args):
+    X_train, y_train = train
+    X_val, y_val = val
+    X_test, y_test = test
+    W, hb = params
+
     dense_params = {}
     if W is not None and hb is not None:
         dense_params['weights'] = (W, hb)
@@ -465,7 +478,7 @@ def make_mlp((X_train, y_train), (X_val, y_val), (X_test, y_test),
 
     y_pred = mlp.predict(X_test)
     y_pred = unhot(one_hot_decision_function(y_pred), n_classes=10)
-    print "Test accuracy: {:.4f}".format(accuracy_score(y_test, y_pred))
+    print("Test accuracy: {:.4f}".format(accuracy_score(y_test, y_pred)))
 
     # save predictions, targets, and fine-tuned weights
     np.save(args.mlp_save_prefix + 'y_pred.npy', y_pred)
@@ -586,7 +599,7 @@ def main():
             x *= m
 
     # prepare data (load + scale + split)
-    print "\nPreparing data ..."
+    print("\nPreparing data ...")
     X, y = load_cifar10(mode='train', path=args.data_path)
     X = X.astype(np.float32)
     X /= 255.
@@ -606,8 +619,8 @@ def main():
         # convert + scale augmented data again
         X_train = X_aug.astype(np.float32)
         X_train /= 255.
-        print "Augmented shape: {0}".format(X_train.shape)
-        print "Augmented range: {0}".format((X_train.min(), X_train.max()))
+        print("Augmented shape: {0}".format(X_train.shape))
+        print("Augmented range: {0}".format((X_train.min(), X_train.max())))
 
     # center and normalize training data
     X_mean = X_train.mean(axis=0)
@@ -625,9 +638,9 @@ def main():
     X_train /= X_std
     X_val -= X_mean
     X_val /= X_std
-    print "Augmented mean: ({0:.3f}, ...); std: ({1:.3f}, ...)".format(X_train.mean(axis=0)[0],
-                                                                       X_train.std(axis=0)[0])
-    print "Augmented range: ({0:.3f}, {1:.3f})\n\n".format(X_train.min(), X_train.max())
+    print("Augmented mean: ({0:.3f}, ...); std: ({1:.3f}, ...)".format(X_train.mean(axis=0)[0],
+                                                                       X_train.std(axis=0)[0]))
+    print("Augmented range: ({0:.3f}, {1:.3f})\n\n".format(X_train.min(), X_train.max()))
 
     # train 26 small Gaussian RBMs on patches
     small_rbms = None
@@ -639,7 +652,7 @@ def main():
     grbm = make_grbm((X_train, X_val), small_rbms, args)
 
     # extract features Q = p_{G-RBM}(h|v=X)
-    print "\nExtracting features from G-RBM ...\n\n"
+    print("\nExtracting features from G-RBM ...\n\n")
     Q_train, Q_val = None, None
     if not os.path.isdir(args.mrbm_dirpath) or not os.path.isdir(args.dbm_dirpath):
         Q_train_path = os.path.join(args.data_path, 'Q_train_cifar.npy')
@@ -652,7 +665,7 @@ def main():
     mrbm = make_mrbm((Q_train, Q_val), args)
 
     # extract features G = p_{M-RBM}(h|v=Q)
-    print "\nExtracting features from M-RBM ...\n\n"
+    print("\nExtracting features from M-RBM ...\n\n")
     Q, G = None, None
     if not os.path.isdir(args.dbm_dirpath):
         Q = Q_train[:args.n_particles]
@@ -671,7 +684,7 @@ def main():
     # G-RBM discriminative fine-tuning:
     # initialize MLP with learned weights, 
     # add FC layer and train using backprop
-    print "\nG-RBM Discriminative fine-tuning ...\n\n"
+    print("\nG-RBM Discriminative fine-tuning ...\n\n")
 
     W, hb = None, None
     if not args.mlp_no_init:
