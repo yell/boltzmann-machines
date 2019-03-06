@@ -1,6 +1,8 @@
 import numpy as np
 
 from tqdm import tqdm, tqdm_notebook
+
+
 def _is_in_ipython():
     try: __IPYTHON__; return True
     except NameError: return False
@@ -9,6 +11,7 @@ progress_bar = tqdm_notebook if _is_in_ipython() else tqdm
 
 def write_during_training(s):
     tqdm.write(s)
+
 
 def batch_iter(X, batch_size=10, verbose=False, desc='epoch'):
     """Divide input data into batches, with optional
@@ -41,6 +44,7 @@ def batch_iter(X, batch_size=10, verbose=False, desc='epoch'):
     for i in gen:
         yield X[i*batch_size:(i + 1)*batch_size]
 
+
 def epoch_iter(start_epoch, max_epoch, verbose=False):
     gen = range(start_epoch + 1, max_epoch + 1)
     if verbose:
@@ -48,8 +52,10 @@ def epoch_iter(start_epoch, max_epoch, verbose=False):
     for epoch in gen:
         yield epoch
 
+
 def make_list_from(x):
     return list(x) if hasattr(x, '__iter__') else [x]
+
 
 def one_hot(y, n_classes=None):
     """Convert `y` to one-hot encoding.
@@ -67,6 +73,7 @@ def one_hot(y, n_classes=None):
     n_classes = n_classes or np.max(y) + 1
     return np.eye(n_classes)[y]
 
+
 def one_hot_decision_function(y):
     """
     Examples
@@ -76,14 +83,15 @@ def one_hot_decision_function(y):
     ...      [0.2, 0.2, 0.6],
     ...      [0.3, 0.4, 0.3]]
     >>> one_hot_decision_function(y)
-    array([[ 0.,  0.,  1.],
-           [ 1.,  0.,  0.],
-           [ 0.,  0.,  1.],
-           [ 0.,  1.,  0.]])
+    array([[0., 0., 1.],
+           [1., 0., 0.],
+           [0., 0., 1.],
+           [0., 1., 0.]])
     """
     z = np.zeros_like(y)
     z[np.arange(len(z)), np.argmax(y, axis=1)] = 1
     return z
+
 
 def unhot(y, n_classes=None):
     """
@@ -105,6 +113,7 @@ def unhot(y, n_classes=None):
         _, n_classes = y.shape
     return y.dot(np.arange(n_classes))
 
+
 def log_sum_exp(x):
     """Compute log(sum(exp(x))) in a numerically stable way.
 
@@ -124,6 +133,7 @@ def log_sum_exp(x):
     a = max(x)
     return a + np.log(sum(np.exp(x - a)))
 
+
 def log_mean_exp(x):
     """Compute log(mean(exp(x))) in a numerically stable way.
 
@@ -134,6 +144,7 @@ def log_mean_exp(x):
     2.308...
     """
     return log_sum_exp(x) - np.log(len(x))
+
 
 def log_diff_exp(x):
     """Compute log(diff(exp(x))) in a numerically stable way.
@@ -148,6 +159,7 @@ def log_diff_exp(x):
     x = np.asarray(x)
     a = max(x)
     return a + np.log(np.diff(np.exp(x - a)))
+
 
 def log_std_exp(x, log_mean_exp_x=None):
     """Compute log(std(exp(x))) in a numerically stable way.

@@ -1,12 +1,10 @@
 __author__ = 'Yelysei Bondarenko'
 __email__ = 'yell.bondarenko@gmail.com'
 
-from .dbm import *
-from . import dbm
-from . import ebm
-from . import layers
+from boltzmann_machines.dbm import *
+from boltzmann_machines.ebm import *
+#from boltzmann_machines.layers import *
 
-from . import base
-from . import rbm
-from . import utils
-
+#from boltzmann_machines import base
+#from boltzmann_machines import rbm
+#from boltzmann_machines import utils

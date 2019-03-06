@@ -4,7 +4,7 @@ import os.path
 import numpy as np
 import matplotlib.pyplot as plt
 
-from .rng import RNG
+from boltzmann_machines.utils.rng import RNG
 
 
 def load_mnist(mode='train', path='.'):

@@ -5,8 +5,8 @@ from numpy.testing import (assert_allclose,
                            assert_almost_equal,
                            assert_raises)
 
-from rbm import BernoulliRBM, MultinomialRBM, GaussianRBM
-from utils import RNG
+from boltzmann_machines.rbm import BernoulliRBM, MultinomialRBM, GaussianRBM
+from boltzmann_machines.utils import RNG
 
 
 class TestRBM(object):

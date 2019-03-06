@@ -1,4 +1,4 @@
-from .base import TensorFlowModel
+from boltzmann_machines.base import TensorFlowModel
 
 
 class EnergyBasedModel(TensorFlowModel):

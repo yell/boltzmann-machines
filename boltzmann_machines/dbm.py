@@ -3,10 +3,10 @@ import tensorflow as tf
 from tensorflow.core.framework import summary_pb2
 from tensorflow.contrib.distributions import Bernoulli
 
-from .base import run_in_tf_session
-from .ebm import EnergyBasedModel
-from .layers import BernoulliLayer
-from .utils import (make_list_from, write_during_training,
+from boltzmann_machines.base import run_in_tf_session
+from boltzmann_machines.ebm import EnergyBasedModel
+from boltzmann_machines.layers import BernoulliLayer
+from boltzmann_machines.utils import (make_list_from, write_during_training,
                    batch_iter, epoch_iter,
                    log_sum_exp, log_diff_exp, log_mean_exp, log_std_exp)
 

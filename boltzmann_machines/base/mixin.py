@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 
-from ..utils import RNG
+from boltzmann_machines.utils import RNG
 
 
 class BaseMixin(object):

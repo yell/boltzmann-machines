@@ -2,9 +2,9 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.core.framework import summary_pb2
 
-from ..ebm import EnergyBasedModel
-from ..base import run_in_tf_session, is_attribute_name
-from ..utils import (make_list_from, batch_iter, epoch_iter,
+from boltzmann_machines.ebm import EnergyBasedModel
+from boltzmann_machines.base import run_in_tf_session, is_attribute_name
+from boltzmann_machines.utils import (make_list_from, batch_iter, epoch_iter,
                                       write_during_training)
 from ..utils.testing import assert_len, assert_shape
 
