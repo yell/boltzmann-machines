@@ -3,7 +3,8 @@ THIS_FILE := $(lastword $(MAKEFILE_LIST))
 
 test:
 	@$(MAKE) -f $(THIS_FILE) clean
-	TF_CPP_MIN_LOG_LEVEL=3 nosetests --config .noserc --nologcapture
+	TF_CPP_MIN_LOG_LEVEL=3 pytest -q boltzmann_machines/* --cov=boltzmann_machines
+	#TF_CPP_MIN_LOG_LEVEL=3 nosetests --config .noserc --nologcapture
 	@$(MAKE) -f $(THIS_FILE) clean
 
 clean:

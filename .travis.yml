@@ -16,12 +16,11 @@ sudo: required
 #        - make docs
 
 install:
-  #- pip3 install -U setuptools
-  #- pip3 install cffi
+  - pip install -U setuptools
+  - pip uninstall pytest
   - python setup_cpu.py develop
-  - TF_CPP_MIN_LOG_LEVEL=3 pytest -q boltzmann_machines/* --cov=boltzmann_machines
+  - make test
   - codecov
-  #- make install-tests-requirements
 
 script:
   - make test
