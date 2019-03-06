@@ -16,7 +16,8 @@ sudo: required
 
 install:
   - pip install -U setuptools
-  - pip uninstall --yes pytest
+  - pip list
+  - pip uninstall --yes pytest numpy
   - python setup_cpu.py develop
 
 script:
