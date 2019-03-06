@@ -3,3 +3,6 @@ all-modules=True
 exe=True
 with-doctest=True
 exclude-dir=examples
+with-coverage=True
+cover-erase=True
+cover-package=boltzmann_machines
