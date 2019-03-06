@@ -64,11 +64,11 @@ def one_hot(y, n_classes=None):
     --------
     >>> y = [2, 1, 0, 2, 0]
     >>> one_hot(y)
-    array([[ 0.,  0.,  1.],
-           [ 0.,  1.,  0.],
-           [ 1.,  0.,  0.],
-           [ 0.,  0.,  1.],
-           [ 1.,  0.,  0.]])
+    array([[0., 0., 1.],
+           [0., 1., 0.],
+           [1., 0., 0.],
+           [0., 0., 1.],
+           [1., 0., 0.]])
     """
     n_classes = n_classes or np.max(y) + 1
     return np.eye(n_classes)[y]
@@ -152,7 +152,7 @@ def log_diff_exp(x):
     Examples
     --------
     >>> log_diff_exp([1, 2, 3]) #doctest: +ELLIPSIS
-    array([ 1.5413...,  2.5413...])
+    array([1.5413..., 2.5413...])
     >>> [np.log(np.exp(2)-np.exp(1)), np.log(np.exp(3)-np.exp(2))] #doctest: +ELLIPSIS
     [1.5413..., 2.5413...]
     """
@@ -167,8 +167,8 @@ def log_std_exp(x, log_mean_exp_x=None):
     Examples
     --------
     >>> x = np.arange(8.)
-    >>> print x
-    [ 0.  1.  2.  3.  4.  5.  6.  7.]
+    >>> print(x)
+    [0. 1. 2. 3. 4. 5. 6. 7.]
     >>> log_std_exp(x) #doctest: +ELLIPSIS
     5.875416...
     >>> np.log(np.std(np.exp(x))) #doctest: +ELLIPSIS
