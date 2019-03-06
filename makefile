@@ -3,7 +3,7 @@ THIS_FILE := $(lastword $(MAKEFILE_LIST))
 
 test:
 	@$(MAKE) -f $(THIS_FILE) clean
-	TF_CPP_MIN_LOG_LEVEL=3 nosetests --config .noserc --nologcapture --with-coverage
+	TF_CPP_MIN_LOG_LEVEL=3 nosetests --nologcapture --with-coverage --cover-erase --cover-package=boltzmann_machines --nologcapture
 	@$(MAKE) -f $(THIS_FILE) clean
 
 clean:
