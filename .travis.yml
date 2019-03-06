@@ -1,0 +1,28 @@
+language: python
+
+python:
+  - "2.7"
+  - "3.5"
+  - "3.6"
+
+sudo: required
+
+#jobs:
+#  include:
+#    - stage: doc
+#      script:
+#        - make install-docs-requirements
+#        - make docs
+
+install:
+  #- pip3 install -U setuptools
+  #- pip3 install cffi
+  - python setup.py develop
+  #- make install-tests-requirements
+
+script:
+  - make test
+  - #make test-docs
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
