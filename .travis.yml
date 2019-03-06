@@ -18,12 +18,10 @@ install:
   - pip install -U setuptools
   - pip uninstall --yes pytest
   - python setup_cpu.py develop
-  - make test
-  - codecov
 
 script:
   - make test
-  - #make test-docs
+  - codecov
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
