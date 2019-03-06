@@ -4,8 +4,6 @@ from boltzmann_machines.base import TensorFlowModel as TFM
 
 
 class TestWorkingPaths(object):
-    def __init__(self):
-        pass
 
     def test_filename_only(self):
         tf_model = TFM(model_path='model')
