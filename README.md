@@ -1,3 +1,7 @@
+[![Build Status](https://travis-ci.org/monsta-hd/boltzmann-machines.svg?branch=master)](https://travis-ci.org/monsta-hd/boltzmann-machines)
+[![Documentation Status](https://readthedocs.org/projects/srmourasilva-rbm/badge/?version=latest)](http://boltzmann-machine.readthedocs.io/?badge=latest)
+[![Code coverage](https://codecov.io/gh/monsta-hd/boltzmann-machines/branch/master/graph/badge.svg)](https://codecov.io/gh/monsta-hd/boltzmann-machine)
+
 <p float="left">
   <img src="img/dbm_mnist/rbm1.png" width="140" />
   <img src="img/dbm_mnist/samples.png" width="143" />
