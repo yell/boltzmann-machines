@@ -17,7 +17,7 @@ sudo: required
 install:
   #- pip3 install -U setuptools
   #- pip3 install cffi
-  - python setup.py develop
+  - python setup_cpu.py develop
   #- make install-tests-requirements
 
 script:
