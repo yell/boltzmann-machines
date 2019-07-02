@@ -1,5 +1,0 @@
-[nosetests]
-all-modules=True
-exe=True
-with-doctest=True
-exclude-dir=examples
