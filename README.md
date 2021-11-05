@@ -1,6 +1,6 @@
 <p float="left">
   <img src="img/dbm_mnist/rbm1.png" width="129" />
-  <img src="img/dbm_mnist/samples.png" width="131" />
+  <img src="img/dbm_mnist/samples.png" width="132" />
   <img src="img/dbm_cifar2/rbm_small_0.png" width="129" />
   <img src="img/dbm_cifar2/grbm.png" width="129" />
   <img src="img/dbm_cifar2/mrbm.png" width="129" />
