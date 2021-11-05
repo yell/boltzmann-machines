@@ -68,7 +68,7 @@ This repository implements generic and flexible RBM and DBM models with lots of 
 </p>
 
 <p align="center">
-  <img src="img/tensorboard_rbm/hidden_activations.gif" height="224" title="Hidden activations probabilities (means)" />
+  <img src="img/tensorboard_rbm/hidden_activations.gif" height="232" title="Hidden activations probabilities (means)" />
   <img src="img/tensorboard_rbm/mnist_5.gif" height="224" title="Weight filters" />
   <img src="img/tensorboard_rbm/mnist_8.gif" height="224" title="Weight filters" />
 </p>
@@ -96,47 +96,47 @@ This repository implements generic and flexible RBM and DBM models with lots of 
 * `DBM` class can be used also for training RBM and its features: more powerful learning algorithm, estimating logẐ and ELBO, generating samples after training;
 * *visualizations in Tensorboard* (hover images for details) and more:
 <p align="center">
-  <img src="img/tensorboard_dbm/msre.png"         height="170" title="Mean squared reconstruction error" />
-  <img src="img/tensorboard_dbm/n_mf_updates.png" height="170" title="Actual number of mean-field updates" />
-  <img src="img/tensorboard_dbm/W_norm.png"       height="170" title="Maximum absolute value of weight matrix (for each layer)" />
+  <img src="img/tensorboard_dbm/msre.png"         height="156" title="Mean squared reconstruction error" />
+  <img src="img/tensorboard_dbm/n_mf_updates.png" height="156" title="Actual number of mean-field updates" />
+  <img src="img/tensorboard_dbm/W_norm.png"       height="156" title="Maximum absolute value of weight matrix (for each layer)" />
 </p>  
 
 <p align="center">
-  <img src="img/tensorboard_dbm/dist_W.png"   width="280" title="Distribution of weights and biases (in each layer)" />
-  <img src="img/tensorboard_dbm/dist_W2.png"  width="280" title="Distribution of weights and biases (in each layer)" />
-  <img src="img/tensorboard_dbm/dist_hb2.png" width="280" title="Distribution of weights and biases (in each layer)" />
+  <img src="img/tensorboard_dbm/dist_W.png"   width="256" title="Distribution of weights and biases (in each layer)" />
+  <img src="img/tensorboard_dbm/dist_W2.png"  width="256" title="Distribution of weights and biases (in each layer)" />
+  <img src="img/tensorboard_dbm/dist_hb2.png" width="256" title="Distribution of weights and biases (in each layer)" />
 </p>
 
 <p align="center">
-  <img src="img/tensorboard_dbm/dist_dW.png"  width="280" title="Distribution of weights and biases updates (in each layer)" />
-  <img src="img/tensorboard_dbm/dist_dvb.png" width="280" title="Distribution of weights and biases updates (in each layer)" />
-  <img src="img/tensorboard_dbm/dist_mu2.png" width="280" title="Distribution of variational parameters (in each layer)" />
+  <img src="img/tensorboard_dbm/dist_dW.png"  width="256" title="Distribution of weights and biases updates (in each layer)" />
+  <img src="img/tensorboard_dbm/dist_dvb.png" width="256" title="Distribution of weights and biases updates (in each layer)" />
+  <img src="img/tensorboard_dbm/dist_mu2.png" width="256" title="Distribution of variational parameters (in each layer)" />
 </p>
 
 <p align="center">
-  <img src="img/tensorboard_dbm/hist_W.png"  width="280" title="Histogram of weights and biases (in each layer)" />
-  <img src="img/tensorboard_dbm/hist_dW.png" width="280" title="Histogram of weights and biases updates (in each layer)" />
-  <img src="img/tensorboard_dbm/hist_mu.png" width="280" title="Histogram of variational parameters (in each layer)" />
+  <img src="img/tensorboard_dbm/hist_W.png"  width="256" title="Histogram of weights and biases (in each layer)" />
+  <img src="img/tensorboard_dbm/hist_dW.png" width="256" title="Histogram of weights and biases updates (in each layer)" />
+  <img src="img/tensorboard_dbm/hist_mu.png" width="256" title="Histogram of variational parameters (in each layer)" />
 </p>
 
 <p align="center">
-  <img src="img/tensorboard_dbm/mnist_filter_L1_5.gif" width="161" title="Weight filters (in each layer)" />
-  <img src="img/tensorboard_dbm/mnist_filter_L2_6.gif" width="161" title="Weight filters (in each layer)" />
-  <img src="img/tensorboard_dbm/cifar_filter_L1_6.gif" width="161" title="Weight filters (in each layer)" />
-  <img src="img/tensorboard_dbm/cifar_filter_L2_2.gif" width="161" title="Weight filters (in each layer)" />
-  <img src="img/tensorboard_dbm/cifar_filter_L2_6.gif" width="161" title="Weight filters (in each layer)" />
+  <img src="img/tensorboard_dbm/mnist_filter_L1_5.gif" width="148" title="Weight filters (in each layer)" />
+  <img src="img/tensorboard_dbm/mnist_filter_L2_6.gif" width="148" title="Weight filters (in each layer)" />
+  <img src="img/tensorboard_dbm/cifar_filter_L1_6.gif" width="148" title="Weight filters (in each layer)" />
+  <img src="img/tensorboard_dbm/cifar_filter_L2_2.gif" width="148" title="Weight filters (in each layer)" />
+  <img src="img/tensorboard_dbm/cifar_filter_L2_6.gif" width="148" title="Weight filters (in each layer)" />
 </p>
 
 <p align="center">
-  <img src="img/tensorboard_dbm/mnist_particle_L1_2.gif" width="161" title="Negative particles (in each layer)" />
-  <img src="img/tensorboard_dbm/mnist_particle_L1_4.gif" width="161" title="Negative particles (in each layer)" />
-  <img src="img/tensorboard_dbm/cifar_particle_L1_1.gif" width="161" title="Negative particles (in each layer)" />
-  <img src="img/tensorboard_dbm/cifar_particle_L1_2.gif" width="161" title="Negative particles (in each layer)" />
-  <img src="img/tensorboard_dbm/cifar_particle_L1_4.gif" width="161" title="Negative particles (in each layer)" />
+  <img src="img/tensorboard_dbm/mnist_particle_L1_2.gif" width="148" title="Negative particles (in each layer)" />
+  <img src="img/tensorboard_dbm/mnist_particle_L1_4.gif" width="148" title="Negative particles (in each layer)" />
+  <img src="img/tensorboard_dbm/cifar_particle_L1_1.gif" width="148" title="Negative particles (in each layer)" />
+  <img src="img/tensorboard_dbm/cifar_particle_L1_2.gif" width="148" title="Negative particles (in each layer)" />
+  <img src="img/tensorboard_dbm/cifar_particle_L1_4.gif" width="148" title="Negative particles (in each layer)" />
 </p>
 
 <p align="center">
-  <img src="img/tensorboard_dbm/mnist_particles_L23.gif" height="200" title="Negative particles (in each layer)" />
+  <img src="img/tensorboard_dbm/mnist_particles_L23.gif" height="208" title="Negative particles (in each layer)" />
 </p>
 
 ### Common features
