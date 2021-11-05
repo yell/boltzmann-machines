@@ -30,9 +30,6 @@ This repository implements generic and flexible RBM and DBM models with lots of 
 * [Contributing](#contributing)
 * [References](#references)
 
-Boltzmann machines is being sponsored by the following tool; please help to support us by taking a look and signing up to a free trial.
-<a href="https://tracking.gitads.io/?repo=boltzmann-machines"> <img src="https://images.gitads.io/boltzmann-machines" alt="GitAds"/> </a>
-
 ## What's Implemented
 ### Restricted Boltzmann Machines (RBM) 
 * [[computational graph]](img/tensorboard_rbm/tf_graph.png)
@@ -47,41 +44,41 @@ Boltzmann machines is being sponsored by the following tool; please help to supp
 * can be modified for greedy layer-wise pretraining of DBM (see [notes](#tex-notes) or [**[1]**](#1) for details);
 * *visualizations in Tensorboard* (hover images for details) and more:
 <p align="center">
-  <img src="img/tensorboard_rbm/msre.png" height="170" title="Mean squared reconstruction error" />
-  <img src="img/tensorboard_rbm/pll.png" height="170" title="Pseudo log-likelihood" />
-  <img src="img/tensorboard_rbm/feg.png" height="170" title="Free energy gap [4]" />
+  <img src="img/tensorboard_rbm/msre.png" height="156" title="Mean squared reconstruction error" />
+  <img src="img/tensorboard_rbm/pll.png" height="156" title="Pseudo log-likelihood" />
+  <img src="img/tensorboard_rbm/feg.png" height="156" title="Free energy gap [4]" />
 </p>  
 
 <p align="center">
-  <img src="img/tensorboard_rbm/l2_loss.png" height="170" title="L2 loss (weight decay cost times 0.5||W||^2)" />
-  <img src="img/tensorboard_rbm/dist_W.png" width="280" title="Distribution of weights and biases" />
-  <img src="img/tensorboard_rbm/dist_hb.png" width="280" title="Distribution of weights and biases" />
+  <img src="img/tensorboard_rbm/l2_loss.png" height="156" title="L2 loss (weight decay cost times 0.5||W||^2)" />
+  <img src="img/tensorboard_rbm/dist_W.png" width="256" title="Distribution of weights and biases" />
+  <img src="img/tensorboard_rbm/dist_hb.png" width="256" title="Distribution of weights and biases" />
 </p>
 
 <p align="center">
-  <img src="img/tensorboard_rbm/dist_dW.png" width="280" title="Distribution of weights and biases updates" />
-  <img src="img/tensorboard_rbm/dist_dvb.png" width="280" title="Distribution of weights and biases updates" />
-  <img src="img/tensorboard_rbm/hist_W.png" width="280" title="Histogram of weights and biases" />
+  <img src="img/tensorboard_rbm/dist_dW.png" width="256" title="Distribution of weights and biases updates" />
+  <img src="img/tensorboard_rbm/dist_dvb.png" width="256" title="Distribution of weights and biases updates" />
+  <img src="img/tensorboard_rbm/hist_W.png" width="256" title="Histogram of weights and biases" />
 </p>
 
 <p align="center">
-  <img src="img/tensorboard_rbm/hist_hb.png" width="280" title="Histogram of weights and biases" />
-  <img src="img/tensorboard_rbm/hist_dW.png" width="280" title="Histogram of weights and biases updates" />
-  <img src="img/tensorboard_rbm/hist_dvb.png" width="280" title="Histogram of weights and biases updates" />
+  <img src="img/tensorboard_rbm/hist_hb.png" width="256" title="Histogram of weights and biases" />
+  <img src="img/tensorboard_rbm/hist_dW.png" width="256" title="Histogram of weights and biases updates" />
+  <img src="img/tensorboard_rbm/hist_dvb.png" width="256" title="Histogram of weights and biases updates" />
 </p>
 
 <p align="center">
-  <img src="img/tensorboard_rbm/hidden_activations.gif" height="246" title="Hidden activations probabilities (means)" />
-  <img src="img/tensorboard_rbm/mnist_5.gif" height="246" title="Weight filters" />
-  <img src="img/tensorboard_rbm/mnist_8.gif" height="246" title="Weight filters" />
+  <img src="img/tensorboard_rbm/hidden_activations.gif" height="224" title="Hidden activations probabilities (means)" />
+  <img src="img/tensorboard_rbm/mnist_5.gif" height="224" title="Weight filters" />
+  <img src="img/tensorboard_rbm/mnist_8.gif" height="224" title="Weight filters" />
 </p>
 
 <p align="center">
-  <img src="img/tensorboard_rbm/cifar_small_6_1.gif" width="161" title="Weight filters" />
-  <img src="img/tensorboard_rbm/cifar_small_8_6.gif" width="161" title="Weight filters" />
-  <img src="img/tensorboard_rbm/cifar_6.gif"  width="161" title="Weight filters" />
-  <img src="img/tensorboard_rbm/cifar_18.gif" width="161" title="Weight filters" />
-  <img src="img/tensorboard_rbm/cifar_9.gif"  width="161" title="Weight filters" />
+  <img src="img/tensorboard_rbm/cifar_small_6_1.gif" width="148" title="Weight filters" />
+  <img src="img/tensorboard_rbm/cifar_small_8_6.gif" width="148" title="Weight filters" />
+  <img src="img/tensorboard_rbm/cifar_6.gif"  width="148" title="Weight filters" />
+  <img src="img/tensorboard_rbm/cifar_18.gif" width="148" title="Weight filters" />
+  <img src="img/tensorboard_rbm/cifar_9.gif"  width="148" title="Weight filters" />
 </p>
 
 ### Deep Boltzmann Machines (DBM) 
