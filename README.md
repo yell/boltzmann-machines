@@ -258,9 +258,9 @@ Despite poor-looking G-RBM features, classification performance after discrimina
 | Pure backprop 782-10k-10 on PCA whitened data [**[3]**](#3) | **51.53** |
 
 <p float="left">
-  <img src="img/dbm_cifar_naive/grbm.png" width="265" />
-  <img src="img/dbm_cifar_naive/grbm_finetuned.png" width="265" /> 
-  <img src="img/dbm_cifar_naive/grbm_confusion_matrix.png" width="307" />
+  <img src="img/dbm_cifar_naive/grbm.png" width="246" />
+  <img src="img/dbm_cifar_naive/grbm_finetuned.png" width="246" /> 
+  <img src="img/dbm_cifar_naive/grbm_confusion_matrix.png" width="285" />
 </p>
 
 ---
@@ -273,20 +273,20 @@ augmented (x10) using shifts by 1 pixel in all directions and horizontal mirrori
 Notice how some of the particles are already resemble natural images of horses, cars etc. and note that the model is trained only on augmented CIFAR-10 (490k images), compared to 4M images that were used in [**[2]**](#2).
 
 <p float="left">
-  <img src="img/dbm_cifar/rbm_small_0.png" width="210" />
-  <img src="img/dbm_cifar/rbm_small_2.png" width="210" /> 
-  <img src="img/dbm_cifar/rbm_small_10.png" width="210" />
-  <img src="img/dbm_cifar/rbm_small_20.png" width="210" />
+  <img src="img/dbm_cifar/rbm_small_0.png" width="194" />
+  <img src="img/dbm_cifar/rbm_small_2.png" width="194" /> 
+  <img src="img/dbm_cifar/rbm_small_10.png" width="194" />
+  <img src="img/dbm_cifar/rbm_small_20.png" width="194" />
 </p>
 <p float="left">
-  <img src="img/dbm_cifar/grbm.png" width="275" />
-  <img src="img/dbm_cifar/mrbm.png" width="275" /> 
-  <img src="img/dbm_cifar/samples.png" width="275" hspace="11" /> 
+  <img src="img/dbm_cifar/grbm.png" width="255" />
+  <img src="img/dbm_cifar/mrbm.png" width="255" /> 
+  <img src="img/dbm_cifar/samples.png" width="255" hspace="10" /> 
 </p>
 <p float="left">
-  <img src="img/dbm_cifar/W1_joint.png" width="275" />
-  <img src="img/dbm_cifar/W2_joint.png" width="275" /> 
-  <img src="img/dbm_cifar/samples.gif" width="296" /> 
+  <img src="img/dbm_cifar/W1_joint.png" width="255" />
+  <img src="img/dbm_cifar/W2_joint.png" width="255" /> 
+  <img src="img/dbm_cifar/samples.gif" width="275" /> 
 </p>
 
 I also trained for longer with
@@ -298,20 +298,20 @@ python dbm_cifar.py --small-l2 2e-3 --small-epochs 120 --small-sparsity-cost 0 \
 While all RBMs have nicer features, this means that they overfit more than previously, and thus overall DBM performance is slightly worse.
 
 <p float="left">
-  <img src="img/dbm_cifar2/rbm_small_0.png" width="210" />
-  <img src="img/dbm_cifar2/rbm_small_2.png" width="210" /> 
-  <img src="img/dbm_cifar2/rbm_small_10.png" width="210" />
-  <img src="img/dbm_cifar2/rbm_small_20.png" width="210" />
+  <img src="img/dbm_cifar2/rbm_small_0.png" width="194" />
+  <img src="img/dbm_cifar2/rbm_small_2.png" width="194" /> 
+  <img src="img/dbm_cifar2/rbm_small_10.png" width="194" />
+  <img src="img/dbm_cifar2/rbm_small_20.png" width="194" />
 </p>
 <p float="left">
-  <img src="img/dbm_cifar2/grbm.png" width="275" />
-  <img src="img/dbm_cifar2/mrbm.png" width="275" /> 
-  <img src="img/dbm_cifar2/samples.png" width="275" hspace="11" /> 
+  <img src="img/dbm_cifar2/grbm.png" width="255" />
+  <img src="img/dbm_cifar2/mrbm.png" width="255" /> 
+  <img src="img/dbm_cifar2/samples.png" width="255" hspace="10" /> 
 </p>
 <p float="left">
-  <img src="img/dbm_cifar2/W1_joint.png" width="275" />
-  <img src="img/dbm_cifar2/W2_joint.png" width="275" /> 
-  <img src="img/dbm_cifar2/samples.gif" width="296" /> 
+  <img src="img/dbm_cifar2/W1_joint.png" width="255" />
+  <img src="img/dbm_cifar2/W2_joint.png" width="255" /> 
+  <img src="img/dbm_cifar2/samples.gif" width="275" /> 
 </p>
 
 The training with all pre-trainings takes quite a lot of time, but once trained, these nets can be used for other (similar) datasets/tasks.
@@ -328,9 +328,9 @@ Discriminative performance of Gaussian RBM now is very close to state of the art
 How to reproduce this table see [here](docs/grbm_discriminative.md).
 
 <p float="left">
-  <img src="img/dbm_cifar2/grbm.png" width="265" />
-  <img src="img/dbm_cifar2/grbm_no_aug_finetuned.png" width="265" /> 
-  <img src="img/dbm_cifar2/grbm_confusion_matrix.png" width="307" />
+  <img src="img/dbm_cifar2/grbm.png" width="246" />
+  <img src="img/dbm_cifar2/grbm_no_aug_finetuned.png" width="246" /> 
+  <img src="img/dbm_cifar2/grbm_confusion_matrix.png" width="285" />
 </p>
 
 ---
