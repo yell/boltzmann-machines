@@ -56,15 +56,15 @@ This repository implements generic and flexible RBM and DBM models with lots of 
 </p>
 
 <p align="center">
-  <img src="img/tensorboard_rbm/dist_dW.png" width="256" title="Distribution of weights and biases updates" />
-  <img src="img/tensorboard_rbm/dist_dvb.png" width="256" title="Distribution of weights and biases updates" />
-  <img src="img/tensorboard_rbm/hist_W.png" width="256" title="Histogram of weights and biases" />
+  <img src="img/tensorboard_rbm/dist_dW.png" width="258" title="Distribution of weights and biases updates" />
+  <img src="img/tensorboard_rbm/dist_dvb.png" width="258" title="Distribution of weights and biases updates" />
+  <img src="img/tensorboard_rbm/hist_W.png" width="258" title="Histogram of weights and biases" />
 </p>
 
 <p align="center">
-  <img src="img/tensorboard_rbm/hist_hb.png" width="256" title="Histogram of weights and biases" />
-  <img src="img/tensorboard_rbm/hist_dW.png" width="256" title="Histogram of weights and biases updates" />
-  <img src="img/tensorboard_rbm/hist_dvb.png" width="256" title="Histogram of weights and biases updates" />
+  <img src="img/tensorboard_rbm/hist_hb.png" width="258" title="Histogram of weights and biases" />
+  <img src="img/tensorboard_rbm/hist_dW.png" width="258" title="Histogram of weights and biases updates" />
+  <img src="img/tensorboard_rbm/hist_dvb.png" width="258" title="Histogram of weights and biases updates" />
 </p>
 
 <p align="center">
@@ -96,27 +96,27 @@ This repository implements generic and flexible RBM and DBM models with lots of 
 * `DBM` class can be used also for training RBM and its features: more powerful learning algorithm, estimating logẐ and ELBO, generating samples after training;
 * *visualizations in Tensorboard* (hover images for details) and more:
 <p align="center">
-  <img src="img/tensorboard_dbm/msre.png"         height="156" title="Mean squared reconstruction error" />
-  <img src="img/tensorboard_dbm/n_mf_updates.png" height="156" title="Actual number of mean-field updates" />
-  <img src="img/tensorboard_dbm/W_norm.png"       height="156" title="Maximum absolute value of weight matrix (for each layer)" />
+  <img src="img/tensorboard_dbm/msre.png"         height="157" title="Mean squared reconstruction error" />
+  <img src="img/tensorboard_dbm/n_mf_updates.png" height="157" title="Actual number of mean-field updates" />
+  <img src="img/tensorboard_dbm/W_norm.png"       height="157" title="Maximum absolute value of weight matrix (for each layer)" />
 </p>  
 
 <p align="center">
-  <img src="img/tensorboard_dbm/dist_W.png"   width="256" title="Distribution of weights and biases (in each layer)" />
-  <img src="img/tensorboard_dbm/dist_W2.png"  width="256" title="Distribution of weights and biases (in each layer)" />
-  <img src="img/tensorboard_dbm/dist_hb2.png" width="256" title="Distribution of weights and biases (in each layer)" />
+  <img src="img/tensorboard_dbm/dist_W.png"   width="258" title="Distribution of weights and biases (in each layer)" />
+  <img src="img/tensorboard_dbm/dist_W2.png"  width="258" title="Distribution of weights and biases (in each layer)" />
+  <img src="img/tensorboard_dbm/dist_hb2.png" width="258" title="Distribution of weights and biases (in each layer)" />
 </p>
 
 <p align="center">
-  <img src="img/tensorboard_dbm/dist_dW.png"  width="256" title="Distribution of weights and biases updates (in each layer)" />
-  <img src="img/tensorboard_dbm/dist_dvb.png" width="256" title="Distribution of weights and biases updates (in each layer)" />
-  <img src="img/tensorboard_dbm/dist_mu2.png" width="256" title="Distribution of variational parameters (in each layer)" />
+  <img src="img/tensorboard_dbm/dist_dW.png"  width="258" title="Distribution of weights and biases updates (in each layer)" />
+  <img src="img/tensorboard_dbm/dist_dvb.png" width="258" title="Distribution of weights and biases updates (in each layer)" />
+  <img src="img/tensorboard_dbm/dist_mu2.png" width="258" title="Distribution of variational parameters (in each layer)" />
 </p>
 
 <p align="center">
-  <img src="img/tensorboard_dbm/hist_W.png"  width="256" title="Histogram of weights and biases (in each layer)" />
-  <img src="img/tensorboard_dbm/hist_dW.png" width="256" title="Histogram of weights and biases updates (in each layer)" />
-  <img src="img/tensorboard_dbm/hist_mu.png" width="256" title="Histogram of variational parameters (in each layer)" />
+  <img src="img/tensorboard_dbm/hist_W.png"  width="258" title="Histogram of weights and biases (in each layer)" />
+  <img src="img/tensorboard_dbm/hist_dW.png" width="258" title="Histogram of weights and biases updates (in each layer)" />
+  <img src="img/tensorboard_dbm/hist_mu.png" width="258" title="Histogram of variational parameters (in each layer)" />
 </p>
 
 <p align="center">
@@ -160,9 +160,9 @@ Train Bernoulli RBM with 1024 hidden units on MNIST dataset and use it for class
 | RBM + discriminative fine-tuning | **1.27** |
 
 <p float="left">
-  <img src="img/rbm_mnist/filters.png" width="265" />
-  <img src="img/rbm_mnist/filters_finetuned.png" width="265" /> 
-  <img src="img/rbm_mnist/confusion_matrix.png" width="310" />
+  <img src="img/rbm_mnist/filters.png" width="244" />
+  <img src="img/rbm_mnist/filters_finetuned.png" width="244" /> 
+  <img src="img/rbm_mnist/confusion_matrix.png" width="288" />
 </p>
 
 Another simple experiment illustrates main idea of *one-shot learning* approach proposed in [**[2]**](#2): to train generative neural network (RBM or DBM) on large corpus of unlabeled data and after that to *fine-tune* model only on limited amount of labeled data. Of course, in [**[2]**](#2) they do much more complex things than simply pre-training RBM or DBM, but the difference is already noticeable:
@@ -196,19 +196,19 @@ One can probably get better results by tuning the model slightly more.
 Also couple of nats could have been lost because of single-precision (for both training and AIS estimation).
 
 <p float="left">
-  <img src="img/dbm_mnist/rbm1.png" width="280" />
-  <img src="img/dbm_mnist/W1_joint.png" width="280" /> 
-  <img src="img/dbm_mnist/W1_finetuned.png" width="280" />
+  <img src="img/dbm_mnist/rbm1.png" width="258" />
+  <img src="img/dbm_mnist/W1_joint.png" width="258" /> 
+  <img src="img/dbm_mnist/W1_finetuned.png" width="258" />
 </p>
 <p float="left">
-  <img src="img/dbm_mnist/rbm2.png" width="280" />
-  <img src="img/dbm_mnist/W2_joint.png" width="280" /> 
-  <img src="img/dbm_mnist/W2_finetuned.png" width="280" />
+  <img src="img/dbm_mnist/rbm2.png" width="258" />
+  <img src="img/dbm_mnist/W2_joint.png" width="258" /> 
+  <img src="img/dbm_mnist/W2_finetuned.png" width="258" />
 </p>
 <p float="left">
-  <img src="img/dbm_mnist/mnist.png" width="274" />
-  <img src="img/dbm_mnist/samples.png" width="279" /> 
-  <img src="img/dbm_mnist/samples.gif" width="295" />
+  <img src="img/dbm_mnist/mnist.png" width="253" />
+  <img src="img/dbm_mnist/samples.png" width="258" /> 
+  <img src="img/dbm_mnist/samples.gif" width="273" />
 </p>
 
 | number of labeled data pairs (train + val) | DBM + fine-tuning | random initialization | gain |
@@ -236,15 +236,15 @@ significant singular values removed, as suggested in [**[3]**](#3)) with pre-tra
 * use pre-trained Gaussian RBM (G-RBM) for classification.
 
 <p float="left">
-  <img src="img/dbm_cifar_naive/grbm.png" width="210" />
-  <img src="img/dbm_cifar_naive/W1_joint.png" width="210" />
-  <img src="img/dbm_cifar_naive/mrbm.png" width="210" />
-  <img src="img/dbm_cifar_naive/W2_joint.png" width="210" />
+  <img src="img/dbm_cifar_naive/grbm.png" width="194" />
+  <img src="img/dbm_cifar_naive/W1_joint.png" width="194" />
+  <img src="img/dbm_cifar_naive/mrbm.png" width="194" />
+  <img src="img/dbm_cifar_naive/W2_joint.png" width="194" />
 </p>
 <p float="left">
-  <img src="img/dbm_cifar_naive/cifar10_smoothed.png" width="275" />
-  <img src="img/dbm_cifar_naive/samples.png" width="275" />
-  <img src="img/dbm_cifar_naive/samples.gif" width="296" />
+  <img src="img/dbm_cifar_naive/cifar10_smoothed.png" width="255" />
+  <img src="img/dbm_cifar_naive/samples.png" width="255" />
+  <img src="img/dbm_cifar_naive/samples.gif" width="275" />
 </p>
 
 Despite poor-looking G-RBM features, classification performance after discriminative fine-tuning is much larger than reported backprop from random initialization [**[3]**](#3), and is 5% behind best reported result using RBM (with twice larger number of hidden units). Note also that G-RBM is *modified* for DBM pre-training ([notes](#tex-notes) or [**[1]**](#1) for details):
