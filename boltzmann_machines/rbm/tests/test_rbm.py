@@ -5,12 +5,13 @@ from numpy.testing import (assert_allclose,
                            assert_almost_equal,
                            assert_raises)
 
-from rbm import BernoulliRBM, MultinomialRBM, GaussianRBM
-from utils import RNG
+from boltzmann_machines.rbm import BernoulliRBM, MultinomialRBM, GaussianRBM
+from boltzmann_machines.utils import RNG
 
 
 class TestRBM(object):
-    def __init__(self):
+
+    def setup_method(self, method):
         self.n_visible = 12
         self.n_hidden = 8
         self.X = RNG(seed=1337).rand(16, self.n_visible)
@@ -130,5 +131,5 @@ class TestRBM(object):
         # cleanup
         self.cleanup()
 
-    def tearDown(self):
+    def teardown_method(self, method):
         self.cleanup()

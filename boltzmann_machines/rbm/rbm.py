@@ -2,9 +2,9 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.contrib.distributions import Multinomial
 
-from .env import *
-from .base_rbm import BaseRBM
-from layers import BernoulliLayer, MultinomialLayer, GaussianLayer
+from boltzmann_machines.rbm.env import *
+from boltzmann_machines.rbm.base_rbm import BaseRBM
+from boltzmann_machines.layers import BernoulliLayer, MultinomialLayer, GaussianLayer
 
 
 class BernoulliRBM(BaseRBM):
@@ -125,6 +125,6 @@ def logit_mean(X):
 
 if __name__ == '__main__':
     # run corresponding tests
-    from utils.testing import run_tests
-    from tests import test_rbm as t
+    from boltzmann_machines.utils.testing import run_tests
+    from boltzmann_machines.rbm.tests import test_rbm as t
     run_tests(__file__, t)

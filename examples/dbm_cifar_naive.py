@@ -20,7 +20,7 @@ References
 [1] A. Krizhevsky and G. Hinton. Learning multiple layers of features
     from tine images. 2009.
 """
-print __doc__
+print(__doc__)
 
 import os
 import argparse
@@ -33,7 +33,7 @@ from keras.models import Sequential
 from keras.layers import Dense, Activation, Dropout, BatchNormalization as BN
 from sklearn.metrics import accuracy_score
 
-import env
+import examples.env
 from boltzmann_machines import DBM
 from boltzmann_machines.rbm import GaussianRBM, MultinomialRBM
 from boltzmann_machines.utils import (RNG, Stopwatch,
@@ -48,14 +48,14 @@ def make_smoothing(X_train, n_train, args):
 
     do_smoothing = True
     if os.path.isfile(X_s_path):
-        print "\nLoading smoothed data ..."
+        print("\nLoading smoothed data ...")
         X_s = np.load(X_s_path)
-        print "Checking augmented data ..."
+        print("Checking augmented data ...")
         if len(X_s) == n_train:
             do_smoothing = False
 
     if do_smoothing:
-        print "\nSmoothing data ..."
+        print("\nSmoothing data ...")
         X_m = X_train.mean(axis=0)
         X_train -= X_m
         with Stopwatch(verbose=True) as s:
@@ -70,16 +70,17 @@ def make_smoothing(X_train, n_train, args):
 
         # save to disk
         np.save(X_s_path, X_s)
-        print "\n"
+        print("\n")
 
     return X_s
 
-def make_grbm((X_train, X_val), args):
+def make_grbm(X, args):
+    X_train, X_val = X
     if os.path.isdir(args.grbm_dirpath):
-        print "\nLoading G-RBM ...\n\n"
+        print("\nLoading G-RBM ...\n\n")
         grbm = GaussianRBM.load_model(args.grbm_dirpath)
     else:
-        print "\nTraining G-RBM ...\n\n"
+        print("\nTraining G-RBM ...\n\n")
         grbm = GaussianRBM(n_visible=32 * 32 * 3,
                            n_hidden=5000,
                            sigma=1.,
@@ -114,12 +115,13 @@ def make_grbm((X_train, X_val), args):
         grbm.fit(X_train, X_val)
     return grbm
 
-def make_mrbm((Q_train, Q_val), args):
+def make_mrbm(Q, args):
+    Q_train, Q_val = Q
     if os.path.isdir(args.mrbm_dirpath):
-        print "\nLoading M-RBM ...\n\n"
+        print("\nLoading M-RBM ...\n\n")
         mrbm = MultinomialRBM.load_model(args.mrbm_dirpath)
     else:
-        print "\nTraining M-RBM ...\n\n"
+        print("\nTraining M-RBM ...\n\n")
         mrbm = MultinomialRBM(n_visible=5000,
                               n_hidden=1000,
                               n_samples=1000,
@@ -167,13 +169,16 @@ def make_rbm_transform(rbm, X, path, np_dtype=None):
         np.save(path, H)
     return H
 
-def make_dbm((X_train, X_val), rbms, (Q, G), args):
+def make_dbm(X, rbms, params, args):
+    X_train, X_val = X
+    Q, G = params
+
     if os.path.isdir(args.dbm_dirpath):
-        print "\nLoading DBM ...\n\n"
+        print("\nLoading DBM ...\n\n")
         dbm = DBM.load_model(args.dbm_dirpath)
         dbm.load_rbms(rbms)  # !!!
     else:
-        print "\nTraining DBM ...\n\n"
+        print("\nTraining DBM ...\n\n")
         dbm = DBM(rbms=rbms,
                   n_particles=args.n_particles,
                   v_particle_init=X_train[:args.n_particles].copy(),
@@ -205,8 +210,12 @@ def make_dbm((X_train, X_val), rbms, (Q, G), args):
         dbm.fit(X_train, X_val)
     return dbm
 
-def make_mlp((X_train, y_train), (X_val, y_val), (X_test, y_test),
-             (W, hb), args):
+def make_mlp(train, val, test, params, args):
+    X_train, y_train = train
+    X_val, y_val = val
+    X_test, y_test = test
+    W, hb = params
+
     dense_params = {}
     if W is not None and hb is not None:
         dense_params['weights'] = (W, hb)
@@ -247,7 +256,7 @@ def make_mlp((X_train, y_train), (X_val, y_val), (X_test, y_test),
 
     y_pred = mlp.predict(X_test)
     y_pred = unhot(one_hot_decision_function(y_pred), n_classes=10)
-    print "Test accuracy: {:.4f}".format(accuracy_score(y_test, y_pred))
+    print("Test accuracy: {:.4f}".format(accuracy_score(y_test, y_pred)))
 
     # save predictions, targets, and fine-tuned weights
     np.save(args.mlp_save_prefix + 'y_pred.npy', y_pred)
@@ -338,7 +347,7 @@ def main():
             x *= m
 
     # prepare data (load + scale + split)
-    print "\nPreparing data ..."
+    print("\nPreparing data ...")
     X, y = load_cifar10(mode='train', path=args.data_path)
     X = X.astype(np.float32)
     X /= 255.
@@ -353,7 +362,7 @@ def main():
 
     # remove 1000 least significant singular values
     X_train = make_smoothing(X_train, n_train, args)
-    print X_train.shape
+    print(X_train.shape)
 
     # center and normalize training data
     X_s_mean = X_train.mean(axis=0)
@@ -369,15 +378,15 @@ def main():
     X_train /= X_s_std
     X_val -= X_s_mean
     X_val /= X_s_std
-    print "Mean: ({0:.3f}, ...); std: ({1:.3f}, ...)".format(X_train.mean(axis=0)[0],
-                                                             X_train.std(axis=0)[0])
-    print "Range: ({0:.3f}, {1:.3f})\n\n".format(X_train.min(), X_train.max())
+    print("Mean: ({0:.3f}, ...); std: ({1:.3f}, ...)".format(X_train.mean(axis=0)[0],
+                                                             X_train.std(axis=0)[0]))
+    print("Range: ({0:.3f}, {1:.3f})\n\n".format(X_train.min(), X_train.max()))
 
     # pre-train Gaussian RBM
     grbm = make_grbm((X_train, X_val), args)
 
     # extract features Q = p_{G-RBM}(h|v=X)
-    print "\nExtracting features from G-RBM ...\n\n"
+    print("\nExtracting features from G-RBM ...\n\n")
     Q_train, Q_val = None, None
     if not os.path.isdir(args.mrbm_dirpath) or not os.path.isdir(args.dbm_dirpath):
         Q_train_path = os.path.join(args.data_path, 'Q_train_cifar_naive.npy')
@@ -390,7 +399,7 @@ def main():
     mrbm = make_mrbm((Q_train, Q_val), args)
 
     # extract features G = p_{M-RBM}(h|v=Q)
-    print "\nExtracting features from M-RBM ...\n\n"
+    print("\nExtracting features from M-RBM ...\n\n")
     Q, G = None, None
     if not os.path.isdir(args.dbm_dirpath):
         Q = Q_train[:args.n_particles]
@@ -409,7 +418,7 @@ def main():
     # G-RBM discriminative fine-tuning:
     # initialize MLP with learned weights,
     # add FC layer and train using backprop
-    print "\nG-RBM Discriminative fine-tuning ...\n\n"
+    print("\nG-RBM Discriminative fine-tuning ...\n\n")
 
     W, hb = None, None
     if not args.mlp_no_init:

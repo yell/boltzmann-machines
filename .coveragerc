@@ -1,0 +1,11 @@
+[report]
+exclude_lines =
+    def __repr__
+    pass
+    def __str__
+    if __name__ == .__main__.:
+[run]
+omit =
+        *__init__*
+        *future*
+#data_file = /tmp/.coverage

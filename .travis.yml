@@ -1,0 +1,28 @@
+language: python
+
+python:
+  - "2.7"
+  - "3.5"
+  - "3.6"
+
+sudo: required
+
+#jobs:
+#  include:
+#    - stage: doc
+#      script:
+#        - make install-docs-requirements
+#        - make docs
+
+install:
+  - pip install -U setuptools
+  - pip list
+  - pip uninstall --yes pytest numpy
+  - python setup_cpu.py develop
+
+script:
+  - make test
+  - codecov
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)

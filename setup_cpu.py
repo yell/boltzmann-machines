@@ -4,7 +4,7 @@ from setuptools import find_packages
 setup(name='boltzmann_machines',
       version='0.1',
       url='https://github.com/monsta-hd/boltzmann-machines',
-      install_requires=['tensorflow-gpu>=1.13.*,<2.0.0',
+      install_requires=['tensorflow>=1.13.*,<2.0.0',
                         'scipy>=0.17',
                         'keras>=2.0.8',
                         'matplotlib>=1.5.3,<3.0.0',

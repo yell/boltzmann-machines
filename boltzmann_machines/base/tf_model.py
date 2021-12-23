@@ -3,8 +3,7 @@ import json
 import tensorflow as tf
 from functools import wraps
 
-from ..base import (BaseModel, DtypeMixin,
-                                     is_param_name)
+from boltzmann_machines.base import (BaseModel, DtypeMixin, is_param_name)
 
 
 def run_in_tf_session(check_initialized=True, update_seed=False):

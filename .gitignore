@@ -1,14 +1,39 @@
+# Python build
 *.pyc
+
+# Tensorflow files
 *.json
+
+# Pycharm Project
 .idea/*
+.idea
+
+# Virtualenv
 .venv/*
-boltzmann_machines/test_rbm_1/*
-boltzmann_machines/test_rbm_2/*
+
+models/*
+!models/fetch_models.sh
 data/*.npy
 data/mnist/
 data/cifar-10-batches-py/
+
+# Notebooks
 notebooks/.ipynb_checkpoints/*
-models/*
-!models/fetch_models.sh
+
+# TeX files
 tex/*.swp
-.idea
+
+# python setup.py develop
+# python setup_cpu.py develop
+boltzmann_machines.egg-info/
+
+# Coverage
+.coverage
+.coverage*
+!.coveragerc
+coverage.xml
+
+# Research projects
+.tests/
+boltzmann_machines/test_rbm_1/*
+boltzmann_machines/test_rbm_2/*

@@ -1,3 +1,7 @@
+[![Build Status](https://travis-ci.org/monsta-hd/boltzmann-machines.svg?branch=master)](https://travis-ci.org/monsta-hd/boltzmann-machines)
+[![Documentation Status](https://readthedocs.org/projects/srmourasilva-rbm/badge/?version=latest)](http://boltzmann-machine.readthedocs.io/?badge=latest)
+[![Code coverage](https://codecov.io/gh/monsta-hd/boltzmann-machines/branch/master/graph/badge.svg)](https://codecov.io/gh/monsta-hd/boltzmann-machine)
+
 <p float="left">
   <img src="img/dbm_mnist/rbm1.png" width="129" />
   <img src="img/dbm_mnist/samples.png" width="132" />
@@ -424,12 +428,19 @@ Also, you can download additional data (fine-tuned models' predictions, fine-tun
 Check also my supplementary [notes](tex/notes.pdf) (or [dropbox](https://www.dropbox.com/s/7pk4yeixkxogcem/bm_notes.pdf?dl=0)) with some historical outlines, theory, derivations, observations etc.
 
 ## How to install
-By default, the following commands install (among others) **tensorflow-gpu~=1.3.0**. If you want to install tensorflow without GPU support, replace corresponding line in [requirements.txt](requirements.txt). If you have already tensorflow installed, comment that line.
+By default, the following commands install (among others) **tensorflow-gpu~=1.3.0**.  If you have already tensorflow installed, comment that line.
 ```bash
 git clone https://github.com/monsta-hd/boltzmann-machines.git
 cd boltzmann-machines
 pip install -r requirements.txt
 ```
+If you want to install tensorflow without GPU support, use [setup_cpu.py](setup_cpu.py) instead.
+```bash
+git clone https://github.com/monsta-hd/boltzmann-machines.git
+cd boltzmann-machines
+python setup_cpu.py develop
+```
+
 See [here](docs/virtualenv.md) how to run from a ***virtual environment***.
 </br>
 See [here](docs/docker.md) how to run from a ***docker container***.
